@@ -13,7 +13,7 @@ http:
     # =========================================================================
     # FRONTEND - APLICAÇÃO WEB PRINCIPAL
     # =========================================================================
-    
+
     # Frontend HTTPS - Rota principal
     frontend-https:
       rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && !PathPrefix(`/rest`, `/api`, `/actuator`)"
@@ -29,11 +29,11 @@ http:
               - www.conexaodesorte.com.br
       middlewares:
         - frontend-chain@file
-    
+
     # =========================================================================
     # BACKEND - API REST
     # =========================================================================
-    
+
     # Backend API REST - /rest/*
     backend-api-rest:
       rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/rest`)"
@@ -45,7 +45,7 @@ http:
         certResolver: letsencrypt
       middlewares:
         - api-chain@file
-    
+
     # Backend API v1 - /api/v1/*
     backend-api-v1:
       rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1`)"
@@ -61,7 +61,7 @@ http:
         - strip-api-v1-prefix@file
         - add-v1-prefix@file
         - rate-limit-api@file
-    
+
     # Backend Actuator - /actuator/*
     backend-actuator:
       rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/actuator`)"
@@ -75,11 +75,11 @@ http:
         - api-security-headers@file
         - rate-limit@file
         # - admin-whitelist@file  # Descomente para restringir acesso
-    
+
     # =========================================================================
     # SUBDOMÍNIOS DE MONITORAMENTO
     # =========================================================================
-    
+
     # Traefik Dashboard
     traefik-dashboard:
       rule: "Host(`traefik.conexaodesorte.com.br`)"
@@ -92,7 +92,7 @@ http:
       middlewares:
         - dashboard-auth@file
         - security-headers@file
-    
+
     # Prometheus (se habilitado)
     prometheus-monitoring:
       rule: "Host(`prometheus.conexaodesorte.com.br`)"
@@ -105,7 +105,7 @@ http:
       middlewares:
         - dashboard-auth@file
         - security-headers@file
-    
+
     # Grafana (se habilitado)
     grafana-monitoring:
       rule: "Host(`grafana.conexaodesorte.com.br`)"
@@ -117,11 +117,11 @@ http:
         certResolver: letsencrypt
       middlewares:
         - security-headers@file
-    
+
     # =========================================================================
     # ROTAS DE DESENVOLVIMENTO (COMENTADAS POR PADRÃO)
     # =========================================================================
-    
+
     # # Frontend Development
     # frontend-dev:
     #   rule: "Host(`dev.conexaodesorte.com.br`)"
@@ -133,7 +133,7 @@ http:
     #   middlewares:
     #     - cors-dev@file
     #     - security-headers@file
-    
+
     # # Backend Development
     # backend-dev:
     #   rule: "Host(`api-dev.conexaodesorte.com.br`)"
@@ -145,7 +145,7 @@ http:
     #   middlewares:
     #     - cors-dev@file
     #     - api-security-headers@file
-  
+
   # =============================================================================
   # SERVICES (DEFINIÇÕES DE SERVIÇOS)
   # =============================================================================
@@ -157,7 +157,7 @@ http:
       loadBalancer:
         servers:
           - url: "http://conexao-frontend:3000"
-        
+
         # Health check para frontend
         healthCheck:
           path: /
@@ -166,14 +166,14 @@ http:
           timeout: 5s
           headers:
             Host: conexaodesorte.com.br
-        
+
         # Configurações de balanceamento
         sticky:
           cookie:
             name: frontend-server
             secure: true
             httpOnly: true
-    
+
     # =========================================================================
     # BACKEND SERVICE
     # =========================================================================
@@ -181,7 +181,7 @@ http:
       loadBalancer:
         servers:
           - url: "http://conexao-backend:8080"
-        
+
         # Health check para backend
         healthCheck:
           path: /actuator/health/readiness
@@ -190,21 +190,21 @@ http:
           timeout: 10s
           headers:
             Host: conexaodesorte.com.br
-        
+
         # Configurações de balanceamento
         sticky:
           cookie:
             name: backend-server
             secure: true
             httpOnly: true
-        
+
         # Configurações de passthrough
         passHostHeader: true
-    
+
     # =========================================================================
     # MONITORING SERVICES
     # =========================================================================
-    
+
     # Prometheus Service
     prometheus-service:
       loadBalancer:
@@ -214,7 +214,7 @@ http:
           path: /-/healthy
           interval: 30s
           timeout: 5s
-    
+
     # Grafana Service
     grafana-service:
       loadBalancer:
@@ -224,11 +224,11 @@ http:
           path: /api/health
           interval: 30s
           timeout: 5s
-    
+
     # =========================================================================
     # DEVELOPMENT SERVICES (COMENTADOS POR PADRÃO)
     # =========================================================================
-    
+
     # # Frontend Development Service
     # frontend-dev-service:
     #   loadBalancer:
@@ -238,7 +238,7 @@ http:
     #       path: /
     #       interval: 30s
     #       timeout: 5s
-    
+
     # # Backend Development Service
     # backend-dev-service:
     #   loadBalancer:
@@ -255,7 +255,7 @@ http:
 tls:
   # Certificados adicionais (se necessário)
   certificates: []
-  
+
   # Opções TLS específicas por serviço
   options:
     # Configuração TLS para APIs (mais restritiva)
@@ -266,7 +266,7 @@ tls:
         - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
         - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
       sniStrict: true
-    
+
     # Configuração TLS para frontend (compatibilidade)
     frontend-tls:
       minVersion: "VersionTLS12"

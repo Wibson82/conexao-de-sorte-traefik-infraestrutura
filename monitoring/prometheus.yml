@@ -11,7 +11,6 @@ global:
   # Labels externos para identificação
   external_labels:
     ambiente: 'conexao-de-sorte'
-    região: 'brasil'
     projeto: 'centralizado'
 
 # =============================================================================
@@ -37,7 +36,7 @@ scrape_configs:
       - targets: ['conexao-traefik-centralizado:8080']
     scrape_interval: 5s
     metrics_path: /metrics
-    
+
   # Backend Spring Boot
   - job_name: 'conexao-backend'
     static_configs:
@@ -45,7 +44,7 @@ scrape_configs:
     scrape_interval: 10s
     metrics_path: /actuator/prometheus
     scrape_timeout: 8s
-    
+
   # Backend de Teste
   - job_name: 'conexao-backend-teste'
     static_configs:
@@ -60,19 +59,19 @@ scrape_configs:
       - targets: ['conexao-frontend:9113']  # nginx-prometheus-exporter
     scrape_interval: 15s
     metrics_path: /metrics
-    
+
   # Docker Host Metrics (se node_exporter estiver rodando)
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['host.docker.internal:9100']
     scrape_interval: 15s
-    
+
   # MySQL Database (se mysql_exporter estiver configurado)
   - job_name: 'mysql'
     static_configs:
       - targets: ['mysql-exporter:9104']
     scrape_interval: 30s
-    
+
   # Redis Cache (se redis_exporter estiver configurado)
   - job_name: 'redis'
     static_configs:
@@ -86,21 +85,10 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          - 'alertmanager:9093'
+            - 'alertmanager:9093'
       timeout: 10s
 
 # =============================================================================
-# CONFIGURAÇÕES DE PERFORMANCE
+# CONFIGURAÇÕES DE PERFORMANCE E SEGURANÇA
 # =============================================================================
-storage:
-  tsdb:
-    retention.time: 15d
-    retention.size: 10GB
-    
-# =============================================================================
-# CONFIGURAÇÕES DE SEGURANÇA
-# =============================================================================
-# Configurações básicas de segurança para o Prometheus
-web:
-  enable_admin_api: false
-  enable_lifecycle: true
+# Configurações removidas para compatibilidade com a versão do Prometheus

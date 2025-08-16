@@ -31,20 +31,20 @@ services:
     image: traefik:v3.0
     container_name: conexao-traefik-prod
     restart: unless-stopped
-    
+
     ports:
       - "80:80"
       - "443:443"
-    
+
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_data:/etc/traefik
       - traefik_certs:/certs
-    
+
     networks:
       - traefik-public
       - conexao-net
-    
+
     command:
       - "--api.dashboard=true"
       - "--api.insecure=false"
@@ -57,14 +57,14 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
       - "--log.level=INFO"
       - "--accesslog=true"
-    
+
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-    
+
     deploy:
       resources:
         limits:
@@ -79,25 +79,25 @@ services:
     image: ${REGISTRY:-facilita}/${IMAGE_NAME:-conexao-de-sorte-backend}:${TAG:-latest}
     container_name: conexao-backend-prod
     restart: unless-stopped
-    
+
     environment:
       # Spring Profiles - Azure Key Vault via Managed Identity
       - SPRING_PROFILES_ACTIVE=azure,prod
-      
+
       # Azure Key Vault - Managed Identity (apenas endpoint necessário)
       - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
       - AZURE_MANAGED_IDENTITY_ENABLED=true
-      
+
       # JVM Options para Produção
       - JAVA_OPTS=-server -Xms512m -Xmx2048m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError
-      
+
       # Application Configuration
       - SERVER_PORT=8080
       - TZ=America/Sao_Paulo
-      
+
       # IMPORTANTE: Todos os outros secrets vêm do Azure Key Vault automaticamente:
       # - conexao-de-sorte-frontend-database-url
-      # - conexao-de-sorte-frontend-database-username  
+      # - conexao-de-sorte-frontend-database-username
       # - conexao-de-sorte-frontend-database-password
       # - conexao-de-sorte-frontend-jwt-*
       # - conexao-de-sorte-frontend-security-oauth2-*
@@ -107,21 +107,21 @@ services:
     volumes:
       - logs_data:/app/logs
       - tmp_data:/app/tmp
-    
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
       interval: 30s
       timeout: 15s
       retries: 5
       start_period: 90s
-    
+
     depends_on:
       - mysql
-    
+
     networks:
       - conexao-net
       - traefik-public
-    
+
     labels:
       # Traefik Labels para Backend API
       - "traefik.enable=true"
@@ -133,7 +133,7 @@ services:
       - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/rest"
       - "traefik.http.services.backend-api.loadbalancer.server.port=8080"
       - "traefik.docker.network=traefik-public"
-    
+
     deploy:
       resources:
         limits:
@@ -148,18 +148,18 @@ services:
     image: ${REGISTRY:-facilita}/${IMAGE_NAME_FRONTEND:-conexao-de-sorte-frontend}:${TAG:-latest}
     container_name: conexao-frontend-prod
     restart: unless-stopped
-    
+
     networks:
       - conexao-net
       - traefik-public
-    
+
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
-    
+
     labels:
       # Traefik Labels para Frontend
       - "traefik.enable=true"
@@ -169,7 +169,7 @@ services:
       - "traefik.http.routers.frontend.priority=1"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
       - "traefik.docker.network=traefik-public"
-    
+
     deploy:
       resources:
         limits:
@@ -184,7 +184,7 @@ services:
     image: ${REGISTRY:-facilita}/${MYSQL_IMAGE_NAME:-conexao-de-sorte-mysql}:${TAG:-latest}
     container_name: conexao-mysql-prod
     restart: unless-stopped
-    
+
     environment:
       # Database Configuration
       - MYSQL_DATABASE=conexaodb
@@ -196,23 +196,23 @@ services:
     volumes:
       # Dados persistentes do MySQL
       - mysql_data:/var/lib/mysql
-      
+
       # Configurações customizadas
       - ./mysql-config/mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro
-      
+
       # Script de inicialização
       - ./scripts/database/init-mysql-secure.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    
+
     networks:
       - conexao-net
-    
+
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-12345678AbcD}"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
-    
+
     deploy:
       resources:
         limits:

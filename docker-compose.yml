@@ -2,7 +2,7 @@
 # TRAEFIK INFRASTRUCTURE - CONEXÃO DE SORTE
 # =============================================================================
 # Projeto independente para gerenciamento de proxy reverso e load balancer
-# 
+#
 # Responsabilidades:
 # - Roteamento HTTP/HTTPS para todos os serviços
 # - Terminação SSL com Let's Encrypt
@@ -25,37 +25,37 @@ services:
     image: traefik:v3.0
     container_name: conexao-traefik
     restart: unless-stopped
-    
+
     # Portas expostas
     ports:
       - "80:80"       # HTTP (redirect para HTTPS)
       - "443:443"     # HTTPS principal
       - "8090:8080"   # Dashboard do Traefik
-    
+
     # Volumes
     volumes:
       # Socket Docker para descoberta automática
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      
+
       # Configurações centralizadas (file-based)
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./dynamic:/etc/traefik/dynamic:ro
-      
+
       # Dados persistentes
       - traefik_certs:/certs
       - traefik_logs:/var/log/traefik
-    
+
     # Variáveis de ambiente
     environment:
       - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-INFO}
       - ACME_EMAIL=${ACME_EMAIL:-admin@conexaodesorte.com.br}
       - DOMAIN=${DOMAIN:-conexaodesorte.com.br}
-    
+
     # Redes
     networks:
       - conexao-network
       - monitoring
-    
+
     # ✅ SEM LABELS - Configuração 100% file-based em dynamic/
     # Toda configuração de roteamento está em dynamic/services.yml
     labels:
@@ -63,7 +63,7 @@ services:
       - "com.conexaodesorte.component=traefik"
       - "com.conexaodesorte.version=${VERSION:-latest}"
       - "com.conexaodesorte.environment=${ENVIRONMENT:-production}"
-    
+
     # Health check
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
@@ -71,7 +71,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    
+
     # Configurações de deploy
     deploy:
       resources:
@@ -91,14 +91,14 @@ services:
     image: prom/prometheus:latest
     container_name: conexao-prometheus-traefik
     restart: unless-stopped
-    
+
     ports:
       - "9090:9090"
-    
+
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
-    
+
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -106,10 +106,10 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
-    
+
     networks:
       - monitoring
-    
+
     # ✅ SEM LABELS - Roteamento em dynamic/services.yml
     labels:
       - "com.conexaodesorte.service=monitoring"
@@ -122,21 +122,21 @@ services:
     image: grafana/grafana:latest
     container_name: conexao-grafana-traefik
     restart: unless-stopped
-    
+
     ports:
       - "3001:3000"
-    
+
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/traefik.json:ro
-    
+
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
       - GF_USERS_ALLOW_SIGN_UP=false
-    
+
     networks:
       - monitoring
-    
+
     # ✅ SEM LABELS - Roteamento em dynamic/services.yml
     labels:
       - "com.conexaodesorte.service=monitoring"
@@ -151,15 +151,15 @@ volumes:
   # Certificados SSL (persistente)
   traefik_certs:
     driver: local
-  
+
   # Logs do Traefik
   traefik_logs:
     driver: local
-  
+
   # Dados do Prometheus
   prometheus_data:
     driver: local
-  
+
   # Dados do Grafana
   grafana_data:
     driver: local
@@ -172,7 +172,7 @@ networks:
   conexao-network:
     external: true
     name: conexao-network
-  
+
   # Rede interna para monitoramento
   monitoring:
     driver: bridge

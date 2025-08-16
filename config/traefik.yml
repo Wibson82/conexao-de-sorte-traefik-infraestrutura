@@ -26,7 +26,7 @@ entryPoints:
           to: websecure
           scheme: https
           permanent: true
-  
+
   # HTTPS (porta 443) - Entrada principal
   websecure:
     address: ":443"
@@ -37,7 +37,7 @@ entryPoints:
       # Middlewares globais
       middlewares:
         - security-headers@file
-  
+
   # Traefik Dashboard (porta 8080)
   traefik:
     address: ":8080"
@@ -53,18 +53,18 @@ providers:
     network: conexao-network  # Rede padrão para comunicação
     watch: true  # Monitorar mudanças em tempo real
     swarmMode: false
-    
+
     # Configurações de polling
     pollInterval: "5s"
-    
+
     # Configurações de segurança
     useBindPortIP: false
-  
+
   # File Provider - Configurações dinâmicas via arquivos
   file:
     directory: /etc/traefik/dynamic
     watch: true  # Monitorar mudanças nos arquivos
-    
+
   # Ping Provider - Health check interno
   ping:
     entryPoint: traefik
@@ -79,24 +79,24 @@ certificatesResolvers:
       email: ${ACME_EMAIL}
       storage: /certs/acme.json
       caServer: https://acme-v02.api.letsencrypt.org/directory
-      
+
       # HTTP Challenge (recomendado para a maioria dos casos)
       httpChallenge:
         entryPoint: web
-      
+
       # Configurações de segurança
       keyType: EC256
-  
+
   # Let's Encrypt Staging (para testes)
   letsencrypt-staging:
     acme:
       email: ${ACME_EMAIL}
       storage: /certs/acme-staging.json
       caServer: https://acme-staging-v02.api.letsencrypt.org/directory
-      
+
       httpChallenge:
         entryPoint: web
-      
+
       keyType: EC256
 
 # =============================================================================
@@ -118,7 +118,7 @@ tls:
         - CurveP521
         - CurveP384
       sniStrict: true
-    
+
     # Configuração TLS moderna (mais restritiva)
     modern:
       minVersion: "VersionTLS13"
@@ -132,7 +132,7 @@ log:
   level: ${TRAEFIK_LOG_LEVEL}
   format: json
   filePath: /var/log/traefik/traefik.log
-  
+
   # Configurações de rotação de logs
   maxSize: 100
   maxAge: 30
@@ -143,7 +143,7 @@ log:
 accessLog:
   format: json
   filePath: /var/log/traefik/access.log
-  
+
   # Campos a serem logados
   fields:
     defaultMode: keep
@@ -155,7 +155,7 @@ accessLog:
         User-Agent: redact
         Authorization: drop
         Cookie: drop
-  
+
   # Filtros
   filters:
     statusCodes:
@@ -165,7 +165,7 @@ accessLog:
       - "500-599"
     retryAttempts: true
     minDuration: "10ms"
-  
+
   # Configurações de rotação
   maxSize: 100
   maxAge: 30
@@ -195,7 +195,7 @@ metrics:
 global:
   # Não enviar dados de uso anônimo
   sendAnonymousUsage: false
-  
+
   # Verificar novas versões
   checkNewVersion: true
 
