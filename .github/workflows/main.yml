@@ -372,6 +372,11 @@ jobs:
 
     - name: 🔧 Configurar ambiente
       run: |
+        # Configurações básicas
+        echo "DOMAIN=conexaodesorte.com.br" >> .env
+        echo "ACME_EMAIL=facilitaservicos.dev@gmail.com" >> .env
+        echo "VERSION=latest" >> .env
+        
         if [ "${{ needs.detect-changes.outputs.environment }}" == "production" ]; then
           echo "ENVIRONMENT=production" >> .env
           echo "LOG_LEVEL=INFO" >> .env

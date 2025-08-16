@@ -180,7 +180,7 @@ http:
     backend-service:
       loadBalancer:
         servers:
-          - url: "http://conexao-backend:8080"
+          - url: "http://backend-prod:8080"
 
         # Health check para backend
         healthCheck:
