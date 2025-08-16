@@ -85,11 +85,11 @@ jobs:
           SHOULD_DEPLOY="true"
           ENVIRONMENT="production"
           echo "🏷️ Deploy automático via tag"
-        # Deploy em push para main se houver mudanças de config
-        elif [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ] && [ "${{ steps.changes.outputs.config }}" == "true" ]; then
+        # Deploy automático em push para main (padrão)
+        elif [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ]; then
           SHOULD_DEPLOY="true"
           ENVIRONMENT="staging"
-          echo "📝 Deploy automático por mudanças de configuração"
+          echo "📝 Deploy automático em push para main"
         fi
 
         echo "should-deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
@@ -117,7 +117,7 @@ jobs:
     name: ✅ Validação e Testes
     runs-on: ubuntu-latest
     needs: detect-changes
-    if: needs.detect-changes.outputs.config-changed == 'true' || needs.detect-changes.outputs.workflows-changed == 'true' || github.event_name == 'pull_request'
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || needs.detect-changes.outputs.config-changed == 'true' || needs.detect-changes.outputs.workflows-changed == 'true'
 
     steps:
     - name: 📥 Checkout código
