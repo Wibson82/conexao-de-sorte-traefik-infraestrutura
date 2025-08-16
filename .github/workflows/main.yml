@@ -494,9 +494,18 @@ jobs:
           echo "\n📋 Logs do Traefik (últimas 50 linhas):"
           docker compose logs --tail=50 traefik
           
-          echo "\n🌐 Testando conectividade interna:"
-          docker exec conexao-traefik wget -qO- --timeout=5 http://conexao-frontend:3000 > /dev/null && echo "✅ Frontend acessível" || echo "❌ Frontend inacessível"
-          docker exec conexao-traefik wget -qO- --timeout=5 http://conexao-backend:8080/actuator/health > /dev/null && echo "✅ Backend acessível" || echo "❌ Backend inacessível"
+          echo "\n📋 Verificando containers backend e frontend:"
+            docker ps --filter "name=conexao-frontend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Container frontend não encontrado"
+            docker ps --filter "name=conexao-backend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Container backend não encontrado"
+            
+            echo "\n🔗 Verificando redes Docker:"
+            docker network ls | grep conexao || echo "❌ Rede conexao não encontrada"
+            echo "\n📡 Containers na rede conexao-network:"
+            docker network inspect conexao-network --format '{{range .Containers}}{{.Name}} ({{.IPv4Address}}){{"\n"}}{{end}}' 2>/dev/null || echo "❌ Rede conexao-network não existe"
+            
+            echo "\n🌐 Testando conectividade interna:"
+            docker exec conexao-traefik wget -qO- --timeout=5 http://conexao-frontend:3000 > /dev/null && echo "✅ Frontend acessível" || echo "❌ Frontend inacessível"
+            docker exec conexao-traefik wget -qO- --timeout=5 http://conexao-backend:8080/actuator/health > /dev/null && echo "✅ Backend acessível" || echo "❌ Backend inacessível"
           
           echo "\n🔍 Verificando configuração do Traefik:"
           docker exec conexao-traefik traefik version
@@ -513,6 +522,12 @@ jobs:
           
           echo "\n🔍 Verificando rotas ativas no Traefik:"
           curl -s http://localhost:8090/api/http/routers 2>/dev/null | jq '.[] | {name: .name, rule: .rule, status: .status}' 2>/dev/null || echo "❌ API do Traefik inacessível"
+          
+          echo "\n🚨 Verificando rotas desabilitadas especificamente:"
+          docker exec conexao-traefik wget -qO- --timeout=5 http://localhost:8080/api/http/routers 2>/dev/null | jq -r '.[] | select(.status == "disabled") | {name: .name, rule: .rule, service: .service}' || echo "❌ Erro ao verificar rotas desabilitadas"
+          
+          echo "\n🔧 Verificando serviços do Traefik:"
+          docker exec conexao-traefik wget -qO- --timeout=5 http://localhost:8080/api/http/services 2>/dev/null | jq -r '.[] | {name: .name, status: .status, servers: .loadBalancer.servers}' || echo "❌ Erro ao obter serviços"
         EOF
 
         echo "✅ Diagnósticos automáticos concluídos!"
