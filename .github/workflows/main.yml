@@ -1,0 +1,461 @@
+name: "🚀 Traefik Infrastructure - Pipeline Principal"
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Forçar deploy mesmo se validação falhar'
+        required: false
+        default: false
+        type: boolean
+      skip_security:
+        description: 'Pular verificações de segurança'
+        required: false
+        default: false
+        type: boolean
+      environment:
+        description: 'Ambiente de destino'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+  schedule:
+    # Verificações de segurança diárias às 02:00 UTC
+    - cron: '0 2 * * *'
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+  TZ: America/Sao_Paulo
+
+jobs:
+  # =============================================================================
+  # DETECÇÃO DE MUDANÇAS
+  # =============================================================================
+  detect-changes:
+    name: 🔍 Detectar Mudanças
+    runs-on: ubuntu-latest
+    outputs:
+      config-changed: ${{ steps.changes.outputs.config }}
+      workflows-changed: ${{ steps.changes.outputs.workflows }}
+      should-deploy: ${{ steps.deploy-check.outputs.should-deploy }}
+      environment: ${{ steps.deploy-check.outputs.environment }}
+      run-security: ${{ steps.security-check.outputs.run-security }}
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 🔍 Detectar mudanças em arquivos
+      uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          config:
+            - 'config/**'
+            - 'dynamic/**'
+            - 'docker-compose.yml'
+            - '.env.example'
+          workflows:
+            - '.github/workflows/**'
+            - 'scripts/**'
+            
+    - name: 🎯 Verificar necessidade de deploy
+      id: deploy-check
+      run: |
+        SHOULD_DEPLOY="false"
+        ENVIRONMENT="staging"
+        
+        # Deploy forçado via workflow_dispatch
+        if [ "${{ github.event.inputs.force_deploy }}" == "true" ]; then
+          SHOULD_DEPLOY="true"
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+          echo "🚀 Deploy forçado pelo usuário"
+        # Deploy automático em tags para produção
+        elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          SHOULD_DEPLOY="true"
+          ENVIRONMENT="production"
+          echo "🏷️ Deploy automático via tag"
+        # Deploy em push para main se houver mudanças de config
+        elif [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ] && [ "${{ steps.changes.outputs.config }}" == "true" ]; then
+          SHOULD_DEPLOY="true"
+          ENVIRONMENT="staging"
+          echo "📝 Deploy automático por mudanças de configuração"
+        fi
+        
+        echo "should-deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+        echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+        
+    - name: 🔒 Verificar necessidade de security scan
+      id: security-check
+      run: |
+        RUN_SECURITY="false"
+        
+        # Executar sempre em schedule
+        if [ "${{ github.event_name }}" == "schedule" ]; then
+          RUN_SECURITY="true"
+        # Executar em push/PR se não foi pulado
+        elif [ "${{ github.event.inputs.skip_security }}" != "true" ]; then
+          RUN_SECURITY="true"
+        fi
+        
+        echo "run-security=$RUN_SECURITY" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # VALIDAÇÃO E CI
+  # =============================================================================
+  validate:
+    name: ✅ Validação e Testes
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.config-changed == 'true' || needs.detect-changes.outputs.workflows-changed == 'true' || github.event_name == 'pull_request'
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🐳 Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: 📦 Cache Docker layers
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+          
+    - name: 🔧 Validar sintaxe YAML
+      run: |
+        pip install yamllint
+        find . -name "*.yml" -o -name "*.yaml" | xargs yamllint -d relaxed
+        
+    - name: 🔍 Validar configurações Traefik
+      run: |
+        docker run --rm \
+          -v "$PWD/config:/etc/traefik:ro" \
+          -v "$PWD/dynamic:/etc/traefik/dynamic:ro" \
+          traefik:v3.0 \
+          traefik --configfile=/etc/traefik/traefik.yml --dry-run
+          
+    - name: 🧪 Testar docker-compose
+      run: |
+        docker-compose config
+        docker-compose config --services
+        
+    - name: 🌐 Testes de conectividade
+      run: |
+        # Criar rede de teste
+        docker network create traefik-test || true
+        
+        # Iniciar Traefik em modo de teste
+        docker run -d --name traefik-test \
+          --network traefik-test \
+          -p 8080:8080 \
+          -p 80:80 \
+          -v "$PWD/config:/etc/traefik:ro" \
+          -v "$PWD/dynamic:/etc/traefik/dynamic:ro" \
+          -v /var/run/docker.sock:/var/run/docker.sock:ro \
+          traefik:v3.0
+          
+        # Aguardar Traefik inicializar
+        sleep 15
+        
+        # Testar endpoints
+        curl -f http://localhost:8080/api/rawdata || exit 1
+        curl -f http://localhost:8080/dashboard/ || exit 1
+        
+        # Cleanup
+        docker stop traefik-test || true
+        docker rm traefik-test || true
+        docker network rm traefik-test || true
+
+  # =============================================================================
+  # VERIFICAÇÕES DE SEGURANÇA
+  # =============================================================================
+  security:
+    name: 🔒 Verificações de Segurança
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate]
+    if: needs.detect-changes.outputs.run-security == 'true' && (success() || github.event_name == 'schedule')
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 🔍 Scan de secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'HEAD~1' }}
+        head: HEAD
+        extra_args: --debug --only-verified
+        
+    - name: 🐳 Scan de vulnerabilidades em imagens
+      run: |
+        # Instalar Trivy
+        sudo apt-get update
+        sudo apt-get install wget apt-transport-https gnupg lsb-release
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install trivy
+        
+        # Scan da imagem Traefik
+        trivy image --severity HIGH,CRITICAL traefik:v3.0
+        
+    - name: 🛡️ Verificar configurações de segurança
+      run: |
+        echo "🔍 Verificando configurações de segurança..."
+        
+        SCORE=0
+        TOTAL=8
+        
+        # HTTPS obrigatório
+        if grep -q "websecure" config/traefik.yml; then
+          echo "✅ HTTPS configurado"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ HTTPS não configurado"
+        fi
+        
+        # Let's Encrypt
+        if grep -q "letsencrypt" config/traefik.yml; then
+          echo "✅ Let's Encrypt configurado"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Let's Encrypt não configurado"
+        fi
+        
+        # Security headers
+        if grep -q "security-headers" dynamic/middlewares.yml; then
+          echo "✅ Security headers configurados"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Security headers não configurados"
+        fi
+        
+        # Rate limiting
+        if grep -q "rate-limit" dynamic/middlewares.yml; then
+          echo "✅ Rate limiting configurado"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Rate limiting não configurado"
+        fi
+        
+        # Dashboard protegido
+        if grep -A 10 "traefik-dashboard" dynamic/services.yml | grep -q "auth"; then
+          echo "✅ Dashboard protegido"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Dashboard não protegido"
+        fi
+        
+        # TLS versão mínima
+        if grep -q "VersionTLS12" dynamic/services.yml; then
+          echo "✅ TLS versão mínima configurada"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ TLS versão mínima não configurada"
+        fi
+        
+        # Logs de acesso
+        if grep -q "accessLog" config/traefik.yml; then
+          echo "✅ Logs de acesso habilitados"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Logs de acesso não habilitados"
+        fi
+        
+        # Métricas
+        if grep -q "prometheus" config/traefik.yml; then
+          echo "✅ Métricas habilitadas"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Métricas não habilitadas"
+        fi
+        
+        echo ""
+        echo "📊 Score de Segurança: $SCORE/$TOTAL ($(( SCORE * 100 / TOTAL ))%)"
+        
+        if [ $SCORE -lt 6 ]; then
+          echo "⚠️ Score de segurança baixo. Revisar configurações."
+          exit 1
+        fi
+
+  # =============================================================================
+  # BACKUP PRÉ-DEPLOY
+  # =============================================================================
+  backup:
+    name: 💾 Backup Configurações
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate, security]
+    if: needs.detect-changes.outputs.should-deploy == 'true' && (success() || needs.detect-changes.outputs.should-deploy == 'true')
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 💾 Criar backup
+      run: |
+        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+        BACKUP_DIR="backup_configs_${TIMESTAMP}"
+        
+        mkdir -p "$BACKUP_DIR"
+        cp -r config/ "$BACKUP_DIR/"
+        cp -r dynamic/ "$BACKUP_DIR/"
+        cp docker-compose.yml "$BACKUP_DIR/"
+        cp .env.example "$BACKUP_DIR/"
+        
+        cat > "$BACKUP_DIR/metadata.json" << EOF
+        {
+          "timestamp": "$TIMESTAMP",
+          "commit": "${{ github.sha }}",
+          "ref": "${{ github.ref }}",
+          "environment": "${{ needs.detect-changes.outputs.environment }}",
+          "actor": "${{ github.actor }}"
+        }
+        EOF
+        
+        tar -czf "backup_configs_${TIMESTAMP}.tar.gz" "$BACKUP_DIR"
+        echo "📦 Backup criado: backup_configs_${TIMESTAMP}.tar.gz"
+        
+    - name: 📤 Upload backup
+      uses: actions/upload-artifact@v4
+      with:
+        name: config-backup-${{ github.sha }}
+        path: backup_configs_*.tar.gz
+        retention-days: 30
+
+  # =============================================================================
+  # DEPLOY
+  # =============================================================================
+  deploy:
+    name: 🚀 Deploy ${{ needs.detect-changes.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate, security, backup]
+    if: needs.detect-changes.outputs.should-deploy == 'true' && success()
+    environment: ${{ needs.detect-changes.outputs.environment }}
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Configurar ambiente
+      run: |
+        if [ "${{ needs.detect-changes.outputs.environment }}" == "production" ]; then
+          echo "ENVIRONMENT=production" >> .env
+          echo "LOG_LEVEL=INFO" >> .env
+          echo "TRAEFIK_LOG_LEVEL=INFO" >> .env
+        else
+          echo "ENVIRONMENT=staging" >> .env
+          echo "LOG_LEVEL=DEBUG" >> .env
+          echo "TRAEFIK_LOG_LEVEL=DEBUG" >> .env
+        fi
+        
+        echo "DEPLOY_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
+        echo "DEPLOY_COMMIT=${{ github.sha }}" >> .env
+        
+    - name: 🔑 Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        
+    - name: 📦 Preparar e enviar arquivos
+      run: |
+        tar -czf deploy-package.tar.gz config/ dynamic/ docker-compose.yml .env
+        scp deploy-package.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:~/traefik-deploy/
+        
+    - name: 🐳 Deploy via SSH
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          cd ~/traefik-deploy
+          
+          echo "🚀 Iniciando deploy para ${{ needs.detect-changes.outputs.environment }}"
+          
+          # Extrair e preparar
+          tar -xzf deploy-package.tar.gz
+          
+          if [ -d "current" ]; then
+            mv current backup-$(date +%Y%m%d_%H%M%S)
+          fi
+          
+          mkdir -p current
+          mv config dynamic docker-compose.yml .env current/
+          cd current
+          
+          # Deploy
+          docker-compose config
+          docker-compose pull
+          docker-compose up -d --force-recreate traefik
+          
+          echo "✅ Deploy concluído!"
+        EOF
+        
+    - name: 🔍 Verificação pós-deploy
+      run: |
+        echo "🔍 Verificando saúde dos serviços..."
+        sleep 30
+        
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          cd ~/traefik-deploy/current
+          docker-compose ps
+          docker-compose logs --tail=20 traefik
+        EOF
+        
+        echo "✅ Verificações concluídas!"
+
+  # =============================================================================
+  # NOTIFICAÇÕES E RELATÓRIOS
+  # =============================================================================
+  report:
+    name: 📋 Relatório Final
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate, security, backup, deploy]
+    if: always()
+    
+    steps:
+    - name: 📊 Consolidar resultados
+      run: |
+        echo "📋 Relatório do Pipeline - $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "================================================"
+        echo "📝 Commit: ${{ github.sha }}"
+        echo "🌿 Branch: ${{ github.ref_name }}"
+        echo "👤 Autor: ${{ github.actor }}"
+        echo "🎯 Ambiente: ${{ needs.detect-changes.outputs.environment }}"
+        echo ""
+        
+        echo "📊 Status dos Jobs:"
+        echo "- Detecção de Mudanças: ✅"
+        echo "- Validação: ${{ needs.validate.result == 'success' && '✅' || '❌' }}"
+        echo "- Segurança: ${{ needs.security.result == 'success' && '✅' || needs.detect-changes.outputs.run-security == 'false' && '⏭️' || '❌' }}"
+        echo "- Backup: ${{ needs.backup.result == 'success' && '✅' || needs.detect-changes.outputs.should-deploy == 'false' && '⏭️' || '❌' }}"
+        echo "- Deploy: ${{ needs.deploy.result == 'success' && '✅' || needs.detect-changes.outputs.should-deploy == 'false' && '⏭️' || '❌' }}"
+        echo ""
+        
+        # Determinar status geral
+        if [ "${{ needs.validate.result }}" == "success" ] && \
+           ([ "${{ needs.security.result }}" == "success" ] || [ "${{ needs.detect-changes.outputs.run-security }}" == "false" ]) && \
+           ([ "${{ needs.deploy.result }}" == "success" ] || [ "${{ needs.detect-changes.outputs.should-deploy }}" == "false" ]); then
+          echo "🎉 Pipeline executado com sucesso!"
+        else
+          echo "⚠️ Pipeline teve falhas. Revisar logs acima."
+        fi
+        
+        echo ""
+        echo "🔗 Links úteis:"
+        echo "- Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo "- Commit: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
