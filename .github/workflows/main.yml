@@ -457,10 +457,16 @@ jobs:
           mv config dynamic docker-compose.yml .env current/
           cd current
 
+          # Parar containers Traefik existentes para evitar conflito de porta
+          echo "🛑 Parando containers Traefik existentes..."
+          docker stop $(docker ps -q --filter "name=traefik") 2>/dev/null || echo "Nenhum container Traefik rodando"
+          docker rm $(docker ps -aq --filter "name=traefik") 2>/dev/null || echo "Nenhum container Traefik para remover"
+          
           # Deploy
+          echo "🚀 Iniciando novo deploy..."
           docker compose config
-        docker compose pull
-        docker compose up -d --force-recreate traefik
+          docker compose pull
+          docker compose up -d --force-recreate traefik
 
           echo "✅ Deploy concluído!"
         EOF
