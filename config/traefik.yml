@@ -10,7 +10,7 @@
 # =============================================================================
 api:
   dashboard: true
-  insecure: false  # Dashboard apenas via HTTPS
+  insecure: true   # Permitir acesso local para diagnósticos
   debug: false
 
 # =============================================================================
@@ -22,7 +22,7 @@ entryPoints:
     address: ":80"
     http:
       redirections:
-        entrypoint:
+        entryPoint:
           to: websecure
           scheme: https
           permanent: true
