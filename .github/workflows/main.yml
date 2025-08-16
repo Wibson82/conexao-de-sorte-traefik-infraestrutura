@@ -385,14 +385,9 @@ jobs:
         echo "DEPLOY_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
         echo "DEPLOY_COMMIT=${{ github.sha }}" >> .env
 
-    - name: 🔑 Setup SSH
+    - name: 🧪 Teste de Conectividade SSH
       run: |
         # Validar secrets obrigatórios
-        if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
-          echo "❌ Erro: VPS_SSH_KEY não configurado"
-          exit 1
-        fi
-        
         if [ -z "${{ secrets.SSH_HOST }}" ]; then
           echo "❌ Erro: SSH_HOST não configurado"
           exit 1
@@ -403,6 +398,18 @@ jobs:
           exit 1
         fi
         
+        # Executar teste de conectividade SSH
+        echo "🔍 Executando teste de conectividade SSH..."
+        GITHUB_ACTIONS=true ./scripts/test-ssh-connectivity.sh "${{ secrets.SSH_HOST }}" "${{ secrets.SSH_USER }}"
+
+    - name: 🔑 Setup SSH
+      run: |
+        # Validar chave SSH
+        if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+          echo "❌ Erro: VPS_SSH_KEY não configurado"
+          exit 1
+        fi
+        
         echo "✅ Secrets SSH validados"
         
         # Configurar SSH
@@ -410,33 +417,11 @@ jobs:
         echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         
-        # Validar conectividade do host
-         echo "🔍 Testando conectividade com ${{ secrets.SSH_HOST }}..."
-         
-         # Primeiro, testar resolução DNS
-         if ! nslookup "${{ secrets.SSH_HOST }}" > /dev/null 2>&1; then
-           echo "❌ Erro: Não foi possível resolver o hostname ${{ secrets.SSH_HOST }}"
-           echo "Verifique se o SSH_HOST está correto"
-           exit 1
-         fi
-         
-         # Testar conectividade de rede
-         if ! ping -c 1 -W 5 "${{ secrets.SSH_HOST }}" > /dev/null 2>&1; then
-           echo "⚠️ Host não responde ao ping, mas DNS resolve. Continuando..."
-         fi
-         
-         # Testar porta SSH
-         if ! ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" > /dev/null 2>&1; then
-           echo "❌ Erro: Não foi possível conectar ao servidor SSH na porta 22"
-           echo "Verifique se o servidor SSH está rodando e acessível"
-           exit 1
-         fi
-         
-         # Adicionar host às known_hosts
-         echo "🔍 Adicionando ${{ secrets.SSH_HOST }} às known_hosts..."
-         ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
-         
-         echo "✅ SSH configurado com sucesso"
+        # Adicionar host às known_hosts
+        echo "🔍 Adicionando ${{ secrets.SSH_HOST }} às known_hosts..."
+        ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+        
+        echo "✅ SSH configurado com sucesso"
 
     - name: 📦 Preparar e enviar arquivos
       run: |
