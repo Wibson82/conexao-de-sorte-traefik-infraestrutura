@@ -123,7 +123,7 @@ tls:
 # LOGGING
 # =============================================================================
 log:
-  level: ${TRAEFIK_LOG_LEVEL}
+  level: INFO
   format: json
   filePath: /var/log/traefik/traefik.log
 
