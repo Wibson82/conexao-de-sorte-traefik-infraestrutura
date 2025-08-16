@@ -1,0 +1,510 @@
+# ===== CONFIGURAÇÃO ALERTMANAGER =====
+# Sistema: Conexão de Sorte - Backend
+# Função: Gerenciamento e roteamento de alertas
+# Versão: 1.0.0
+# Data: $(date +"%d/%m/%Y")
+
+# ===== CONFIGURAÇÕES GLOBAIS =====
+global:
+  # SMTP para envio de emails
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alertas@conexaodesorte.com.br'
+  smtp_auth_username: 'alertas@conexaodesorte.com.br'
+  smtp_auth_password: '${SMTP_PASSWORD}' # Configurar via Azure Key Vault
+  smtp_require_tls: true
+  
+  # Slack webhook (configurar via Azure Key Vault)
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+  
+  # Configurações de resolução
+  resolve_timeout: 5m
+
+# ===== TEMPLATES =====
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# ===== ROTEAMENTO DE ALERTAS =====
+route:
+  # Configurações padrão
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default-receiver'
+  
+  # Rotas específicas
+  routes:
+    # ===== ALERTAS CRÍTICOS =====
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      group_interval: 5s
+      repeat_interval: 15m
+      routes:
+        # Aplicação down - notificação imediata
+        - match:
+            alertname: ApplicationDown
+          receiver: 'application-down'
+          group_wait: 0s
+          repeat_interval: 5m
+        
+        # Banco down - notificação imediata
+        - match:
+            alertname: DatabaseDown
+          receiver: 'database-down'
+          group_wait: 0s
+          repeat_interval: 5m
+        
+        # LGPD compliance - notificação para DPO
+        - match:
+            service: lgpd
+          receiver: 'lgpd-compliance'
+          group_wait: 0s
+          repeat_interval: 30m
+    
+    # ===== ALERTAS DE WARNING =====
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 2h
+      routes:
+        # Infraestrutura
+        - match:
+            service: infrastructure
+          receiver: 'infrastructure-alerts'
+        
+        # Negócio
+        - match:
+            service: business
+          receiver: 'business-alerts'
+        
+        # Segurança
+        - match:
+            service: security
+          receiver: 'security-alerts'
+    
+    # ===== ALERTAS DE MONITORAMENTO =====
+    - match:
+        service: monitoring
+      receiver: 'monitoring-alerts'
+      group_wait: 1m
+      repeat_interval: 4h
+    
+    # ===== HORÁRIO COMERCIAL vs FORA DO HORÁRIO =====
+    - match_re:
+        severity: (critical|warning)
+      receiver: 'business-hours'
+      active_time_intervals:
+        - business-hours
+    
+    - match_re:
+        severity: critical
+      receiver: 'after-hours-critical'
+      active_time_intervals:
+        - after-hours
+
+# ===== INTERVALOS DE TEMPO =====
+time_intervals:
+  # Horário comercial (Segunda a Sexta, 8h às 18h, horário de Brasília)
+  - name: business-hours
+    time_intervals:
+      - times:
+          - start_time: '08:00'
+            end_time: '18:00'
+        weekdays: ['monday:friday']
+        location: 'America/Sao_Paulo'
+  
+  # Fora do horário comercial
+  - name: after-hours
+    time_intervals:
+      - times:
+          - start_time: '18:01'
+            end_time: '07:59'
+        weekdays: ['monday:friday']
+        location: 'America/Sao_Paulo'
+      - times:
+          - start_time: '00:00'
+            end_time: '23:59'
+        weekdays: ['saturday', 'sunday']
+        location: 'America/Sao_Paulo'
+
+# ===== INIBIÇÕES =====
+inhibit_rules:
+  # Se aplicação está down, não alertar sobre latência/erros
+  - source_match:
+      alertname: ApplicationDown
+    target_match_re:
+      alertname: (HighLatency|HighErrorRate|ModerateErrorRate)
+    equal: ['instance']
+  
+  # Se banco está down, não alertar sobre pool de conexões
+  - source_match:
+      alertname: DatabaseDown
+    target_match_re:
+      alertname: (DatabaseConnectionPoolExhausted|HighDatabaseConnections)
+    equal: ['instance']
+  
+  # Se há problemas críticos de memória, não alertar sobre GC
+  - source_match:
+      alertname: CriticalMemoryUsage
+    target_match:
+      alertname: FrequentGarbageCollection
+    equal: ['instance']
+
+# ===== RECEIVERS (DESTINATÁRIOS) =====
+receivers:
+  # ===== RECEIVER PADRÃO =====
+  - name: 'default-receiver'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alertas-geral'
+        title: '🔔 Alerta - Conexão de Sorte'
+        text: |
+          *Alerta:* {{ .GroupLabels.alertname }}
+          *Severidade:* {{ .GroupLabels.severity }}
+          *Serviço:* {{ .GroupLabels.service }}
+          *Descrição:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+        send_resolved: true
+  
+  # ===== ALERTAS CRÍTICOS =====
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'devops@conexaodesorte.com.br'
+        subject: '🚨 CRÍTICO - {{ .GroupLabels.alertname }} - Conexão de Sorte'
+        body: |
+          ALERTA CRÍTICO DETECTADO!
+          
+          Alerta: {{ .GroupLabels.alertname }}
+          Severidade: {{ .GroupLabels.severity }}
+          Serviço: {{ .GroupLabels.service }}
+          
+          {{ range .Alerts }}
+          Descrição: {{ .Annotations.description }}
+          Ação Requerida: {{ .Annotations.action }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+          
+          Ação imediata necessária!
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alertas-criticos'
+        title: '🚨 CRÍTICO - {{ .GroupLabels.alertname }}'
+        text: |
+          <!channel> ALERTA CRÍTICO!
+          
+          *Alerta:* {{ .GroupLabels.alertname }}
+          *Severidade:* {{ .GroupLabels.severity }}
+          *Serviço:* {{ .GroupLabels.service }}
+          
+          {{ range .Alerts }}
+          *Descrição:* {{ .Annotations.description }}
+          *Ação:* {{ .Annotations.action }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+        color: 'danger'
+  
+  # ===== APLICAÇÃO DOWN =====
+  - name: 'application-down'
+    email_configs:
+      - to: 'devops@conexaodesorte.com.br,cto@conexaodesorte.com.br'
+        subject: '🚨 URGENTE - Aplicação DOWN - Conexão de Sorte'
+        body: |
+          APLICAÇÃO COMPLETAMENTE INACESSÍVEL!
+          
+          A aplicação Conexão de Sorte está completamente down.
+          Ação imediata necessária para restaurar o serviço.
+          
+          {{ range .Alerts }}
+          Instância: {{ .Labels.instance }}
+          Descrição: {{ .Annotations.description }}
+          Ação: {{ .Annotations.action }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alertas-criticos'
+        title: '🚨 APLICAÇÃO DOWN'
+        text: |
+          <!channel> 🚨 APLICAÇÃO COMPLETAMENTE DOWN! 🚨
+          
+          A aplicação Conexão de Sorte está inacessível.
+          Intervenção imediata necessária!
+          
+          {{ range .Alerts }}
+          *Instância:* {{ .Labels.instance }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+        color: 'danger'
+  
+  # ===== BANCO DOWN =====
+  - name: 'database-down'
+    email_configs:
+      - to: 'devops@conexaodesorte.com.br,dba@conexaodesorte.com.br'
+        subject: '🚨 URGENTE - Banco de Dados DOWN - Conexão de Sorte'
+        body: |
+          BANCO DE DADOS INACESSÍVEL!
+          
+          O MySQL está down, impactando toda a aplicação.
+          
+          {{ range .Alerts }}
+          Descrição: {{ .Annotations.description }}
+          Ação: {{ .Annotations.action }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alertas-criticos'
+        title: '🚨 BANCO DOWN'
+        text: |
+          <!channel> 🚨 BANCO DE DADOS DOWN! 🚨
+          
+          MySQL inacessível - aplicação impactada!
+          
+          {{ range .Alerts }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+        color: 'danger'
+  
+  # ===== LGPD COMPLIANCE =====
+  - name: 'lgpd-compliance'
+    email_configs:
+      - to: 'dpo@conexaodesorte.com.br,compliance@conexaodesorte.com.br'
+        subject: '🚨 LGPD - Falha no Processamento de Dados Pessoais'
+        body: |
+          ALERTA DE COMPLIANCE LGPD!
+          
+          Detectada falha no processamento de dados pessoais.
+          Notificação obrigatória conforme LGPD.
+          
+          {{ range .Alerts }}
+          Descrição: {{ .Annotations.description }}
+          Ação: {{ .Annotations.action }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+          
+          DPO deve ser notificado imediatamente.
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#compliance-lgpd'
+        title: '🚨 LGPD - Falha no Processamento'
+        text: |
+          <!channel> 🚨 ALERTA LGPD! 🚨
+          
+          Falha no processamento de dados pessoais detectada.
+          DPO deve ser notificado.
+          
+          {{ range .Alerts }}
+          *Descrição:* {{ .Annotations.description }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+        color: 'danger'
+  
+  # ===== ALERTAS DE WARNING =====
+  - name: 'warning-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alertas-warning'
+        title: '⚠️ Warning - {{ .GroupLabels.alertname }}'
+        text: |
+          *Alerta:* {{ .GroupLabels.alertname }}
+          *Severidade:* {{ .GroupLabels.severity }}
+          *Serviço:* {{ .GroupLabels.service }}
+          
+          {{ range .Alerts }}
+          *Descrição:* {{ .Annotations.description }}
+          *Ação:* {{ .Annotations.action }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+  
+  # ===== INFRAESTRUTURA =====
+  - name: 'infrastructure-alerts'
+    email_configs:
+      - to: 'devops@conexaodesorte.com.br'
+        subject: '⚠️ Infraestrutura - {{ .GroupLabels.alertname }}'
+        body: |
+          Alerta de infraestrutura detectado.
+          
+          {{ range .Alerts }}
+          Descrição: {{ .Annotations.description }}
+          Ação: {{ .Annotations.action }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#infraestrutura'
+        title: '⚠️ Infraestrutura - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Descrição:* {{ .Annotations.description }}
+          *Ação:* {{ .Annotations.action }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+  
+  # ===== NEGÓCIO =====
+  - name: 'business-alerts'
+    email_configs:
+      - to: 'product@conexaodesorte.com.br,business@conexaodesorte.com.br'
+        subject: '⚠️ Negócio - {{ .GroupLabels.alertname }}'
+        body: |
+          Alerta de métricas de negócio detectado.
+          
+          {{ range .Alerts }}
+          Descrição: {{ .Annotations.description }}
+          Ação: {{ .Annotations.action }}
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#metricas-negocio'
+        title: '⚠️ Negócio - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Descrição:* {{ .Annotations.description }}
+          *Ação:* {{ .Annotations.action }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+  
+  # ===== SEGURANÇA =====
+  - name: 'security-alerts'
+    email_configs:
+      - to: 'security@conexaodesorte.com.br,devops@conexaodesorte.com.br'
+        subject: '⚠️ Segurança - {{ .GroupLabels.alertname }}'
+        body: |
+          Alerta de segurança detectado.
+          
+          {{ range .Alerts }}
+          Descrição: {{ .Annotations.description }}
+          Ação: {{ .Annotations.action }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#seguranca'
+        title: '⚠️ Segurança - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Descrição:* {{ .Annotations.description }}
+          *Ação:* {{ .Annotations.action }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+  
+  # ===== MONITORAMENTO =====
+  - name: 'monitoring-alerts'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#monitoramento'
+        title: '⚠️ Monitoramento - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Descrição:* {{ .Annotations.description }}
+          *Ação:* {{ .Annotations.action }}
+          {{ end }}
+        send_resolved: true
+        color: 'warning'
+  
+  # ===== HORÁRIO COMERCIAL =====
+  - name: 'business-hours'
+    email_configs:
+      - to: 'devops@conexaodesorte.com.br'
+        subject: '🔔 Alerta - {{ .GroupLabels.alertname }} (Horário Comercial)'
+        body: |
+          Alerta durante horário comercial.
+          
+          {{ range .Alerts }}
+          Descrição: {{ .Annotations.description }}
+          Ação: {{ .Annotations.action }}
+          {{ end }}
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#alertas-geral'
+        title: '🔔 {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Descrição:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+  
+  # ===== FORA DO HORÁRIO - APENAS CRÍTICOS =====
+  - name: 'after-hours-critical'
+    email_configs:
+      - to: 'oncall@conexaodesorte.com.br'
+        subject: '🚨 CRÍTICO - {{ .GroupLabels.alertname }} (Fora do Horário)'
+        body: |
+          ALERTA CRÍTICO FORA DO HORÁRIO COMERCIAL!
+          
+          {{ range .Alerts }}
+          Descrição: {{ .Annotations.description }}
+          Ação: {{ .Annotations.action }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+          
+          Plantão deve ser acionado.
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#plantao'
+        title: '🚨 CRÍTICO - {{ .GroupLabels.alertname }}'
+        text: |
+          <!channel> 🚨 CRÍTICO FORA DO HORÁRIO! 🚨
+          
+          {{ range .Alerts }}
+          *Descrição:* {{ .Annotations.description }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        send_resolved: true
+        color: 'danger'
+
+# ===== CONFIGURAÇÕES ADICIONAIS =====
+# 
+# Variáveis de ambiente necessárias:
+# - SMTP_PASSWORD: Senha do email de alertas (Azure Key Vault)
+# - SLACK_WEBHOOK_URL: URL do webhook do Slack (Azure Key Vault)
+# 
+# Canais Slack recomendados:
+# - #alertas-geral: Alertas gerais
+# - #alertas-criticos: Alertas críticos
+# - #alertas-warning: Alertas de warning
+# - #infraestrutura: Alertas de infraestrutura
+# - #metricas-negocio: Alertas de negócio
+# - #seguranca: Alertas de segurança
+# - #compliance-lgpd: Alertas LGPD
+# - #monitoramento: Alertas do próprio monitoramento
+# - #plantao: Alertas críticos fora do horário
+# 
+# Emails recomendados:
+# - devops@conexaodesorte.com.br: Equipe DevOps
+# - dpo@conexaodesorte.com.br: Data Protection Officer
+# - compliance@conexaodesorte.com.br: Equipe de Compliance
+# - security@conexaodesorte.com.br: Equipe de Segurança
+# - product@conexaodesorte.com.br: Equipe de Produto
+# - business@conexaodesorte.com.br: Equipe de Negócio
+# - oncall@conexaodesorte.com.br: Plantão 24x7
+# - cto@conexaodesorte.com.br: CTO
+# - dba@conexaodesorte.com.br: DBA

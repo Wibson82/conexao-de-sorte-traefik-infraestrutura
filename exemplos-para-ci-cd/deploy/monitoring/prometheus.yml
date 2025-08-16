@@ -1,0 +1,52 @@
+# 📊 Configuração do Prometheus - Conexão de Sorte
+# ✅ Monitoramento completo da aplicação
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Regras de alerta
+rule_files:
+  - "alert_rules.yml"
+
+# Configuração de scraping
+scrape_configs:
+  # ===== PROMETHEUS SELF-MONITORING =====
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ===== SPRING BOOT BACKEND =====
+  - job_name: 'conexao-backend-green'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['backend-green:8080']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  - job_name: 'conexao-backend-blue'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['backend-blue:8080']
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # ===== MYSQL DATABASE =====
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql:3306']
+    scrape_interval: 30s
+
+
+  # ===== SYSTEM METRICS (Node Exporter) =====
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+# Configuração de alertas (Alertmanager)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093

@@ -1,0 +1,353 @@
+name: Security - Verificações de Segurança
+
+on:
+  schedule:
+    # Executar diariamente às 02:00 UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  # =============================================================================
+  # ANÁLISE DE VULNERABILIDADES
+  # =============================================================================
+  vulnerability-scan:
+    name: 🔍 Scan de Vulnerabilidades
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🔍 Scan de secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+        
+    - name: 🐳 Scan de imagens Docker
+      run: |
+        # Instalar Trivy
+        sudo apt-get update
+        sudo apt-get install wget apt-transport-https gnupg lsb-release
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install trivy
+        
+        # Scan da imagem Traefik
+        trivy image --severity HIGH,CRITICAL traefik:v3.0
+        
+    - name: 📋 Análise de configurações
+      run: |
+        echo "🔍 Verificando configurações de segurança..."
+        
+        # Verificar se HTTPS está habilitado
+        if ! grep -q "websecure" config/traefik.yml; then
+          echo "⚠️ HTTPS não está configurado!"
+        fi
+        
+        # Verificar certificados SSL
+        if ! grep -q "letsencrypt" config/traefik.yml; then
+          echo "⚠️ Let's Encrypt não está configurado!"
+        fi
+        
+        # Verificar headers de segurança
+        if ! grep -q "X-Frame-Options" dynamic/middlewares.yml; then
+          echo "⚠️ Header X-Frame-Options não configurado!"
+        fi
+        
+        if ! grep -q "X-Content-Type-Options" dynamic/middlewares.yml; then
+          echo "⚠️ Header X-Content-Type-Options não configurado!"
+        fi
+        
+        if ! grep -q "Strict-Transport-Security" dynamic/middlewares.yml; then
+          echo "⚠️ HSTS não configurado!"
+        fi
+
+  # =============================================================================
+  # VERIFICAÇÃO DE CERTIFICADOS SSL
+  # =============================================================================
+  ssl-check:
+    name: 🔒 Verificação SSL
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🔒 Verificar configuração SSL
+      run: |
+        echo "🔍 Verificando configurações SSL/TLS..."
+        
+        # Verificar versões TLS mínimas
+        if grep -q "VersionTLS12" dynamic/services.yml; then
+          echo "✅ TLS 1.2 configurado como mínimo"
+        else
+          echo "⚠️ Versão mínima do TLS não especificada"
+        fi
+        
+        # Verificar cipher suites
+        if grep -q "cipherSuites" dynamic/services.yml; then
+          echo "✅ Cipher suites configurados"
+        else
+          echo "⚠️ Cipher suites não especificados"
+        fi
+        
+        # Verificar SNI strict
+        if grep -q "sniStrict: true" dynamic/services.yml; then
+          echo "✅ SNI strict habilitado"
+        else
+          echo "⚠️ SNI strict não habilitado"
+        fi
+        
+    - name: 🌐 Teste de conectividade SSL (simulado)
+      run: |
+        echo "🔍 Testando configurações SSL..."
+        
+        # Simular testes SSL (substituir por testes reais quando em produção)
+        echo "📋 Domínios para verificar:"
+        echo "  - conexaodesorte.com.br"
+        echo "  - www.conexaodesorte.com.br"
+        echo "  - traefik.conexaodesorte.com.br"
+        
+        # Exemplo de comando real (descomente quando em produção):
+        # openssl s_client -connect conexaodesorte.com.br:443 -servername conexaodesorte.com.br < /dev/null
+        
+        echo "✅ Verificações SSL simuladas concluídas"
+
+  # =============================================================================
+  # AUDITORIA DE CONFIGURAÇÕES
+  # =============================================================================
+  config-audit:
+    name: 📊 Auditoria de Configurações
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 📊 Análise de configurações de segurança
+      run: |
+        echo "📊 Relatório de Auditoria de Segurança"
+        echo "======================================"
+        
+        # Contar middlewares de segurança
+        SECURITY_MIDDLEWARES=$(grep -c "security-headers\|rate-limit\|auth" dynamic/middlewares.yml || echo 0)
+        echo "🛡️ Middlewares de segurança: $SECURITY_MIDDLEWARES"
+        
+        # Verificar autenticação
+        AUTH_MIDDLEWARES=$(grep -c "basicAuth\|forwardAuth\|digestAuth" dynamic/middlewares.yml || echo 0)
+        echo "🔐 Middlewares de autenticação: $AUTH_MIDDLEWARES"
+        
+        # Verificar rate limiting
+        RATE_LIMIT=$(grep -c "rate-limit" dynamic/middlewares.yml || echo 0)
+        echo "⏱️ Rate limiting configurado: $RATE_LIMIT"
+        
+        # Verificar CORS
+        CORS_CONFIG=$(grep -c "cors" dynamic/middlewares.yml || echo 0)
+        echo "🌐 Configurações CORS: $CORS_CONFIG"
+        
+        # Verificar redirects HTTPS
+        HTTPS_REDIRECTS=$(grep -c "websecure" dynamic/services.yml || echo 0)
+        echo "🔒 Redirects HTTPS: $HTTPS_REDIRECTS"
+        
+        echo ""
+        echo "📋 Recomendações:"
+        
+        if [ $SECURITY_MIDDLEWARES -eq 0 ]; then
+          echo "⚠️ Configurar middlewares de security headers"
+        fi
+        
+        if [ $RATE_LIMIT -eq 0 ]; then
+          echo "⚠️ Configurar rate limiting para APIs"
+        fi
+        
+        if [ $AUTH_MIDDLEWARES -eq 0 ]; then
+          echo "⚠️ Considerar autenticação para endpoints sensíveis"
+        fi
+        
+    - name: 🔍 Verificar exposição de serviços
+      run: |
+        echo "🔍 Verificando exposição de serviços..."
+        
+        # Verificar se dashboard está protegido
+        if grep -A 10 "traefik-dashboard" dynamic/services.yml | grep -q "dashboard-auth"; then
+          echo "✅ Dashboard Traefik protegido com autenticação"
+        else
+          echo "⚠️ Dashboard Traefik pode estar exposto!"
+        fi
+        
+        # Verificar se APIs estão protegidas
+        if grep -A 5 "backend-api" dynamic/services.yml | grep -q "rate-limit\|auth"; then
+          echo "✅ APIs backend protegidas"
+        else
+          echo "⚠️ APIs backend podem precisar de proteção adicional"
+        fi
+        
+        # Verificar se monitoramento está protegido
+        if grep -A 10 "prometheus\|grafana" dynamic/services.yml | grep -q "auth"; then
+          echo "✅ Serviços de monitoramento protegidos"
+        else
+          echo "⚠️ Serviços de monitoramento podem estar expostos"
+        fi
+
+  # =============================================================================
+  # COMPLIANCE E BOAS PRÁTICAS
+  # =============================================================================
+  compliance-check:
+    name: ✅ Verificação de Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 📋 Checklist de Segurança
+      run: |
+        echo "📋 Checklist de Segurança e Compliance"
+        echo "====================================="
+        
+        SCORE=0
+        TOTAL=10
+        
+        # 1. HTTPS obrigatório
+        if grep -q "websecure" config/traefik.yml; then
+          echo "✅ HTTPS configurado"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ HTTPS não configurado"
+        fi
+        
+        # 2. Certificados SSL automáticos
+        if grep -q "letsencrypt" config/traefik.yml; then
+          echo "✅ Let's Encrypt configurado"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Let's Encrypt não configurado"
+        fi
+        
+        # 3. Headers de segurança
+        if grep -q "X-Frame-Options" dynamic/middlewares.yml; then
+          echo "✅ Security headers configurados"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Security headers não configurados"
+        fi
+        
+        # 4. Rate limiting
+        if grep -q "rate-limit" dynamic/middlewares.yml; then
+          echo "✅ Rate limiting configurado"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Rate limiting não configurado"
+        fi
+        
+        # 5. Autenticação para dashboard
+        if grep -A 10 "traefik-dashboard" dynamic/services.yml | grep -q "auth"; then
+          echo "✅ Dashboard protegido"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Dashboard não protegido"
+        fi
+        
+        # 6. TLS versão mínima
+        if grep -q "VersionTLS12" dynamic/services.yml; then
+          echo "✅ TLS versão mínima configurada"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ TLS versão mínima não configurada"
+        fi
+        
+        # 7. Logs de segurança
+        if grep -q "accessLog" config/traefik.yml; then
+          echo "✅ Logs de acesso habilitados"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Logs de acesso não habilitados"
+        fi
+        
+        # 8. Monitoramento
+        if grep -q "prometheus" config/traefik.yml; then
+          echo "✅ Métricas habilitadas"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Métricas não habilitadas"
+        fi
+        
+        # 9. Health checks
+        if grep -q "healthCheck" dynamic/services.yml; then
+          echo "✅ Health checks configurados"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Health checks não configurados"
+        fi
+        
+        # 10. Backup de configurações
+        if [ -d "backup-roteamento" ]; then
+          echo "✅ Backup de configurações existe"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Backup de configurações não encontrado"
+        fi
+        
+        echo ""
+        echo "📊 Score de Segurança: $SCORE/$TOTAL ($(( SCORE * 100 / TOTAL ))%)"
+        
+        if [ $SCORE -ge 8 ]; then
+          echo "🎉 Excelente! Configuração de segurança robusta."
+        elif [ $SCORE -ge 6 ]; then
+          echo "👍 Boa configuração, mas há espaço para melhorias."
+        else
+          echo "⚠️ Configuração de segurança precisa de atenção!"
+        fi
+
+  # =============================================================================
+  # RELATÓRIO FINAL DE SEGURANÇA
+  # =============================================================================
+  security-report:
+    name: 📋 Relatório de Segurança
+    runs-on: ubuntu-latest
+    needs: [vulnerability-scan, ssl-check, config-audit, compliance-check]
+    if: always()
+    
+    steps:
+    - name: 📊 Consolidar resultados
+      run: |
+        echo "📋 Relatório Consolidado de Segurança"
+        echo "===================================="
+        echo "🕐 Executado em: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "📝 Commit: ${{ github.sha }}"
+        echo "🌿 Branch: ${{ github.ref_name }}"
+        echo ""
+        
+        echo "📊 Status dos Jobs:"
+        echo "- Scan de Vulnerabilidades: ${{ needs.vulnerability-scan.result }}"
+        echo "- Verificação SSL: ${{ needs.ssl-check.result }}"
+        echo "- Auditoria de Configurações: ${{ needs.config-audit.result }}"
+        echo "- Verificação de Compliance: ${{ needs.compliance-check.result }}"
+        echo ""
+        
+        # Determinar status geral
+        if [ "${{ needs.vulnerability-scan.result }}" == "success" ] && \
+           [ "${{ needs.ssl-check.result }}" == "success" ] && \
+           [ "${{ needs.config-audit.result }}" == "success" ] && \
+           [ "${{ needs.compliance-check.result }}" == "success" ]; then
+          echo "✅ Todas as verificações de segurança passaram!"
+        else
+          echo "⚠️ Algumas verificações de segurança falharam. Revisar logs."
+        fi
+        
+        echo ""
+        echo "🔗 Links úteis:"
+        echo "- Dashboard: https://traefik.conexaodesorte.com.br/dashboard/"
+        echo "- Monitoramento: https://prometheus.conexaodesorte.com.br/"
+        echo "- Documentação: README.md"

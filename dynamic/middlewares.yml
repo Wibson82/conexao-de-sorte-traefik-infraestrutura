@@ -1,0 +1,287 @@
+# =============================================================================
+# MIDDLEWARES DINÂMICOS - CONEXÃO DE SORTE TRAEFIK
+# =============================================================================
+# Middlewares reusáveis para aplicar em diferentes rotas
+# Estes middlewares podem ser referenciados por qualquer serviço
+
+http:
+  middlewares:
+    # =============================================================================
+    # MIDDLEWARES DE SEGURANÇA
+    # =============================================================================
+    
+    # Headers de segurança padrão
+    security-headers:
+      headers:
+        # Headers customizados de request
+        customRequestHeaders:
+          X-Forwarded-Proto: https
+          X-Real-IP: ""
+        
+        # Headers customizados de response
+        customResponseHeaders:
+          # Proteção contra clickjacking
+          X-Frame-Options: DENY
+          
+          # Proteção contra MIME type sniffing
+          X-Content-Type-Options: nosniff
+          
+          # Proteção XSS
+          X-XSS-Protection: "1; mode=block"
+          
+          # HSTS (HTTP Strict Transport Security)
+          Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
+          
+          # Content Security Policy básico
+          Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';"
+          
+          # Referrer Policy
+          Referrer-Policy: "strict-origin-when-cross-origin"
+          
+          # Permissions Policy
+          Permissions-Policy: "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()"
+          
+          # Remover headers sensíveis
+          Server: ""
+          X-Powered-By: ""
+    
+    # Headers de segurança para APIs
+    api-security-headers:
+      headers:
+        customResponseHeaders:
+          X-Frame-Options: DENY
+          X-Content-Type-Options: nosniff
+          X-XSS-Protection: "1; mode=block"
+          Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+          # CSP mais permissivo para APIs
+          Content-Security-Policy: "default-src 'none'; frame-ancestors 'none';"
+          Referrer-Policy: "no-referrer"
+    
+    # =============================================================================
+    # MIDDLEWARES DE CORS
+    # =============================================================================
+    
+    # CORS para APIs públicas
+    cors-api:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+          - PATCH
+        accessControlAllowOriginList:
+          - https://conexaodesorte.com.br
+          - https://www.conexaodesorte.com.br
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 86400
+        addVaryHeader: true
+    
+    # CORS para desenvolvimento (mais permissivo)
+    cors-dev:
+      headers:
+        accessControlAllowMethods:
+          - "*"
+        accessControlAllowOriginList:
+          - http://localhost:3000
+          - http://localhost:3001
+          - http://localhost:8080
+          - http://localhost:8081
+          - http://127.0.0.1:3000
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600
+        addVaryHeader: true
+    
+    # =============================================================================
+    # MIDDLEWARES DE RATE LIMITING
+    # =============================================================================
+    
+    # Rate limiting padrão
+    rate-limit:
+      rateLimit:
+        burst: 100
+        period: 1m
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+    
+    # Rate limiting para APIs (mais restritivo)
+    rate-limit-api:
+      rateLimit:
+        burst: 50
+        period: 1m
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+    
+    # Rate limiting para login (muito restritivo)
+    rate-limit-auth:
+      rateLimit:
+        burst: 5
+        period: 1m
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+    
+    # =============================================================================
+    # MIDDLEWARES DE MANIPULAÇÃO DE PATH
+    # =============================================================================
+    
+    # Strip prefix para APIs REST
+    strip-rest-prefix:
+      stripPrefix:
+        prefixes:
+          - /rest
+    
+    # Strip prefix para API v1
+    strip-api-v1-prefix:
+      stripPrefix:
+        prefixes:
+          - /api/v1
+    
+    # Strip prefix para API v2
+    strip-api-v2-prefix:
+      stripPrefix:
+        prefixes:
+          - /api/v2
+    
+    # Strip prefix para ambiente de teste
+    strip-teste-prefix:
+      stripPrefix:
+        prefixes:
+          - /teste
+    
+    # Strip prefix para fretes em teste
+    strip-teste-frete-prefix:
+      stripPrefix:
+        prefixes:
+          - /teste/frete
+    
+    # Add prefix para versionamento
+    add-v1-prefix:
+      addPrefix:
+        prefix: /v1
+    
+    # =============================================================================
+    # MIDDLEWARES DE COMPRESSÃO
+    # =============================================================================
+    
+    # Compressão padrão
+    compression:
+      compress:
+        excludedContentTypes:
+          - text/event-stream
+          - application/grpc
+        minResponseBodyBytes: 1024
+    
+    # =============================================================================
+    # MIDDLEWARES DE AUTENTICAÇÃO
+    # =============================================================================
+    
+    # Autenticação básica para dashboard
+    dashboard-auth:
+      basicAuth:
+        users:
+          # admin:admin123 (alterar em produção)
+          - "admin:$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi"
+    
+    # =============================================================================
+    # MIDDLEWARES DE REDIRECT
+    # =============================================================================
+    
+    # Redirect www para não-www
+    redirect-to-non-www:
+      redirectRegex:
+        regex: "^https://www\\.(.+)"
+        replacement: "https://${1}"
+        permanent: true
+    
+    # Redirect não-www para www
+    redirect-to-www:
+      redirectRegex:
+        regex: "^https://([^w].+)"
+        replacement: "https://www.${1}"
+        permanent: true
+    
+    # =============================================================================
+    # MIDDLEWARES DE CIRCUIT BREAKER
+    # =============================================================================
+    
+    # Circuit breaker para APIs
+    circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.3 || ResponseCodeRatio(500, 600, 0, 600) > 0.3"
+        checkPeriod: 3s
+        fallbackDuration: 10s
+        recoveryDuration: 10s
+    
+    # =============================================================================
+    # MIDDLEWARES DE RETRY
+    # =============================================================================
+    
+    # Retry para APIs
+    retry:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+    
+    # =============================================================================
+    # MIDDLEWARES DE TIMEOUT
+    # =============================================================================
+    
+    # Timeout padrão
+    timeout:
+      forwardTimeout: 30s
+    
+    # Timeout para APIs longas
+    timeout-long:
+      forwardTimeout: 120s
+    
+    # =============================================================================
+    # MIDDLEWARES DE IP WHITELIST (EXEMPLO)
+    # =============================================================================
+    
+    # Whitelist para admin (desabilitado por padrão)
+    # admin-whitelist:
+    #   ipWhiteList:
+    #     sourceRange:
+    #       - "127.0.0.1/32"
+    #       - "192.168.1.0/24"
+    #       - "10.0.0.0/8"
+    
+    # =============================================================================
+    # MIDDLEWARES COMPOSTOS (CHAINS)
+    # =============================================================================
+    
+    # Chain completa para frontend
+    frontend-chain:
+      chain:
+        middlewares:
+          - security-headers
+          - compression
+          - rate-limit
+    
+    # Chain completa para API
+    api-chain:
+      chain:
+        middlewares:
+          - api-security-headers
+          - cors-api
+          - compression
+          - rate-limit-api
+          - strip-rest-prefix
+          - retry
+          - circuit-breaker
+    
+    # Chain para autenticação
+    auth-chain:
+      chain:
+        middlewares:
+          - api-security-headers
+          - cors-api
+          - rate-limit-auth

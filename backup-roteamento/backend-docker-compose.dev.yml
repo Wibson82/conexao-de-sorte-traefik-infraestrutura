@@ -1,0 +1,207 @@
+# =============================================================================
+# DOCKER COMPOSE PARA DESENVOLVIMENTO - CONSOLIDADO
+# =============================================================================
+# Configuração similar ao docker-compose.prod.yml mas para desenvolvimento
+# Compatível com ARM64 (Mac Apple Silicon) e AMD64 (Intel/Linux/WSL2)
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  conexao-net:
+    driver: overlay
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  traefik-public:
+    external: true
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  mysql_data:
+    driver: local
+  logs_data:
+    driver: local
+  tmp_data:
+    driver: local
+  traefik_data:
+    driver: local
+  traefik_certs:
+    driver: local
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+services:
+  # ===== TRAEFIK - Reverse Proxy com SSL Automático =====
+  traefik:
+    image: traefik:v3.0
+    restart: unless-stopped
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_data:/etc/traefik
+      - traefik_certs:/certs
+    
+    networks:
+      - traefik-public
+      - conexao-net
+    
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@conexaodesorte.com.br"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ===== BACKEND - API Spring Boot 3.5 + Java 21 =====
+  backend:
+    image: facilita/conexao-de-sorte-backend:arm64-local
+    restart: unless-stopped
+    
+    environment:
+      # Spring Profiles - Desenvolvimento
+      - SPRING_PROFILES_ACTIVE=dev
+      
+      # Database Configuration - Compatível com desenvolvimento
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/conexaodb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=app_user
+      - SPRING_DATASOURCE_PASSWORD_FILE=/run/secrets/mysql_password
+      
+      # JVM Options para Desenvolvimento
+      - JAVA_OPTS=-server -Xms256m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+      
+      # Application Configuration
+      - SERVER_PORT=8080
+      - TZ=America/Sao_Paulo
+      
+      # Development Configuration
+      - HIBERNATE_DDL_AUTO=update
+      - HIBERNATE_SHOW_SQL=false
+      - JWT_OFFLINE_MODE=true
+      - AZURE_KEYVAULT_ENABLED=false
+
+    volumes:
+      - logs_data:/app/logs
+      - tmp_data:/app/tmp
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+    
+    depends_on:
+      - mysql
+    
+    networks:
+      - conexao-net
+      - traefik-public
+    
+    secrets:
+      - mysql_password
+    
+    labels:
+      # Traefik Labels para Backend API
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend-api.rule=(Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/rest`)"
+      - "traefik.http.routers.backend-api.entrypoints=web"
+      - "traefik.http.routers.backend-api.priority=10"
+      - "traefik.http.routers.backend-api.middlewares=backend-stripprefix"
+      - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/rest"
+      - "traefik.http.services.backend-api.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik-public"
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+  # ===== BANCO DE DADOS - MySQL 8.4 =====
+  mysql:
+    image: facilita/conexao-de-sorte-mysql:arm64-local
+    restart: unless-stopped
+    
+    environment:
+      # Database Configuration - Compatível com produção
+      - MYSQL_DATABASE=conexaodb
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_root_password
+      - MYSQL_ROOT_HOST=localhost
+      - MYSQL_USER=app_user
+      - MYSQL_PASSWORD_FILE=/run/secrets/mysql_password
+      - TZ=America/Sao_Paulo
+
+    volumes:
+      # Dados persistentes do MySQL
+      - mysql_data:/var/lib/mysql
+      
+      # Configurações customizadas - Compatível com produção
+      - ./mysql-config:/etc/mysql/conf.d:ro
+      
+      # Script de inicialização - Compatível com produção
+      - ./scripts/database/init-mysql-secure.sql:/docker-entrypoint-initdb.d/init-mysql.sql:ro
+      
+      # Script de migração - Adicionar coluna nivel_criticidade
+      - ./scripts/database/migration-001-add-nivel-criticidade.sql:/docker-entrypoint-initdb.d/migration-001.sql:ro
+    
+    networks:
+      - conexao-net
+    
+    secrets:
+      - mysql_root_password
+      - mysql_password
+    
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+secrets:
+  mysql_root_password:
+    external: true
+  mysql_password:
+    external: true

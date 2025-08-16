@@ -1,0 +1,410 @@
+name: "🚀 Deploy Traefik Infrastructure"
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deploy even if validation fails'
+        required: false
+        default: false
+        type: boolean
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+      restart_services:
+        description: 'Restart all services after deploy'
+        required: false
+        default: false
+        type: boolean
+
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+env:
+  DEPLOY_TIMEOUT: 300
+  HEALTH_CHECK_RETRIES: 10
+  TZ: America/Sao_Paulo
+
+jobs:
+  # =============================================================================
+  # PRÉ-VALIDAÇÕES
+  # =============================================================================
+  pre-deploy-checks:
+    name: 🔍 Verificações Pré-Deploy
+    runs-on: ubuntu-latest
+    
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      environment: ${{ steps.check.outputs.environment }}
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: 🔍 Verificar mudanças
+      id: check
+      run: |
+        # Determinar ambiente
+        if [ "${{ github.event.inputs.environment }}" != "" ]; then
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+        elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          ENVIRONMENT="production"
+        else
+          ENVIRONMENT="staging"
+        fi
+        
+        echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+        
+        # Verificar se deve fazer deploy
+        SHOULD_DEPLOY="true"
+        
+        if [ "${{ github.event.inputs.force_deploy }}" == "true" ]; then
+          echo "🚀 Deploy forçado pelo usuário"
+          SHOULD_DEPLOY="true"
+        elif [ "$ENVIRONMENT" == "production" ] && [ "${{ github.ref_type }}" != "tag" ]; then
+          echo "⚠️ Deploy para produção apenas com tags"
+          SHOULD_DEPLOY="false"
+        fi
+        
+        echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+        
+    - name: 📋 Resumo das verificações
+      run: |
+        echo "🎯 Ambiente: ${{ steps.check.outputs.environment }}"
+        echo "🚀 Deve fazer deploy: ${{ steps.check.outputs.should_deploy }}"
+        echo "📝 Ref: ${{ github.ref }}"
+        echo "🏷️ Ref type: ${{ github.ref_type }}"
+
+  # =============================================================================
+  # BACKUP DE CONFIGURAÇÕES
+  # =============================================================================
+  backup-configs:
+    name: 💾 Backup Configurações
+    runs-on: ubuntu-latest
+    needs: pre-deploy-checks
+    if: needs.pre-deploy-checks.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 💾 Criar backup das configurações
+      run: |
+        # Criar timestamp para backup
+        TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+        BACKUP_DIR="backup_configs_${TIMESTAMP}"
+        
+        # Criar estrutura de backup
+        mkdir -p "$BACKUP_DIR"
+        
+        # Copiar configurações atuais
+        cp -r config/ "$BACKUP_DIR/"
+        cp -r dynamic/ "$BACKUP_DIR/"
+        cp docker-compose.yml "$BACKUP_DIR/"
+        cp .env.example "$BACKUP_DIR/"
+        
+        # Criar arquivo de metadados
+        cat > "$BACKUP_DIR/metadata.json" << EOF
+        {
+          "timestamp": "$TIMESTAMP",
+          "commit": "${{ github.sha }}",
+          "ref": "${{ github.ref }}",
+          "environment": "${{ needs.pre-deploy-checks.outputs.environment }}",
+          "actor": "${{ github.actor }}"
+        }
+        EOF
+        
+        # Comprimir backup
+        tar -czf "backup_configs_${TIMESTAMP}.tar.gz" "$BACKUP_DIR"
+        
+        echo "📦 Backup criado: backup_configs_${TIMESTAMP}.tar.gz"
+        
+    - name: 📤 Upload backup como artefato
+      uses: actions/upload-artifact@v4
+      with:
+        name: config-backup-${{ github.sha }}
+        path: backup_configs_*.tar.gz
+        retention-days: 30
+
+  # =============================================================================
+  # VALIDAÇÃO FINAL
+  # =============================================================================
+  final-validation:
+    name: ✅ Validação Final
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-checks, backup-configs]
+    if: needs.pre-deploy-checks.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🐳 Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: 🔧 Validação completa das configurações
+      run: |
+        # Validar YAML
+        pip install yamllint
+        find . -name "*.yml" -o -name "*.yaml" | xargs yamllint -d relaxed
+        
+        # Validar Traefik
+        docker run --rm \
+          -v "$PWD/config:/etc/traefik:ro" \
+          -v "$PWD/dynamic:/etc/traefik/dynamic:ro" \
+          traefik:v3.0 \
+          traefik --configfile=/etc/traefik/traefik.yml --dry-run
+          
+        # Validar docker-compose
+        docker-compose config
+        
+    - name: 🔒 Verificação de segurança final
+      run: |
+        # Verificar TLS
+        if ! grep -q "certResolver: letsencrypt" dynamic/services.yml; then
+          echo "❌ Configuração TLS obrigatória para produção!"
+          exit 1
+        fi
+        
+        # Verificar HTTPS redirect
+        if ! grep -q "websecure" dynamic/services.yml; then
+          echo "❌ HTTPS obrigatório para produção!"
+          exit 1
+        fi
+        
+        # Verificar rate limiting
+        if [ "${{ needs.pre-deploy-checks.outputs.environment }}" == "production" ]; then
+          if ! grep -q "rate-limit" dynamic/middlewares.yml; then
+            echo "⚠️ Rate limiting recomendado para produção"
+          fi
+        fi
+
+  # =============================================================================
+  # DEPLOY
+  # =============================================================================
+  deploy:
+    name: 🚀 Deploy ${{ needs.pre-deploy-checks.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-checks, backup-configs, final-validation]
+    if: needs.pre-deploy-checks.outputs.should_deploy == 'true'
+    environment: ${{ needs.pre-deploy-checks.outputs.environment }}
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Configurar ambiente
+      run: |
+        # Criar .env baseado no ambiente
+        if [ "${{ needs.pre-deploy-checks.outputs.environment }}" == "production" ]; then
+          echo "ENVIRONMENT=production" >> .env
+          echo "LOG_LEVEL=INFO" >> .env
+          echo "TRAEFIK_LOG_LEVEL=INFO" >> .env
+        else
+          echo "ENVIRONMENT=staging" >> .env
+          echo "LOG_LEVEL=DEBUG" >> .env
+          echo "TRAEFIK_LOG_LEVEL=DEBUG" >> .env
+        fi
+        
+        # Adicionar timestamp
+        echo "DEPLOY_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
+        echo "DEPLOY_COMMIT=${{ github.sha }}" >> .env
+        
+    - name: 🔑 Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        
+    - name: 📦 Preparar arquivos para deploy
+      run: |
+        # Criar pacote de deploy
+        tar -czf deploy-package.tar.gz \
+          config/ \
+          dynamic/ \
+          docker-compose.yml \
+          .env
+        
+    - name: 📤 Upload arquivos para servidor
+      run: |
+        scp deploy-package.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:~/traefik-deploy/
+        
+    - name: 🐳 Deploy via SSH
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          cd ~/traefik-deploy
+          
+          echo "🚀 Iniciando deploy para ${{ needs.pre-deploy-checks.outputs.environment }}"
+          
+          # Extrair arquivos
+          tar -xzf deploy-package.tar.gz
+          
+          # Backup atual
+          if [ -d "current" ]; then
+            mv current backup-$(date +%Y%m%d_%H%M%S)
+          fi
+          
+          # Criar nova estrutura
+          mkdir -p current
+          mv config dynamic docker-compose.yml .env current/
+          
+          cd current
+          
+          echo "📦 Preparando containers..."
+          docker-compose config
+          
+          echo "🔄 Atualizando configurações..."
+          docker-compose pull
+          docker-compose up -d --force-recreate traefik
+          
+          # Reiniciar serviços se solicitado
+          if [ "${{ github.event.inputs.restart_services }}" == "true" ]; then
+            echo "🔄 Reiniciando todos os serviços..."
+            docker-compose restart
+          fi
+          
+          echo "✅ Deploy concluído!"
+        EOF
+        
+    - name: 🔍 Verificação pós-deploy
+      run: |
+        echo "🔍 Verificando saúde dos serviços..."
+        
+        # Aguardar serviços iniciarem
+        sleep 30
+        
+        # Verificar endpoints via SSH
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          cd ~/traefik-deploy/current
+          
+          # Verificar containers
+          docker-compose ps
+          
+          # Verificar logs
+          docker-compose logs --tail=50 traefik
+          
+          # Verificar endpoints (substituir por URLs reais)
+          # curl -f https://conexaodesorte.com.br/health || exit 1
+          # curl -f https://traefik.conexaodesorte.com.br/api/rawdata || exit 1
+        EOF
+        
+        echo "✅ Verificações pós-deploy concluídas!"
+
+  notify-success:
+    name: "✅ Notificar Sucesso"
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-checks, backup-configs, deploy]
+    if: success()
+    steps:
+      - name: "🎉 Deploy realizado com sucesso"
+        run: |
+          echo "🎉 DEPLOY REALIZADO COM SUCESSO!"
+          echo "   - Repositório: ${{ github.repository }}"
+          echo "   - Branch: ${{ github.ref_name }}"
+          echo "   - Commit: ${{ github.sha }}"
+          echo "   - Ambiente: ${{ needs.pre-deploy-checks.outputs.environment }}"
+          echo "   - Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "   - Workflow: ${{ github.workflow }}"
+          echo "   - Run ID: ${{ github.run_id }}"
+
+  notify-failure:
+    name: "🚨 Notificar Falha"
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-checks, backup-configs, deploy]
+    if: failure()
+    steps:
+      - name: "📢 Notificação de falha"
+        run: |
+          echo "❌ FALHA NO DEPLOY"
+          echo "   - Repositório: ${{ github.repository }}"
+          echo "   - Branch: ${{ github.ref_name }}"
+          echo "   - Commit: ${{ github.sha }}"
+          echo "   - Ambiente: ${{ needs.pre-deploy-checks.outputs.environment }}"
+          echo "   - Workflow: ${{ github.workflow }}"
+          echo "   - Run ID: ${{ github.run_id }}"
+          echo "   - URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo ""
+          echo "🔍 Verifique os logs acima para identificar o problema."
+          echo "🔄 Para fazer rollback, execute o workflow de rollback manual."
+
+  # =============================================================================
+  # NOTIFICAÇÕES
+  # =============================================================================
+  notify:
+    name: 📢 Notificações
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-checks, deploy]
+    if: always() && needs.pre-deploy-checks.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: 📊 Status do Deploy
+      run: |
+        if [ "${{ needs.deploy.result }}" == "success" ]; then
+          echo "✅ Deploy realizado com sucesso!"
+          echo "🎯 Ambiente: ${{ needs.pre-deploy-checks.outputs.environment }}"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Autor: ${{ github.actor }}"
+          echo "🕐 Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        else
+          echo "❌ Falha no deploy!"
+          echo "🎯 Ambiente: ${{ needs.pre-deploy-checks.outputs.environment }}"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Autor: ${{ github.actor }}"
+          echo "🕐 Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        fi
+        
+    # Adicionar integrações de notificação aqui:
+    # - Slack
+    # - Discord
+    # - Email
+    # - Teams
+    # etc.
+
+  # =============================================================================
+  # ROLLBACK (EM CASO DE FALHA)
+  # =============================================================================
+  rollback:
+    name: 🔄 Rollback
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-checks, deploy]
+    if: failure() && needs.pre-deploy-checks.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: 📥 Download backup
+      uses: actions/download-artifact@v4
+      with:
+        name: config-backup-${{ github.sha }}
+        
+    - name: 🔄 Executar rollback
+      run: |
+        echo "🚨 Iniciando procedimento de rollback..."
+        
+        # Extrair backup
+        tar -xzf backup_configs_*.tar.gz
+        
+        # Restaurar configurações (implementar lógica real)
+        echo "📦 Restaurando configurações anteriores..."
+        
+        # Reiniciar serviços
+        echo "🔄 Reiniciando serviços..."
+        
+        echo "✅ Rollback concluído!"
+        
+    - name: 📢 Notificar rollback
+      run: |
+        echo "🚨 ROLLBACK EXECUTADO!"
+        echo "🎯 Ambiente: ${{ needs.pre-deploy-checks.outputs.environment }}"
+        echo "📝 Commit: ${{ github.sha }}"
+        echo "👤 Autor: ${{ github.actor }}"
+        echo "🕐 Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"

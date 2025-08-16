@@ -1,0 +1,275 @@
+{{/*===== TEMPLATES ALERTMANAGER ===== */}}
+{{/* Sistema: Conexão de Sorte - Backend */}}
+{{/* Função: Templates personalizados para notificações */}}
+{{/* Versão: 1.0.0 */}}
+
+{{/*===== TEMPLATE PARA EMAIL ===== */}}
+{{ define "email.subject" }}
+{{- if eq .Status "firing" -}}
+🚨 [{{ .GroupLabels.severity | upper }}] {{ .GroupLabels.alertname }} - Conexão de Sorte
+{{- else -}}
+✅ [RESOLVIDO] {{ .GroupLabels.alertname }} - Conexão de Sorte
+{{- end -}}
+{{ end }}
+
+{{ define "email.body" }}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { padding: 20px; color: white; text-align: center; }
+        .header.critical { background-color: #dc3545; }
+        .header.warning { background-color: #fd7e14; }
+        .header.resolved { background-color: #28a745; }
+        .content { padding: 20px; }
+        .alert-info { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .alert-details { margin: 15px 0; }
+        .label { font-weight: bold; color: #495057; }
+        .value { color: #212529; }
+        .action-box { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #007bff; }
+        .footer { padding: 20px; background-color: #f8f9fa; text-align: center; font-size: 12px; color: #6c757d; }
+        .runbook-link { display: inline-block; background-color: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+        .timestamp { font-size: 11px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {{- if eq .Status "firing" }}
+        <div class="header {{ .GroupLabels.severity }}">
+            {{- if eq .GroupLabels.severity "critical" }}
+            🚨 ALERTA CRÍTICO
+            {{- else }}
+            ⚠️ ALERTA DE WARNING
+            {{- end }}
+        </div>
+        {{- else }}
+        <div class="header resolved">
+            ✅ ALERTA RESOLVIDO
+        </div>
+        {{- end }}
+        
+        <div class="content">
+            <div class="alert-info">
+                <div class="alert-details">
+                    <span class="label">Alerta:</span> <span class="value">{{ .GroupLabels.alertname }}</span><br>
+                    <span class="label">Severidade:</span> <span class="value">{{ .GroupLabels.severity | upper }}</span><br>
+                    <span class="label">Serviço:</span> <span class="value">{{ .GroupLabels.service }}</span><br>
+                    <span class="label">Status:</span> <span class="value">{{ .Status | upper }}</span><br>
+                    <span class="label">Quantidade:</span> <span class="value">{{ len .Alerts }} alerta(s)</span>
+                </div>
+            </div>
+            
+            {{- range .Alerts }}
+            <div class="alert-details">
+                <h3>📋 Detalhes do Alerta</h3>
+                {{- if .Annotations.summary }}
+                <p><span class="label">Resumo:</span> {{ .Annotations.summary }}</p>
+                {{- end }}
+                {{- if .Annotations.description }}
+                <p><span class="label">Descrição:</span> {{ .Annotations.description }}</p>
+                {{- end }}
+                
+                {{- if .Labels.instance }}
+                <p><span class="label">Instância:</span> {{ .Labels.instance }}</p>
+                {{- end }}
+                
+                {{- if .Labels.job }}
+                <p><span class="label">Job:</span> {{ .Labels.job }}</p>
+                {{- end }}
+                
+                <p class="timestamp">
+                    {{- if eq $.Status "firing" }}
+                    <span class="label">Iniciado em:</span> {{ .StartsAt.Format "02/01/2006 15:04:05 MST" }}
+                    {{- else }}
+                    <span class="label">Resolvido em:</span> {{ .EndsAt.Format "02/01/2006 15:04:05 MST" }}
+                    {{- end }}
+                </p>
+                
+                {{- if and (eq $.Status "firing") .Annotations.action }}
+                <div class="action-box">
+                    <h4>🔧 Ação Requerida</h4>
+                    <p>{{ .Annotations.action }}</p>
+                </div>
+                {{- end }}
+                
+                {{- if .Annotations.runbook_url }}
+                <a href="{{ .Annotations.runbook_url }}" class="runbook-link">📖 Ver Runbook</a>
+                {{- end }}
+            </div>
+            {{- end }}
+        </div>
+        
+        <div class="footer">
+            <p>Sistema de Monitoramento - Conexão de Sorte</p>
+            <p>Gerado automaticamente pelo Alertmanager em {{ now.Format "02/01/2006 15:04:05 MST" }}</p>
+        </div>
+    </div>
+</body>
+</html>
+{{ end }}
+
+{{/*===== TEMPLATE PARA SLACK ===== */}}
+{{ define "slack.title" }}
+{{- if eq .Status "firing" -}}
+{{- if eq .GroupLabels.severity "critical" -}}
+🚨 CRÍTICO: {{ .GroupLabels.alertname }}
+{{- else -}}
+⚠️ WARNING: {{ .GroupLabels.alertname }}
+{{- end -}}
+{{- else -}}
+✅ RESOLVIDO: {{ .GroupLabels.alertname }}
+{{- end -}}
+{{ end }}
+
+{{ define "slack.text" }}
+{{- if eq .Status "firing" }}
+{{- if eq .GroupLabels.severity "critical" }}
+<!channel> 🚨 **ALERTA CRÍTICO DETECTADO** 🚨
+{{- else }}
+⚠️ **Alerta de Warning**
+{{- end }}
+{{- else }}
+✅ **Alerta Resolvido**
+{{- end }}
+
+*Detalhes:*
+• *Alerta:* {{ .GroupLabels.alertname }}
+• *Severidade:* {{ .GroupLabels.severity | upper }}
+• *Serviço:* {{ .GroupLabels.service }}
+• *Status:* {{ .Status | upper }}
+• *Quantidade:* {{ len .Alerts }} alerta(s)
+
+{{- range .Alerts }}
+---
+{{- if .Annotations.summary }}
+*Resumo:* {{ .Annotations.summary }}
+{{- end }}
+{{- if .Annotations.description }}
+*Descrição:* {{ .Annotations.description }}
+{{- end }}
+{{- if .Labels.instance }}
+*Instância:* `{{ .Labels.instance }}`
+{{- end }}
+{{- if and (eq $.Status "firing") .Annotations.action }}
+*Ação:* {{ .Annotations.action }}
+{{- end }}
+{{- if .Annotations.runbook_url }}
+*Runbook:* {{ .Annotations.runbook_url }}
+{{- end }}
+
+{{- if eq $.Status "firing" }}
+*Iniciado:* {{ .StartsAt.Format "02/01/2006 15:04:05" }}
+{{- else }}
+*Resolvido:* {{ .EndsAt.Format "02/01/2006 15:04:05" }}
+{{- end }}
+{{- end }}
+
+_Sistema de Monitoramento - Conexão de Sorte_
+{{ end }}
+
+{{/*===== TEMPLATE PARA WEBHOOK ===== */}}
+{{ define "webhook.payload" }}
+{
+  "status": "{{ .Status }}",
+  "groupKey": "{{ .GroupKey }}",
+  "groupLabels": {
+    {{- range $k, $v := .GroupLabels }}
+    "{{ $k }}": "{{ $v }}"{{ if ne $k (index $.GroupLabels | last) }},{{ end }}
+    {{- end }}
+  },
+  "commonLabels": {
+    {{- range $k, $v := .CommonLabels }}
+    "{{ $k }}": "{{ $v }}"{{ if ne $k (index $.CommonLabels | last) }},{{ end }}
+    {{- end }}
+  },
+  "commonAnnotations": {
+    {{- range $k, $v := .CommonAnnotations }}
+    "{{ $k }}": "{{ $v }}"{{ if ne $k (index $.CommonAnnotations | last) }},{{ end }}
+    {{- end }}
+  },
+  "externalURL": "{{ .ExternalURL }}",
+  "alerts": [
+    {{- range $i, $alert := .Alerts }}
+    {
+      "status": "{{ $alert.Status }}",
+      "labels": {
+        {{- range $k, $v := $alert.Labels }}
+        "{{ $k }}": "{{ $v }}"{{ if ne $k (index $alert.Labels | last) }},{{ end }}
+        {{- end }}
+      },
+      "annotations": {
+        {{- range $k, $v := $alert.Annotations }}
+        "{{ $k }}": "{{ $v }}"{{ if ne $k (index $alert.Annotations | last) }},{{ end }}
+        {{- end }}
+      },
+      "startsAt": "{{ $alert.StartsAt.Format "2006-01-02T15:04:05.000Z" }}",
+      "endsAt": "{{ $alert.EndsAt.Format "2006-01-02T15:04:05.000Z" }}",
+      "generatorURL": "{{ $alert.GeneratorURL }}",
+      "fingerprint": "{{ $alert.Fingerprint }}"
+    }{{ if ne $i (len $.Alerts | add -1) }},{{ end }}
+    {{- end }}
+  ],
+  "version": "4",
+  "receiver": "{{ .Receiver }}",
+  "timestamp": "{{ now.Format "2006-01-02T15:04:05.000Z" }}"
+}
+{{ end }}
+
+{{/*===== HELPERS ===== */}}
+{{ define "severity.emoji" }}
+{{- if eq . "critical" -}}
+🚨
+{{- else if eq . "warning" -}}
+⚠️
+{{- else if eq . "info" -}}
+ℹ️
+{{- else -}}
+🔔
+{{- end -}}
+{{ end }}
+
+{{ define "status.emoji" }}
+{{- if eq . "firing" -}}
+🔥
+{{- else -}}
+✅
+{{- end -}}
+{{ end }}
+
+{{/*===== TEMPLATE PARA TEAMS (FUTURO) ===== */}}
+{{ define "teams.card" }}
+{
+  "@type": "MessageCard",
+  "@context": "http://schema.org/extensions",
+  "themeColor": "{{ if eq .Status "firing" }}{{ if eq .GroupLabels.severity "critical" }}FF0000{{ else }}FFA500{{ end }}{{ else }}00FF00{{ end }}",
+  "summary": "{{ template "slack.title" . }}",
+  "sections": [
+    {
+      "activityTitle": "{{ template "slack.title" . }}",
+      "activitySubtitle": "Sistema de Monitoramento - Conexão de Sorte",
+      "facts": [
+        {
+          "name": "Severidade",
+          "value": "{{ .GroupLabels.severity | upper }}"
+        },
+        {
+          "name": "Serviço",
+          "value": "{{ .GroupLabels.service }}"
+        },
+        {
+          "name": "Status",
+          "value": "{{ .Status | upper }}"
+        },
+        {
+          "name": "Quantidade",
+          "value": "{{ len .Alerts }} alerta(s)"
+        }
+      ],
+      "markdown": true
+    }
+  ]
+}
+{{ end }}

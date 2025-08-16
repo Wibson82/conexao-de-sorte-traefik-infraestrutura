@@ -1,0 +1,2040 @@
+{
+  "categorias": {
+    "documentos_brasil": [
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioServico.java",
+        "linha": 343,
+        "coluna": 28,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioServico.java:343:28"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioServico.java",
+        "linha": 344,
+        "coluna": 35,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioServico.java:344:35"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioServico.java",
+        "linha": 353,
+        "coluna": 51,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioServico.java:353:51"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioServico.java",
+        "linha": 356,
+        "coluna": 24,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioServico.java:356:24"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioServico.java",
+        "linha": 357,
+        "coluna": 35,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioServico.java:357:35"
+      },
+      {
+        "numero": "12",
+        "arquivo": "ValidadorUsuarioServico.java",
+        "linha": 431,
+        "coluna": 31,
+        "linha_completa": "'12' é um número mágico - ValidadorUsuarioServico.java:431:31"
+      },
+      {
+        "numero": "18",
+        "arquivo": "ValidadorCriacaoUsuario.java",
+        "linha": 66,
+        "coluna": 25,
+        "linha_completa": "'18' é um número mágico - ValidadorCriacaoUsuario.java:66:25"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorCPFRefatorado.java",
+        "linha": 67,
+        "coluna": 28,
+        "linha_completa": "'11' é um número mágico - ValidadorCPFRefatorado.java:67:28"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorCPFRefatorado.java",
+        "linha": 68,
+        "coluna": 35,
+        "linha_completa": "'11' é um número mágico - ValidadorCPFRefatorado.java:68:35"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorCPFRefatorado.java",
+        "linha": 77,
+        "coluna": 46,
+        "linha_completa": "'11' é um número mágico - ValidadorCPFRefatorado.java:77:46"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorCPFRefatorado.java",
+        "linha": 80,
+        "coluna": 24,
+        "linha_completa": "'11' é um número mágico - ValidadorCPFRefatorado.java:80:24"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorCPFRefatorado.java",
+        "linha": 81,
+        "coluna": 35,
+        "linha_completa": "'11' é um número mágico - ValidadorCPFRefatorado.java:81:35"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuario.java",
+        "linha": 256,
+        "coluna": 28,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuario.java:256:28"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuario.java",
+        "linha": 257,
+        "coluna": 37,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuario.java:257:37"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuario.java",
+        "linha": 266,
+        "coluna": 46,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuario.java:266:46"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuario.java",
+        "linha": 268,
+        "coluna": 24,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuario.java:268:24"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuario.java",
+        "linha": 269,
+        "coluna": 37,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuario.java:269:37"
+      },
+      {
+        "numero": "12",
+        "arquivo": "ValidadorUsuario.java",
+        "linha": 371,
+        "coluna": 31,
+        "linha_completa": "'12' é um número mágico - ValidadorUsuario.java:371:31"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 252,
+        "coluna": 29,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioRefatorado.java:252:29"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 266,
+        "coluna": 28,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioRefatorado.java:266:28"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 267,
+        "coluna": 39,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioRefatorado.java:267:39"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 272,
+        "coluna": 65,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioRefatorado.java:272:65"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 274,
+        "coluna": 24,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioRefatorado.java:274:24"
+      },
+      {
+        "numero": "11",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 275,
+        "coluna": 39,
+        "linha_completa": "'11' é um número mágico - ValidadorUsuarioRefatorado.java:275:39"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 129,
+        "coluna": 44,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:129:44"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 144,
+        "coluna": 34,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:144:34"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 144,
+        "coluna": 47,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:144:47"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 157,
+        "coluna": 69,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:157:69"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 159,
+        "coluna": 33,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:159:33"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 159,
+        "coluna": 46,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:159:46"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 181,
+        "coluna": 44,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:181:44"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 189,
+        "coluna": 34,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:189:34"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 199,
+        "coluna": 43,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:199:43"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 204,
+        "coluna": 40,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:204:40"
+      },
+      {
+        "numero": "11",
+        "arquivo": "CpfEncryptionConverter.java",
+        "linha": 211,
+        "coluna": 45,
+        "linha_completa": "'11' é um número mágico - CpfEncryptionConverter.java:211:45"
+      },
+      {
+        "numero": "11",
+        "arquivo": "TelefoneEncryptionConverter.java",
+        "linha": 99,
+        "coluna": 68,
+        "linha_completa": "'11' é um número mágico - TelefoneEncryptionConverter.java:99:68"
+      },
+      {
+        "numero": "11",
+        "arquivo": "TelefoneEncryptionConverter.java",
+        "linha": 193,
+        "coluna": 34,
+        "linha_completa": "'11' é um número mágico - TelefoneEncryptionConverter.java:193:34"
+      },
+      {
+        "numero": "11",
+        "arquivo": "TelefoneEncryptionConverter.java",
+        "linha": 198,
+        "coluna": 39,
+        "linha_completa": "'11' é um número mágico - TelefoneEncryptionConverter.java:198:39"
+      },
+      {
+        "numero": "11",
+        "arquivo": "TelefoneEncryptionConverter.java",
+        "linha": 225,
+        "coluna": 45,
+        "linha_completa": "'11' é um número mágico - TelefoneEncryptionConverter.java:225:45"
+      },
+      {
+        "numero": "11",
+        "arquivo": "TelefoneEncryptionConverter.java",
+        "linha": 230,
+        "coluna": 50,
+        "linha_completa": "'11' é um número mágico - TelefoneEncryptionConverter.java:230:50"
+      }
+    ],
+    "timeouts_duracao": [
+      {
+        "numero": "30",
+        "arquivo": "ControladorUsuario.java",
+        "linha": 217,
+        "coluna": 58,
+        "linha_completa": "'30' é um número mágico - ControladorUsuario.java:217:58"
+      },
+      {
+        "numero": "15",
+        "arquivo": "ServicoValidacaoSenha.java",
+        "linha": 193,
+        "coluna": 57,
+        "linha_completa": "'15' é um número mágico - ServicoValidacaoSenha.java:193:57"
+      },
+      {
+        "numero": "15",
+        "arquivo": "ServicoValidacaoSenha.java",
+        "linha": 197,
+        "coluna": 26,
+        "linha_completa": "'15' é um número mágico - ServicoValidacaoSenha.java:197:26"
+      },
+      {
+        "numero": "30",
+        "arquivo": "ServicoSegurancaUsuario.java",
+        "linha": 72,
+        "coluna": 17,
+        "linha_completa": "'30' é um número mágico - ServicoSegurancaUsuario.java:72:17"
+      },
+      {
+        "numero": "30",
+        "arquivo": "ServicoSegurancaUsuario.java",
+        "linha": 72,
+        "coluna": 21,
+        "linha_completa": "'30' é um número mágico - ServicoSegurancaUsuario.java:72:21"
+      },
+      {
+        "numero": "60",
+        "arquivo": "UsuarioAutenticacaoServico.java",
+        "linha": 250,
+        "coluna": 82,
+        "linha_completa": "'60' é um número mágico - UsuarioAutenticacaoServico.java:250:82"
+      },
+      {
+        "numero": "30",
+        "arquivo": "UsuarioAutenticacaoServico.java",
+        "linha": 437,
+        "coluna": 49,
+        "linha_completa": "'30' é um número mágico - UsuarioAutenticacaoServico.java:437:49"
+      },
+      {
+        "numero": "60",
+        "arquivo": "ConfiguracaoMonitoramentoIntegrado.java",
+        "linha": 258,
+        "coluna": 27,
+        "linha_completa": "'60' é um número mágico - ConfiguracaoMonitoramentoIntegrado.java:258:27"
+      },
+      {
+        "numero": "30",
+        "arquivo": "HistoricoSenhaCache.java",
+        "linha": 258,
+        "coluna": 30,
+        "linha_completa": "'30' é um número mágico - HistoricoSenhaCache.java:258:30"
+      },
+      {
+        "numero": "20",
+        "arquivo": "ConfiguracaoResiliencia.java",
+        "linha": 159,
+        "coluna": 33,
+        "linha_completa": "'20' é um número mágico - ConfiguracaoResiliencia.java:159:33"
+      },
+      {
+        "numero": "30",
+        "arquivo": "ConfiguracaoResiliencia.java",
+        "linha": 173,
+        "coluna": 35,
+        "linha_completa": "'30' é um número mágico - ConfiguracaoResiliencia.java:173:35"
+      },
+      {
+        "numero": "600000",
+        "arquivo": "ConfiguracaoDataSource.java",
+        "linha": 258,
+        "coluna": 31,
+        "linha_completa": "'600000' é um número mágico - ConfiguracaoDataSource.java:258:31"
+      },
+      {
+        "numero": "1800000",
+        "arquivo": "ConfiguracaoDataSource.java",
+        "linha": 259,
+        "coluna": 31,
+        "linha_completa": "'1800000' é um número mágico - ConfiguracaoDataSource.java:259:31"
+      },
+      {
+        "numero": "20",
+        "arquivo": "ConfiguracaoDataSource.java",
+        "linha": 271,
+        "coluna": 39,
+        "linha_completa": "'20' é um número mágico - ConfiguracaoDataSource.java:271:39"
+      },
+      {
+        "numero": "45",
+        "arquivo": "RegistradorSegurancaAprimorado.java",
+        "linha": 145,
+        "coluna": 64,
+        "linha_completa": "'45' é um número mágico - RegistradorSegurancaAprimorado.java:145:64"
+      },
+      {
+        "numero": "30",
+        "arquivo": "ConfiguracaoAzureKeyVaultSpringCloud.java",
+        "linha": 46,
+        "coluna": 49,
+        "linha_completa": "'30' é um número mágico - ConfiguracaoAzureKeyVaultSpringCloud.java:46:49"
+      },
+      {
+        "numero": "30",
+        "arquivo": "AzureKeyVaultProperties.java",
+        "linha": 69,
+        "coluna": 36,
+        "linha_completa": "'30' é um número mágico - AzureKeyVaultProperties.java:69:36"
+      },
+      {
+        "numero": "30",
+        "arquivo": "AzureKeyVaultProperties.java",
+        "linha": 77,
+        "coluna": 36,
+        "linha_completa": "'30' é um número mágico - AzureKeyVaultProperties.java:77:36"
+      },
+      {
+        "numero": "20",
+        "arquivo": "AzureKeyVaultProperties.java",
+        "linha": 200,
+        "coluna": 55,
+        "linha_completa": "'20' é um número mágico - AzureKeyVaultProperties.java:200:55"
+      },
+      {
+        "numero": "300_000",
+        "arquivo": "PropriedadesConfiguracao.java",
+        "linha": 171,
+        "coluna": 20,
+        "linha_completa": "'300_000' é um número mágico - PropriedadesConfiguracao.java:171:20"
+      },
+      {
+        "numero": "60",
+        "arquivo": "PropriedadesConfiguracao.java",
+        "linha": 185,
+        "coluna": 32,
+        "linha_completa": "'60' é um número mágico - PropriedadesConfiguracao.java:185:32"
+      },
+      {
+        "numero": "60",
+        "arquivo": "PropriedadesConfiguracao.java",
+        "linha": 188,
+        "coluna": 32,
+        "linha_completa": "'60' é um número mágico - PropriedadesConfiguracao.java:188:32"
+      },
+      {
+        "numero": "60",
+        "arquivo": "PropriedadesConfiguracao.java",
+        "linha": 188,
+        "coluna": 37,
+        "linha_completa": "'60' é um número mágico - PropriedadesConfiguracao.java:188:37"
+      },
+      {
+        "numero": "24",
+        "arquivo": "PropriedadesConfiguracao.java",
+        "linha": 191,
+        "coluna": 32,
+        "linha_completa": "'24' é um número mágico - PropriedadesConfiguracao.java:191:32"
+      },
+      {
+        "numero": "60",
+        "arquivo": "PropriedadesConfiguracao.java",
+        "linha": 191,
+        "coluna": 37,
+        "linha_completa": "'60' é um número mágico - PropriedadesConfiguracao.java:191:37"
+      },
+      {
+        "numero": "60",
+        "arquivo": "PropriedadesConfiguracao.java",
+        "linha": 191,
+        "coluna": 42,
+        "linha_completa": "'60' é um número mágico - PropriedadesConfiguracao.java:191:42"
+      },
+      {
+        "numero": "300_000",
+        "arquivo": "PropriedadesConfiguracao.java",
+        "linha": 197,
+        "coluna": 20,
+        "linha_completa": "'300_000' é um número mágico - PropriedadesConfiguracao.java:197:20"
+      },
+      {
+        "numero": "300",
+        "arquivo": "PropriedadesToken.java",
+        "linha": 116,
+        "coluna": 13,
+        "linha_completa": "'300' é um número mágico - PropriedadesToken.java:116:13"
+      },
+      {
+        "numero": "30",
+        "arquivo": "PropriedadesToken.java",
+        "linha": 119,
+        "coluna": 37,
+        "linha_completa": "'30' é um número mágico - PropriedadesToken.java:119:37"
+      },
+      {
+        "numero": "300",
+        "arquivo": "PropriedadesToken.java",
+        "linha": 233,
+        "coluna": 13,
+        "linha_completa": "'300' é um número mágico - PropriedadesToken.java:233:13"
+      },
+      {
+        "numero": "30",
+        "arquivo": "PropriedadesToken.java",
+        "linha": 236,
+        "coluna": 37,
+        "linha_completa": "'30' é um número mágico - PropriedadesToken.java:236:37"
+      },
+      {
+        "numero": "24",
+        "arquivo": "PropriedadesToken.java",
+        "linha": 247,
+        "coluna": 30,
+        "linha_completa": "'24' é um número mágico - PropriedadesToken.java:247:30"
+      },
+      {
+        "numero": "30",
+        "arquivo": "PropriedadesToken.java",
+        "linha": 248,
+        "coluna": 29,
+        "linha_completa": "'30' é um número mágico - PropriedadesToken.java:248:29"
+      },
+      {
+        "numero": "600",
+        "arquivo": "PropriedadesToken.java",
+        "linha": 253,
+        "coluna": 13,
+        "linha_completa": "'600' é um número mágico - PropriedadesToken.java:253:13"
+      },
+      {
+        "numero": "90",
+        "arquivo": "PropriedadesToken.java",
+        "linha": 256,
+        "coluna": 37,
+        "linha_completa": "'90' é um número mágico - PropriedadesToken.java:256:37"
+      },
+      {
+        "numero": "60",
+        "arquivo": "GeradorToken.java",
+        "linha": 125,
+        "coluna": 76,
+        "linha_completa": "'60' é um número mágico - GeradorToken.java:125:76"
+      },
+      {
+        "numero": "3600L",
+        "arquivo": "ConfiguracaoSegurancaHealth.java",
+        "linha": 72,
+        "coluna": 32,
+        "linha_completa": "'3600L' é um número mágico - ConfiguracaoSegurancaHealth.java:72:32"
+      },
+      {
+        "numero": "600",
+        "arquivo": "ProvedorUrlPagina.java",
+        "linha": 53,
+        "coluna": 32,
+        "linha_completa": "'600' é um número mágico - ProvedorUrlPagina.java:53:32"
+      },
+      {
+        "numero": "3600",
+        "arquivo": "ProvedorUrlPagina.java",
+        "linha": 54,
+        "coluna": 37,
+        "linha_completa": "'3600' é um número mágico - ProvedorUrlPagina.java:54:37"
+      },
+      {
+        "numero": "1800",
+        "arquivo": "ProvedorUrlPagina.java",
+        "linha": 55,
+        "coluna": 39,
+        "linha_completa": "'1800' é um número mágico - ProvedorUrlPagina.java:55:39"
+      },
+      {
+        "numero": "86400",
+        "arquivo": "ProvedorUrlPagina.java",
+        "linha": 56,
+        "coluna": 42,
+        "linha_completa": "'86400' é um número mágico - ProvedorUrlPagina.java:56:42"
+      },
+      {
+        "numero": "86400",
+        "arquivo": "ProvedorUrlPagina.java",
+        "linha": 57,
+        "coluna": 52,
+        "linha_completa": "'86400' é um número mágico - ProvedorUrlPagina.java:57:52"
+      },
+      {
+        "numero": "31536000",
+        "arquivo": "ConfiguracaoSegurancaOAuth2.java",
+        "linha": 208,
+        "coluna": 50,
+        "linha_completa": "'31536000' é um número mágico - ConfiguracaoSegurancaOAuth2.java:208:50"
+      },
+      {
+        "numero": "3600L",
+        "arquivo": "ConfiguracaoCorsSimplifcada.java",
+        "linha": 67,
+        "coluna": 33,
+        "linha_completa": "'3600L' é um número mágico - ConfiguracaoCorsSimplifcada.java:67:33"
+      },
+      {
+        "numero": "3600L",
+        "arquivo": "ConfiguracaoCorsSimplifcada.java",
+        "linha": 90,
+        "coluna": 33,
+        "linha_completa": "'3600L' é um número mágico - ConfiguracaoCorsSimplifcada.java:90:33"
+      },
+      {
+        "numero": "3600",
+        "arquivo": "PropriedadesCors.java",
+        "linha": 77,
+        "coluna": 17,
+        "linha_completa": "'3600' é um número mágico - PropriedadesCors.java:77:17"
+      },
+      {
+        "numero": "3600",
+        "arquivo": "PropriedadesCors.java",
+        "linha": 91,
+        "coluna": 17,
+        "linha_completa": "'3600' é um número mágico - PropriedadesCors.java:91:17"
+      },
+      {
+        "numero": "120",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 134,
+        "coluna": 13,
+        "linha_completa": "'120' é um número mágico - PropriedadesLimites.java:134:13"
+      },
+      {
+        "numero": "20",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 140,
+        "coluna": 13,
+        "linha_completa": "'20' é um número mágico - PropriedadesLimites.java:140:13"
+      },
+      {
+        "numero": "60",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 154,
+        "coluna": 13,
+        "linha_completa": "'60' é um número mágico - PropriedadesLimites.java:154:13"
+      },
+      {
+        "numero": "30",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 157,
+        "coluna": 13,
+        "linha_completa": "'30' é um número mágico - PropriedadesLimites.java:157:13"
+      },
+      {
+        "numero": "15",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 159,
+        "coluna": 13,
+        "linha_completa": "'15' é um número mágico - PropriedadesLimites.java:159:13"
+      },
+      {
+        "numero": "20",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 161,
+        "coluna": 13,
+        "linha_completa": "'20' é um número mágico - PropriedadesLimites.java:161:13"
+      },
+      {
+        "numero": "60",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 179,
+        "coluna": 13,
+        "linha_completa": "'60' é um número mágico - PropriedadesLimites.java:179:13"
+      },
+      {
+        "numero": "24",
+        "arquivo": "ServicoExtracaoRefatorado.java",
+        "linha": 94,
+        "coluna": 17,
+        "linha_completa": "'24' é um número mágico - ServicoExtracaoRefatorado.java:94:17"
+      },
+      {
+        "numero": "30",
+        "arquivo": "ServicoExtracaoRefatorado.java",
+        "linha": 102,
+        "coluna": 87,
+        "linha_completa": "'30' é um número mágico - ServicoExtracaoRefatorado.java:102:87"
+      },
+      {
+        "numero": "60",
+        "arquivo": "ExtratorResultadoMegaSena.java",
+        "linha": 87,
+        "coluna": 46,
+        "linha_completa": "'60' é um número mágico - ExtratorResultadoMegaSena.java:87:46"
+      },
+      {
+        "numero": "60",
+        "arquivo": "ExtratorResultadoMegaSena.java",
+        "linha": 148,
+        "coluna": 42,
+        "linha_completa": "'60' é um número mágico - ExtratorResultadoMegaSena.java:148:42"
+      },
+      {
+        "numero": "24",
+        "arquivo": "FalhaAutenticacaoRepositorio.java",
+        "linha": 80,
+        "coluna": 71,
+        "linha_completa": "'24' é um número mágico - FalhaAutenticacaoRepositorio.java:80:71"
+      },
+      {
+        "numero": "24",
+        "arquivo": "FalhaAutenticacaoRepositorio.java",
+        "linha": 151,
+        "coluna": 48,
+        "linha_completa": "'24' é um número mágico - FalhaAutenticacaoRepositorio.java:151:48"
+      },
+      {
+        "numero": "90",
+        "arquivo": "SessaoUsuarioRepositorio.java",
+        "linha": 777,
+        "coluna": 42,
+        "linha_completa": "'90' é um número mágico - SessaoUsuarioRepositorio.java:777:42"
+      },
+      {
+        "numero": "20",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 375,
+        "coluna": 22,
+        "linha_completa": "'20' é um número mágico - ValidadorUsuarioRefatorado.java:375:22"
+      },
+      {
+        "numero": "20",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 378,
+        "coluna": 22,
+        "linha_completa": "'20' é um número mágico - ValidadorUsuarioRefatorado.java:378:22"
+      },
+      {
+        "numero": "15",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 383,
+        "coluna": 22,
+        "linha_completa": "'15' é um número mágico - ValidadorUsuarioRefatorado.java:383:22"
+      },
+      {
+        "numero": "15",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 386,
+        "coluna": 22,
+        "linha_completa": "'15' é um número mágico - ValidadorUsuarioRefatorado.java:386:22"
+      },
+      {
+        "numero": "15",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 389,
+        "coluna": 22,
+        "linha_completa": "'15' é um número mágico - ValidadorUsuarioRefatorado.java:389:22"
+      },
+      {
+        "numero": "15",
+        "arquivo": "ValidadorUsuarioRefatorado.java",
+        "linha": 392,
+        "coluna": 22,
+        "linha_completa": "'15' é um número mágico - ValidadorUsuarioRefatorado.java:392:22"
+      },
+      {
+        "numero": "300",
+        "arquivo": "HttpFetcher.java",
+        "linha": 88,
+        "coluna": 51,
+        "linha_completa": "'300' é um número mágico - HttpFetcher.java:88:51"
+      },
+      {
+        "numero": "60",
+        "arquivo": "GeradorTokens.java",
+        "linha": 144,
+        "coluna": 76,
+        "linha_completa": "'60' é um número mágico - GeradorTokens.java:144:76"
+      },
+      {
+        "numero": "300",
+        "arquivo": "ConstantesHTTP.java",
+        "linha": 249,
+        "coluna": 50,
+        "linha_completa": "'300' é um número mágico - ConstantesHTTP.java:249:50"
+      },
+      {
+        "numero": "300",
+        "arquivo": "ConstantesHTTP.java",
+        "linha": 256,
+        "coluna": 30,
+        "linha_completa": "'300' é um número mágico - ConstantesHTTP.java:256:30"
+      },
+      {
+        "numero": "600",
+        "arquivo": "ConstantesHTTP.java",
+        "linha": 270,
+        "coluna": 50,
+        "linha_completa": "'600' é um número mágico - ConstantesHTTP.java:270:50"
+      },
+      {
+        "numero": "90",
+        "arquivo": "ServicoAuditoria.java",
+        "linha": 509,
+        "coluna": 33,
+        "linha_completa": "'90' é um número mágico - ServicoAuditoria.java:509:33"
+      },
+      {
+        "numero": "30",
+        "arquivo": "ServicoAuditoria.java",
+        "linha": 518,
+        "coluna": 75,
+        "linha_completa": "'30' é um número mágico - ServicoAuditoria.java:518:75"
+      },
+      {
+        "numero": "60",
+        "arquivo": "ServicoAuditoria.java",
+        "linha": 523,
+        "coluna": 88,
+        "linha_completa": "'60' é um número mágico - ServicoAuditoria.java:523:88"
+      },
+      {
+        "numero": "60",
+        "arquivo": "ServicoProcessadorEventosAuditoria.java",
+        "linha": 84,
+        "coluna": 51,
+        "linha_completa": "'60' é um número mágico - ServicoProcessadorEventosAuditoria.java:84:51"
+      },
+      {
+        "numero": "24",
+        "arquivo": "ServicoEstatisticaAuditoria.java",
+        "linha": 277,
+        "coluna": 39,
+        "linha_completa": "'24' é um número mágico - ServicoEstatisticaAuditoria.java:277:39"
+      },
+      {
+        "numero": "3600",
+        "arquivo": "UsuarioSeguranca.java",
+        "linha": 116,
+        "coluna": 102,
+        "linha_completa": "'3600' é um número mágico - UsuarioSeguranca.java:116:102"
+      },
+      {
+        "numero": "24",
+        "arquivo": "TokenRevogado.java",
+        "linha": 147,
+        "coluna": 74,
+        "linha_completa": "'24' é um número mágico - TokenRevogado.java:147:74"
+      },
+      {
+        "numero": "24",
+        "arquivo": "CodigoVerificacao.java",
+        "linha": 201,
+        "coluna": 43,
+        "linha_completa": "'24' é um número mágico - CodigoVerificacao.java:201:43"
+      },
+      {
+        "numero": "30",
+        "arquivo": "CodigoVerificacao.java",
+        "linha": 202,
+        "coluna": 51,
+        "linha_completa": "'30' é um número mágico - CodigoVerificacao.java:202:51"
+      },
+      {
+        "numero": "20",
+        "arquivo": "TipoConversa.java",
+        "linha": 211,
+        "coluna": 24,
+        "linha_completa": "'20' é um número mágico - TipoConversa.java:211:24"
+      }
+    ],
+    "tamanhos_memoria": [
+      {
+        "numero": "256",
+        "arquivo": "AutenticacaoResponseDTO.java",
+        "linha": 87,
+        "coluna": 51,
+        "linha_completa": "'256' é um número mágico - AutenticacaoResponseDTO.java:87:51"
+      },
+      {
+        "numero": "256",
+        "arquivo": "UsuarioResponseDTO.java",
+        "linha": 267,
+        "coluna": 51,
+        "linha_completa": "'256' é um número mágico - UsuarioResponseDTO.java:267:51"
+      },
+      {
+        "numero": "500",
+        "arquivo": "GrupoDTO.java",
+        "linha": 134,
+        "coluna": 57,
+        "linha_completa": "'500' é um número mágico - GrupoDTO.java:134:57"
+      },
+      {
+        "numero": "10000",
+        "arquivo": "MapeadorUsuarioBase.java",
+        "linha": 305,
+        "coluna": 54,
+        "linha_completa": "'10000' é um número mágico - MapeadorUsuarioBase.java:305:54"
+      },
+      {
+        "numero": "1000000",
+        "arquivo": "MapeadorCodigoVerificacao.java",
+        "linha": 200,
+        "coluna": 79,
+        "linha_completa": "'1000000' é um número mágico - MapeadorCodigoVerificacao.java:200:79"
+      },
+      {
+        "numero": "500",
+        "arquivo": "CorretorIndiceTokenRefresh.java",
+        "linha": 128,
+        "coluna": 31,
+        "linha_completa": "'500' é um número mágico - CorretorIndiceTokenRefresh.java:128:31"
+      },
+      {
+        "numero": "1_000_000",
+        "arquivo": "ServicoMonitoramentoCacheConsolidado.java",
+        "linha": 150,
+        "coluna": 37,
+        "linha_completa": "'1_000_000' é um número mágico - ServicoMonitoramentoCacheConsolidado.java:150:37"
+      },
+      {
+        "numero": "1_000_000",
+        "arquivo": "ServicoMonitoramentoCacheConsolidado.java",
+        "linha": 151,
+        "coluna": 42,
+        "linha_completa": "'1_000_000' é um número mágico - ServicoMonitoramentoCacheConsolidado.java:151:42"
+      },
+      {
+        "numero": "1_000_000.0",
+        "arquivo": "ServicoCache.java",
+        "linha": 376,
+        "coluna": 63,
+        "linha_completa": "'1_000_000.0' é um número mágico - ServicoCache.java:376:63"
+      },
+      {
+        "numero": "1_000_000",
+        "arquivo": "ServicoCache.java",
+        "linha": 388,
+        "coluna": 65,
+        "linha_completa": "'1_000_000' é um número mágico - ServicoCache.java:388:65"
+      },
+      {
+        "numero": "500",
+        "arquivo": "ConfiguracaoResiliencia.java",
+        "linha": 160,
+        "coluna": 48,
+        "linha_completa": "'500' é um número mágico - ConfiguracaoResiliencia.java:160:48"
+      },
+      {
+        "numero": "10000",
+        "arquivo": "ConfiguracaoFiltrosUnificada.java",
+        "linha": 264,
+        "coluna": 36,
+        "linha_completa": "'10000' é um número mágico - ConfiguracaoFiltrosUnificada.java:264:36"
+      },
+      {
+        "numero": "2048",
+        "arquivo": "ConfiguracaoSegurancaOAuth2.java",
+        "linha": 313,
+        "coluna": 35,
+        "linha_completa": "'2048' é um número mágico - ConfiguracaoSegurancaOAuth2.java:313:35"
+      },
+      {
+        "numero": "2048",
+        "arquivo": "ConfiguracaoSegurancaOAuth2.java",
+        "linha": 341,
+        "coluna": 35,
+        "linha_completa": "'2048' é um número mágico - ConfiguracaoSegurancaOAuth2.java:341:35"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "ServicoValidacaoEntrada.java",
+        "linha": 442,
+        "coluna": 78,
+        "linha_completa": "'1024' é um número mágico - ServicoValidacaoEntrada.java:442:78"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "ServicoValidacaoEntrada.java",
+        "linha": 442,
+        "coluna": 85,
+        "linha_completa": "'1024' é um número mágico - ServicoValidacaoEntrada.java:442:85"
+      },
+      {
+        "numero": "500",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 177,
+        "coluna": 13,
+        "linha_completa": "'500' é um número mágico - PropriedadesLimites.java:177:13"
+      },
+      {
+        "numero": "500",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 181,
+        "coluna": 13,
+        "linha_completa": "'500' é um número mágico - PropriedadesLimites.java:181:13"
+      },
+      {
+        "numero": "10_000",
+        "arquivo": "ExtratorResultadoDeuNoPoste.java",
+        "linha": 64,
+        "coluna": 26,
+        "linha_completa": "'10_000' é um número mágico - ExtratorResultadoDeuNoPoste.java:64:26"
+      },
+      {
+        "numero": "500",
+        "arquivo": "ConstantesHTTP.java",
+        "linha": 263,
+        "coluna": 50,
+        "linha_completa": "'500' é um número mágico - ConstantesHTTP.java:263:50"
+      },
+      {
+        "numero": "500",
+        "arquivo": "ConstantesHTTP.java",
+        "linha": 270,
+        "coluna": 30,
+        "linha_completa": "'500' é um número mágico - ConstantesHTTP.java:270:30"
+      },
+      {
+        "numero": "1000000",
+        "arquivo": "CorretorProblemasSpotBugs.java",
+        "linha": 47,
+        "coluna": 60,
+        "linha_completa": "'1000000' é um número mágico - CorretorProblemasSpotBugs.java:47:60"
+      },
+      {
+        "numero": "128",
+        "arquivo": "Grupo.java",
+        "linha": 606,
+        "coluna": 51,
+        "linha_completa": "'128' é um número mágico - Grupo.java:606:51"
+      },
+      {
+        "numero": "256",
+        "arquivo": "Auditoria.java",
+        "linha": 340,
+        "coluna": 38,
+        "linha_completa": "'256' é um número mágico - Auditoria.java:340:38"
+      },
+      {
+        "numero": "500",
+        "arquivo": "EventoAuditoria.java",
+        "linha": 484,
+        "coluna": 59,
+        "linha_completa": "'500' é um número mágico - EventoAuditoria.java:484:59"
+      },
+      {
+        "numero": "500",
+        "arquivo": "EventoAuditoria.java",
+        "linha": 485,
+        "coluna": 50,
+        "linha_completa": "'500' é um número mágico - EventoAuditoria.java:485:50"
+      },
+      {
+        "numero": "1024.0",
+        "arquivo": "TipoAnexo.java",
+        "linha": 175,
+        "coluna": 38,
+        "linha_completa": "'1024.0' é um número mágico - TipoAnexo.java:175:38"
+      },
+      {
+        "numero": "1024.0",
+        "arquivo": "TipoAnexo.java",
+        "linha": 175,
+        "coluna": 47,
+        "linha_completa": "'1024.0' é um número mágico - TipoAnexo.java:175:47"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoAnexo.java",
+        "linha": 334,
+        "coluna": 21,
+        "linha_completa": "'1024' é um número mágico - TipoAnexo.java:334:21"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoAnexo.java",
+        "linha": 336,
+        "coluna": 28,
+        "linha_completa": "'1024' é um número mágico - TipoAnexo.java:336:28"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoAnexo.java",
+        "linha": 336,
+        "coluna": 35,
+        "linha_completa": "'1024' é um número mágico - TipoAnexo.java:336:35"
+      },
+      {
+        "numero": "1024.0",
+        "arquivo": "TipoAnexo.java",
+        "linha": 337,
+        "coluna": 53,
+        "linha_completa": "'1024.0' é um número mágico - TipoAnexo.java:337:53"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoAnexo.java",
+        "linha": 338,
+        "coluna": 28,
+        "linha_completa": "'1024' é um número mágico - TipoAnexo.java:338:28"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoAnexo.java",
+        "linha": 338,
+        "coluna": 35,
+        "linha_completa": "'1024' é um número mágico - TipoAnexo.java:338:35"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoAnexo.java",
+        "linha": 338,
+        "coluna": 42,
+        "linha_completa": "'1024' é um número mágico - TipoAnexo.java:338:42"
+      },
+      {
+        "numero": "1024.0",
+        "arquivo": "TipoAnexo.java",
+        "linha": 339,
+        "coluna": 54,
+        "linha_completa": "'1024.0' é um número mágico - TipoAnexo.java:339:54"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoAnexo.java",
+        "linha": 339,
+        "coluna": 63,
+        "linha_completa": "'1024' é um número mágico - TipoAnexo.java:339:63"
+      },
+      {
+        "numero": "1024.0",
+        "arquivo": "TipoAnexo.java",
+        "linha": 341,
+        "coluna": 54,
+        "linha_completa": "'1024.0' é um número mágico - TipoAnexo.java:341:54"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoAnexo.java",
+        "linha": 341,
+        "coluna": 63,
+        "linha_completa": "'1024' é um número mágico - TipoAnexo.java:341:63"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoAnexo.java",
+        "linha": 341,
+        "coluna": 70,
+        "linha_completa": "'1024' é um número mágico - TipoAnexo.java:341:70"
+      },
+      {
+        "numero": "256",
+        "arquivo": "SessaoUsuario.java",
+        "linha": 760,
+        "coluna": 55,
+        "linha_completa": "'256' é um número mágico - SessaoUsuario.java:760:55"
+      },
+      {
+        "numero": "1000000",
+        "arquivo": "CodigoVerificacao.java",
+        "linha": 176,
+        "coluna": 53,
+        "linha_completa": "'1000000' é um número mágico - CodigoVerificacao.java:176:53"
+      },
+      {
+        "numero": "128",
+        "arquivo": "CodigoVerificacao.java",
+        "linha": 345,
+        "coluna": 50,
+        "linha_completa": "'128' é um número mágico - CodigoVerificacao.java:345:50"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoConversa.java",
+        "linha": 205,
+        "coluna": 29,
+        "linha_completa": "'1024' é um número mágico - TipoConversa.java:205:29"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoConversa.java",
+        "linha": 205,
+        "coluna": 36,
+        "linha_completa": "'1024' é um número mágico - TipoConversa.java:205:36"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoConversa.java",
+        "linha": 208,
+        "coluna": 30,
+        "linha_completa": "'1024' é um número mágico - TipoConversa.java:208:30"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoConversa.java",
+        "linha": 208,
+        "coluna": 37,
+        "linha_completa": "'1024' é um número mágico - TipoConversa.java:208:37"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoConversa.java",
+        "linha": 211,
+        "coluna": 29,
+        "linha_completa": "'1024' é um número mágico - TipoConversa.java:211:29"
+      },
+      {
+        "numero": "1024",
+        "arquivo": "TipoConversa.java",
+        "linha": 211,
+        "coluna": 36,
+        "linha_completa": "'1024' é um número mágico - TipoConversa.java:211:36"
+      },
+      {
+        "numero": "128",
+        "arquivo": "Papel.java",
+        "linha": 420,
+        "coluna": 51,
+        "linha_completa": "'128' é um número mágico - Papel.java:420:51"
+      },
+      {
+        "numero": "256",
+        "arquivo": "Anexo.java",
+        "linha": 621,
+        "coluna": 55,
+        "linha_completa": "'256' é um número mágico - Anexo.java:621:55"
+      }
+    ],
+    "codigos_http": [
+      {
+        "numero": "429",
+        "arquivo": "FiltroLimiteRequisicoes.java",
+        "linha": 245,
+        "coluna": 32,
+        "linha_completa": "'429' é um número mágico - FiltroLimiteRequisicoes.java:245:32"
+      },
+      {
+        "numero": "429",
+        "arquivo": "FiltroLimiteRequisicoes.java",
+        "linha": 287,
+        "coluna": 32,
+        "linha_completa": "'429' é um número mágico - FiltroLimiteRequisicoes.java:287:32"
+      },
+      {
+        "numero": "429",
+        "arquivo": "FiltroLimiteRequisicoes.java",
+        "linha": 336,
+        "coluna": 32,
+        "linha_completa": "'429' é um número mágico - FiltroLimiteRequisicoes.java:336:32"
+      },
+      {
+        "numero": "401",
+        "arquivo": "ConfiguracaoSegurancaOAuth2.java",
+        "linha": 214,
+        "coluna": 48,
+        "linha_completa": "'401' é um número mágico - ConfiguracaoSegurancaOAuth2.java:214:48"
+      },
+      {
+        "numero": "403",
+        "arquivo": "ConfiguracaoSegurancaOAuth2.java",
+        "linha": 221,
+        "coluna": 48,
+        "linha_completa": "'403' é um número mágico - ConfiguracaoSegurancaOAuth2.java:221:48"
+      },
+      {
+        "numero": "200",
+        "arquivo": "PropriedadesLimites.java",
+        "linha": 180,
+        "coluna": 13,
+        "linha_completa": "'200' é um número mágico - PropriedadesLimites.java:180:13"
+      },
+      {
+        "numero": "307",
+        "arquivo": "ServicoExtracaoLoteria.java",
+        "linha": 74,
+        "coluna": 26,
+        "linha_completa": "'307' é um número mágico - ServicoExtracaoLoteria.java:74:26"
+      },
+      {
+        "numero": "308",
+        "arquivo": "ServicoExtracaoLoteria.java",
+        "linha": 74,
+        "coluna": 43,
+        "linha_completa": "'308' é um número mágico - ServicoExtracaoLoteria.java:74:43"
+      },
+      {
+        "numero": "200",
+        "arquivo": "LocalizadorIdChatTelegram.java",
+        "linha": 46,
+        "coluna": 44,
+        "linha_completa": "'200' é um número mágico - LocalizadorIdChatTelegram.java:46:44"
+      },
+      {
+        "numero": "200",
+        "arquivo": "HttpFetcher.java",
+        "linha": 88,
+        "coluna": 31,
+        "linha_completa": "'200' é um número mágico - HttpFetcher.java:88:31"
+      },
+      {
+        "numero": "200",
+        "arquivo": "ConstantesHTTP.java",
+        "linha": 249,
+        "coluna": 30,
+        "linha_completa": "'200' é um número mágico - ConstantesHTTP.java:249:30"
+      },
+      {
+        "numero": "400",
+        "arquivo": "ConstantesHTTP.java",
+        "linha": 256,
+        "coluna": 50,
+        "linha_completa": "'400' é um número mágico - ConstantesHTTP.java:256:50"
+      },
+      {
+        "numero": "400",
+        "arquivo": "ConstantesHTTP.java",
+        "linha": 263,
+        "coluna": 30,
+        "linha_completa": "'400' é um número mágico - ConstantesHTTP.java:263:30"
+      },
+      {
+        "numero": "400",
+        "arquivo": "ConstantesHTTP.java",
+        "linha": 277,
+        "coluna": 30,
+        "linha_completa": "'400' é um número mágico - ConstantesHTTP.java:277:30"
+      },
+      {
+        "numero": "999",
+        "arquivo": "ConstantesAutorizacao.java",
+        "linha": 267,
+        "coluna": 24,
+        "linha_completa": "'999' é um número mágico - ConstantesAutorizacao.java:267:24"
+      },
+      {
+        "numero": "200",
+        "arquivo": "Notificacao.java",
+        "linha": 76,
+        "coluna": 35,
+        "linha_completa": "'200' é um número mágico - Notificacao.java:76:35"
+      },
+      {
+        "numero": "200",
+        "arquivo": "Notificacao.java",
+        "linha": 224,
+        "coluna": 31,
+        "linha_completa": "'200' é um número mágico - Notificacao.java:224:31"
+      }
+    ],
+    "percentuais": [
+      {
+        "numero": "15.0",
+        "arquivo": "ConfiguracaoMonitoramentoIntegrado.java",
+        "linha": 333,
+        "coluna": 31,
+        "linha_completa": "'15.0' é um número mágico - ConfiguracaoMonitoramentoIntegrado.java:333:31"
+      },
+      {
+        "numero": "0.75f",
+        "arquivo": "GerenciadorChavesCacheLRU.java",
+        "linha": 27,
+        "coluna": 78,
+        "linha_completa": "'0.75f' é um número mágico - GerenciadorChavesCacheLRU.java:27:78"
+      },
+      {
+        "numero": "0.7",
+        "arquivo": "EstrategiaDetecaoComportamentoSimples.java",
+        "linha": 106,
+        "coluna": 48,
+        "linha_completa": "'0.7' é um número mágico - EstrategiaDetecaoComportamentoSimples.java:106:48"
+      },
+      {
+        "numero": "0.3",
+        "arquivo": "EstrategiaDetecaoComportamentoSimples.java",
+        "linha": 106,
+        "coluna": 74,
+        "linha_completa": "'0.3' é um número mágico - EstrategiaDetecaoComportamentoSimples.java:106:74"
+      },
+      {
+        "numero": "30.0",
+        "arquivo": "EstrategiaDetecaoComportamentoSimples.java",
+        "linha": 164,
+        "coluna": 41,
+        "linha_completa": "'30.0' é um número mágico - EstrategiaDetecaoComportamentoSimples.java:164:41"
+      },
+      {
+        "numero": "29.0",
+        "arquivo": "EstrategiaDetecaoComportamentoSimples.java",
+        "linha": 168,
+        "coluna": 55,
+        "linha_completa": "'29.0' é um número mágico - EstrategiaDetecaoComportamentoSimples.java:168:55"
+      },
+      {
+        "numero": "0.7",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 147,
+        "coluna": 34,
+        "linha_completa": "'0.7' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:147:34"
+      },
+      {
+        "numero": "0.4",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 171,
+        "coluna": 52,
+        "linha_completa": "'0.4' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:171:52"
+      },
+      {
+        "numero": "0.3",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 172,
+        "coluna": 38,
+        "linha_completa": "'0.3' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:172:38"
+      },
+      {
+        "numero": "0.15",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 173,
+        "coluna": 32,
+        "linha_completa": "'0.15' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:173:32"
+      },
+      {
+        "numero": "0.15",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 174,
+        "coluna": 32,
+        "linha_completa": "'0.15' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:174:32"
+      },
+      {
+        "numero": "0.8",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 251,
+        "coluna": 31,
+        "linha_completa": "'0.8' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:251:31"
+      },
+      {
+        "numero": "0.5",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 253,
+        "coluna": 31,
+        "linha_completa": "'0.5' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:253:31"
+      },
+      {
+        "numero": "0.8",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 329,
+        "coluna": 52,
+        "linha_completa": "'0.8' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:329:52"
+      },
+      {
+        "numero": "0.8",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 329,
+        "coluna": 58,
+        "linha_completa": "'0.8' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:329:58"
+      },
+      {
+        "numero": "0.4",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 436,
+        "coluna": 52,
+        "linha_completa": "'0.4' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:436:52"
+      },
+      {
+        "numero": "0.3",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 437,
+        "coluna": 38,
+        "linha_completa": "'0.3' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:437:38"
+      },
+      {
+        "numero": "0.15",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 438,
+        "coluna": 32,
+        "linha_completa": "'0.15' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:438:32"
+      },
+      {
+        "numero": "0.15",
+        "arquivo": "EstrategiaDetecaoComportamentoAvancada.java",
+        "linha": 439,
+        "coluna": 32,
+        "linha_completa": "'0.15' é um número mágico - EstrategiaDetecaoComportamentoAvancada.java:439:32"
+      },
+      {
+        "numero": "0.5",
+        "arquivo": "MetricasToken.java",
+        "linha": 87,
+        "coluna": 37,
+        "linha_completa": "'0.5' é um número mágico - MetricasToken.java:87:37"
+      },
+      {
+        "numero": "0.95",
+        "arquivo": "MetricasToken.java",
+        "linha": 87,
+        "coluna": 42,
+        "linha_completa": "'0.95' é um número mágico - MetricasToken.java:87:42"
+      },
+      {
+        "numero": "0.99",
+        "arquivo": "MetricasToken.java",
+        "linha": 87,
+        "coluna": 48,
+        "linha_completa": "'0.99' é um número mágico - MetricasToken.java:87:48"
+      },
+      {
+        "numero": "0.5",
+        "arquivo": "MetricasToken.java",
+        "linha": 93,
+        "coluna": 37,
+        "linha_completa": "'0.5' é um número mágico - MetricasToken.java:93:37"
+      },
+      {
+        "numero": "0.95",
+        "arquivo": "MetricasToken.java",
+        "linha": 93,
+        "coluna": 42,
+        "linha_completa": "'0.95' é um número mágico - MetricasToken.java:93:42"
+      },
+      {
+        "numero": "0.99",
+        "arquivo": "MetricasToken.java",
+        "linha": 93,
+        "coluna": 48,
+        "linha_completa": "'0.99' é um número mágico - MetricasToken.java:93:48"
+      }
+    ],
+    "criptografia": [
+      {
+        "numero": "64",
+        "arquivo": "ServicoValidacaoSenha.java",
+        "linha": 73,
+        "coluna": 30,
+        "linha_completa": "'64' é um número mágico - ServicoValidacaoSenha.java:73:30"
+      },
+      {
+        "numero": "64",
+        "arquivo": "ServicoValidacaoSenha.java",
+        "linha": 101,
+        "coluna": 52,
+        "linha_completa": "'64' é um número mágico - ServicoValidacaoSenha.java:101:52"
+      },
+      {
+        "numero": "32",
+        "arquivo": "ServicoSegurancaProducao.java",
+        "linha": 174,
+        "coluna": 23,
+        "linha_completa": "'32' é um número mágico - ServicoSegurancaProducao.java:174:23"
+      },
+      {
+        "numero": "16",
+        "arquivo": "GeradorToken.java",
+        "linha": 42,
+        "coluna": 49,
+        "linha_completa": "'16' é um número mágico - GeradorToken.java:42:49"
+      },
+      {
+        "numero": "32",
+        "arquivo": "ServicoValidacaoEntrada.java",
+        "linha": 563,
+        "coluna": 82,
+        "linha_completa": "'32' é um número mágico - ServicoValidacaoEntrada.java:563:82"
+      },
+      {
+        "numero": "127",
+        "arquivo": "ServicoValidacaoEntrada.java",
+        "linha": 563,
+        "coluna": 92,
+        "linha_completa": "'127' é um número mágico - ServicoValidacaoEntrada.java:563:92"
+      },
+      {
+        "numero": "159",
+        "arquivo": "ServicoValidacaoEntrada.java",
+        "linha": 563,
+        "coluna": 104,
+        "linha_completa": "'159' é um número mágico - ServicoValidacaoEntrada.java:563:104"
+      },
+      {
+        "numero": "32",
+        "arquivo": "ServicoRefreshToken.java",
+        "linha": 272,
+        "coluna": 33,
+        "linha_completa": "'32' é um número mágico - ServicoRefreshToken.java:272:33"
+      },
+      {
+        "numero": "16",
+        "arquivo": "ServicoCriptografiaAES.java",
+        "linha": 193,
+        "coluna": 60,
+        "linha_completa": "'16' é um número mágico - ServicoCriptografiaAES.java:193:60"
+      },
+      {
+        "numero": "32",
+        "arquivo": "ServicoCriptografiaAES.java",
+        "linha": 257,
+        "coluna": 47,
+        "linha_completa": "'32' é um número mágico - ServicoCriptografiaAES.java:257:47"
+      },
+      {
+        "numero": "32",
+        "arquivo": "ServicoCriptografiaAES.java",
+        "linha": 292,
+        "coluna": 57,
+        "linha_completa": "'32' é um número mágico - ServicoCriptografiaAES.java:292:57"
+      },
+      {
+        "numero": "0xff",
+        "arquivo": "GeradorTokens.java",
+        "linha": 240,
+        "coluna": 50,
+        "linha_completa": "'0xff' é um número mágico - GeradorTokens.java:240:50"
+      }
+    ],
+    "regras_loteria": [
+      {
+        "numero": "80",
+        "arquivo": "ConfiguracaoAzureKeyVaultSpringCloud.java",
+        "linha": 188,
+        "coluna": 69,
+        "linha_completa": "'80' é um número mágico - ConfiguracaoAzureKeyVaultSpringCloud.java:188:69"
+      },
+      {
+        "numero": "14",
+        "arquivo": "PropriedadesToken.java",
+        "linha": 256,
+        "coluna": 41,
+        "linha_completa": "'14' é um número mágico - PropriedadesToken.java:256:41"
+      },
+      {
+        "numero": "80",
+        "arquivo": "ExtratorResultadoQuina.java",
+        "linha": 97,
+        "coluna": 46,
+        "linha_completa": "'80' é um número mágico - ExtratorResultadoQuina.java:97:46"
+      },
+      {
+        "numero": "80",
+        "arquivo": "ExtratorResultadoQuina.java",
+        "linha": 178,
+        "coluna": 42,
+        "linha_completa": "'80' é um número mágico - ExtratorResultadoQuina.java:178:42"
+      },
+      {
+        "numero": "39",
+        "arquivo": "Visualizacao.java",
+        "linha": 240,
+        "coluna": 51,
+        "linha_completa": "'39' é um número mágico - Visualizacao.java:240:51"
+      },
+      {
+        "numero": "47",
+        "arquivo": "Notificacao.java",
+        "linha": 305,
+        "coluna": 75,
+        "linha_completa": "'47' é um número mágico - Notificacao.java:305:75"
+      }
+    ],
+    "limites_campos": [
+      {
+        "numero": "40",
+        "arquivo": "ServicoValidacaoSenha.java",
+        "linha": 187,
+        "coluna": 51,
+        "linha_completa": "'40' é um número mágico - ServicoValidacaoSenha.java:187:51"
+      },
+      {
+        "numero": "40",
+        "arquivo": "ConfiguracaoResiliencia.java",
+        "linha": 212,
+        "coluna": 35,
+        "linha_completa": "'40' é um número mágico - ConfiguracaoResiliencia.java:212:35"
+      },
+      {
+        "numero": "50",
+        "arquivo": "ConfiguracaoResiliencia.java",
+        "linha": 261,
+        "coluna": 39,
+        "linha_completa": "'50' é um número mágico - ConfiguracaoResiliencia.java:261:39"
+      },
+      {
+        "numero": "50",
+        "arquivo": "RegistradorSegurancaAprimorado.java",
+        "linha": 111,
+        "coluna": 58,
+        "linha_completa": "'50' é um número mágico - RegistradorSegurancaAprimorado.java:111:58"
+      },
+      {
+        "numero": "50",
+        "arquivo": "PropriedadesSeguranca.java",
+        "linha": 326,
+        "coluna": 13,
+        "linha_completa": "'50' é um número mágico - PropriedadesSeguranca.java:326:13"
+      },
+      {
+        "numero": "255",
+        "arquivo": "ValidadorRecursos.java",
+        "linha": 40,
+        "coluna": 37,
+        "linha_completa": "'255' é um número mágico - ValidadorRecursos.java:40:37"
+      },
+      {
+        "numero": "50",
+        "arquivo": "ValidadorAuditoria.java",
+        "linha": 67,
+        "coluna": 88,
+        "linha_completa": "'50' é um número mágico - ValidadorAuditoria.java:67:88"
+      },
+      {
+        "numero": "254",
+        "arquivo": "EmailEncryptionConverter.java",
+        "linha": 114,
+        "coluna": 30,
+        "linha_completa": "'254' é um número mágico - EmailEncryptionConverter.java:114:30"
+      },
+      {
+        "numero": "50",
+        "arquivo": "Visualizacao.java",
+        "linha": 115,
+        "coluna": 41,
+        "linha_completa": "'50' é um número mágico - Visualizacao.java:115:41"
+      },
+      {
+        "numero": "255",
+        "arquivo": "Visualizacao.java",
+        "linha": 233,
+        "coluna": 27,
+        "linha_completa": "'255' é um número mágico - Visualizacao.java:233:27"
+      },
+      {
+        "numero": "50",
+        "arquivo": "Visualizacao.java",
+        "linha": 283,
+        "coluna": 37,
+        "linha_completa": "'50' é um número mágico - Visualizacao.java:283:37"
+      },
+      {
+        "numero": "50",
+        "arquivo": "Notificacao.java",
+        "linha": 305,
+        "coluna": 48,
+        "linha_completa": "'50' é um número mágico - Notificacao.java:305:48"
+      },
+      {
+        "numero": "50",
+        "arquivo": "TipoItem.java",
+        "linha": 379,
+        "coluna": 35,
+        "linha_completa": "'50' é um número mágico - TipoItem.java:379:35"
+      },
+      {
+        "numero": "255",
+        "arquivo": "TipoItem.java",
+        "linha": 385,
+        "coluna": 61,
+        "linha_completa": "'255' é um número mágico - TipoItem.java:385:61"
+      },
+      {
+        "numero": "50",
+        "arquivo": "TipoItem.java",
+        "linha": 388,
+        "coluna": 53,
+        "linha_completa": "'50' é um número mágico - TipoItem.java:388:53"
+      },
+      {
+        "numero": "50",
+        "arquivo": "TipoConversa.java",
+        "linha": 205,
+        "coluna": 24,
+        "linha_completa": "'50' é um número mágico - TipoConversa.java:205:24"
+      },
+      {
+        "numero": "255",
+        "arquivo": "Modalidade.java",
+        "linha": 441,
+        "coluna": 61,
+        "linha_completa": "'255' é um número mágico - Modalidade.java:441:61"
+      },
+      {
+        "numero": "50",
+        "arquivo": "ItemModalidade.java",
+        "linha": 109,
+        "coluna": 42,
+        "linha_completa": "'50' é um número mágico - ItemModalidade.java:109:42"
+      },
+      {
+        "numero": "50",
+        "arquivo": "ItemModalidade.java",
+        "linha": 274,
+        "coluna": 42,
+        "linha_completa": "'50' é um número mágico - ItemModalidade.java:274:42"
+      },
+      {
+        "numero": "50",
+        "arquivo": "Endereco.java",
+        "linha": 188,
+        "coluna": 75,
+        "linha_completa": "'50' é um número mágico - Endereco.java:188:75"
+      },
+      {
+        "numero": "150",
+        "arquivo": "Endereco.java",
+        "linha": 192,
+        "coluna": 87,
+        "linha_completa": "'150' é um número mágico - Endereco.java:192:87"
+      },
+      {
+        "numero": "50",
+        "arquivo": "Endereco.java",
+        "linha": 492,
+        "coluna": 63,
+        "linha_completa": "'50' é um número mágico - Endereco.java:492:63"
+      },
+      {
+        "numero": "150",
+        "arquivo": "Endereco.java",
+        "linha": 495,
+        "coluna": 75,
+        "linha_completa": "'150' é um número mágico - Endereco.java:495:75"
+      }
+    ],
+    "outros": [
+      {
+        "numero": "2000L",
+        "arquivo": "UtilidadesConsolidadas.java",
+        "linha": 421,
+        "coluna": 61,
+        "linha_completa": "'2000L' é um número mágico - UtilidadesConsolidadas.java:421:61"
+      }
+    ]
+  },
+  "estatisticas": {
+    "documentos_brasil": {
+      "total": 40,
+      "numeros_unicos": 3,
+      "mais_frequentes": [
+        [
+          "11",
+          37
+        ],
+        [
+          "12",
+          2
+        ],
+        [
+          "18",
+          1
+        ]
+      ],
+      "arquivos_afetados": 7
+    },
+    "timeouts_duracao": {
+      "total": 82,
+      "numeros_unicos": 18,
+      "mais_frequentes": [
+        [
+          "30",
+          16
+        ],
+        [
+          "60",
+          15
+        ],
+        [
+          "20",
+          8
+        ],
+        [
+          "24",
+          8
+        ],
+        [
+          "15",
+          7
+        ]
+      ],
+      "arquivos_afetados": 35
+    },
+    "tamanhos_memoria": {
+      "total": 51,
+      "numeros_unicos": 11,
+      "mais_frequentes": [
+        [
+          "1024",
+          17
+        ],
+        [
+          "500",
+          9
+        ],
+        [
+          "256",
+          5
+        ],
+        [
+          "1024.0",
+          5
+        ],
+        [
+          "1000000",
+          3
+        ]
+      ],
+      "arquivos_afetados": 25
+    },
+    "codigos_http": {
+      "total": 17,
+      "numeros_unicos": 8,
+      "mais_frequentes": [
+        [
+          "200",
+          6
+        ],
+        [
+          "429",
+          3
+        ],
+        [
+          "400",
+          3
+        ],
+        [
+          "401",
+          1
+        ],
+        [
+          "403",
+          1
+        ]
+      ],
+      "arquivos_afetados": 9
+    },
+    "percentuais": {
+      "total": 25,
+      "numeros_unicos": 12,
+      "mais_frequentes": [
+        [
+          "0.15",
+          4
+        ],
+        [
+          "0.3",
+          3
+        ],
+        [
+          "0.8",
+          3
+        ],
+        [
+          "0.5",
+          3
+        ],
+        [
+          "0.7",
+          2
+        ]
+      ],
+      "arquivos_afetados": 5
+    },
+    "criptografia": {
+      "total": 12,
+      "numeros_unicos": 6,
+      "mais_frequentes": [
+        [
+          "32",
+          5
+        ],
+        [
+          "64",
+          2
+        ],
+        [
+          "16",
+          2
+        ],
+        [
+          "127",
+          1
+        ],
+        [
+          "159",
+          1
+        ]
+      ],
+      "arquivos_afetados": 7
+    },
+    "regras_loteria": {
+      "total": 6,
+      "numeros_unicos": 4,
+      "mais_frequentes": [
+        [
+          "80",
+          3
+        ],
+        [
+          "14",
+          1
+        ],
+        [
+          "39",
+          1
+        ],
+        [
+          "47",
+          1
+        ]
+      ],
+      "arquivos_afetados": 5
+    },
+    "limites_campos": {
+      "total": 23,
+      "numeros_unicos": 5,
+      "mais_frequentes": [
+        [
+          "50",
+          14
+        ],
+        [
+          "255",
+          4
+        ],
+        [
+          "40",
+          2
+        ],
+        [
+          "150",
+          2
+        ],
+        [
+          "254",
+          1
+        ]
+      ],
+      "arquivos_afetados": 14
+    },
+    "outros": {
+      "total": 1,
+      "numeros_unicos": 1,
+      "mais_frequentes": [
+        [
+          "2000L",
+          1
+        ]
+      ],
+      "arquivos_afetados": 1
+    },
+    "total_geral": 257
+  },
+  "total": 257
+}

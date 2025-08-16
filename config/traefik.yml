@@ -1,0 +1,229 @@
+# =============================================================================
+# CONFIGURAÇÃO ESTÁTICA DO TRAEFIK - CONEXÃO DE SORTE
+# =============================================================================
+# Configuração principal do Traefik para infraestrutura independente
+# Esta configuração é carregada na inicialização e não pode ser alterada
+# dinamicamente. Para configurações dinâmicas, use os arquivos em /dynamic/
+
+# =============================================================================
+# API E DASHBOARD
+# =============================================================================
+api:
+  dashboard: true
+  insecure: false  # Dashboard apenas via HTTPS
+  debug: false
+
+# =============================================================================
+# ENTRYPOINTS (PONTOS DE ENTRADA)
+# =============================================================================
+entryPoints:
+  # HTTP (porta 80) - Redirect para HTTPS
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  
+  # HTTPS (porta 443) - Entrada principal
+  websecure:
+    address: ":443"
+    http:
+      # Configurações de segurança
+      tls:
+        options: default
+      # Middlewares globais
+      middlewares:
+        - security-headers@file
+  
+  # Traefik Dashboard (porta 8080)
+  traefik:
+    address: ":8080"
+
+# =============================================================================
+# PROVIDERS (PROVEDORES DE CONFIGURAÇÃO)
+# =============================================================================
+providers:
+  # Docker Provider - Descoberta automática de serviços
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false  # Apenas serviços com traefik.enable=true
+    network: conexao-network  # Rede padrão para comunicação
+    watch: true  # Monitorar mudanças em tempo real
+    swarmMode: false
+    
+    # Configurações de polling
+    pollInterval: "5s"
+    
+    # Configurações de segurança
+    useBindPortIP: false
+  
+  # File Provider - Configurações dinâmicas via arquivos
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true  # Monitorar mudanças nos arquivos
+    
+  # Ping Provider - Health check interno
+  ping:
+    entryPoint: traefik
+
+# =============================================================================
+# CERTIFICADOS SSL/TLS
+# =============================================================================
+certificatesResolvers:
+  # Let's Encrypt - Certificados automáticos
+  letsencrypt:
+    acme:
+      email: ${ACME_EMAIL}
+      storage: /certs/acme.json
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      
+      # HTTP Challenge (recomendado para a maioria dos casos)
+      httpChallenge:
+        entryPoint: web
+      
+      # Configurações de segurança
+      keyType: EC256
+  
+  # Let's Encrypt Staging (para testes)
+  letsencrypt-staging:
+    acme:
+      email: ${ACME_EMAIL}
+      storage: /certs/acme-staging.json
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      
+      httpChallenge:
+        entryPoint: web
+      
+      keyType: EC256
+
+# =============================================================================
+# CONFIGURAÇÕES TLS
+# =============================================================================
+tls:
+  options:
+    # Configuração TLS padrão (segura)
+    default:
+      minVersion: "VersionTLS12"
+      maxVersion: "VersionTLS13"
+      cipherSuites:
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_RSA_WITH_AES_128_GCM_SHA256"
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+      sniStrict: true
+    
+    # Configuração TLS moderna (mais restritiva)
+    modern:
+      minVersion: "VersionTLS13"
+      maxVersion: "VersionTLS13"
+      sniStrict: true
+
+# =============================================================================
+# LOGGING
+# =============================================================================
+log:
+  level: ${TRAEFIK_LOG_LEVEL}
+  format: json
+  filePath: /var/log/traefik/traefik.log
+  
+  # Configurações de rotação de logs
+  maxSize: 100
+  maxAge: 30
+  maxBackups: 3
+  compress: true
+
+# Access Logs
+accessLog:
+  format: json
+  filePath: /var/log/traefik/access.log
+  
+  # Campos a serem logados
+  fields:
+    defaultMode: keep
+    names:
+      ClientUsername: drop
+    headers:
+      defaultMode: keep
+      names:
+        User-Agent: redact
+        Authorization: drop
+        Cookie: drop
+  
+  # Filtros
+  filters:
+    statusCodes:
+      - "200"
+      - "300-302"
+      - "400-499"
+      - "500-599"
+    retryAttempts: true
+    minDuration: "10ms"
+  
+  # Configurações de rotação
+  maxSize: 100
+  maxAge: 30
+  maxBackups: 3
+  compress: true
+
+# =============================================================================
+# MÉTRICAS
+# =============================================================================
+metrics:
+  # Prometheus metrics
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    addRoutersLabels: true
+    buckets:
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
+    entryPoint: traefik
+    manualRouting: false
+
+# =============================================================================
+# CONFIGURAÇÕES GLOBAIS
+# =============================================================================
+global:
+  # Não enviar dados de uso anônimo
+  sendAnonymousUsage: false
+  
+  # Verificar novas versões
+  checkNewVersion: true
+
+# =============================================================================
+# CONFIGURAÇÕES DE SERVIDOR
+# =============================================================================
+serversTransport:
+  # Configurações para comunicação com backends
+  insecureSkipVerify: false
+  rootCAs:
+    - /etc/ssl/certs/ca-certificates.crt
+  maxIdleConnsPerHost: 7
+  forwardingTimeouts:
+    dialTimeout: 30s
+    responseHeaderTimeout: 0s
+    idleConnTimeout: 90s
+
+# =============================================================================
+# CONFIGURAÇÕES DE CLUSTER (para futuro uso)
+# =============================================================================
+cluster:
+  # Configurações para modo cluster (desabilitado por enquanto)
+  store: consul
+  prefix: traefik
+
+# =============================================================================
+# CONFIGURAÇÕES DE PILOT (DESABILITADO)
+# =============================================================================
+pilot:
+  # Traefik Pilot desabilitado por questões de privacidade
+  dashboard: false

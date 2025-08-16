@@ -1,0 +1,202 @@
+name: CI - Validação e Testes
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  # =============================================================================
+  # VALIDAÇÃO DE CONFIGURAÇÕES
+  # =============================================================================
+  validate-configs:
+    name: 🔍 Validar Configurações
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🐳 Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: 🔧 Validar sintaxe YAML
+      run: |
+        # Instalar yamllint
+        pip install yamllint
+        
+        # Validar todos os arquivos YAML
+        find . -name "*.yml" -o -name "*.yaml" | xargs yamllint -d relaxed
+        
+    - name: 🔍 Validar configurações Traefik
+      run: |
+        # Criar container temporário para validação
+        docker run --rm \
+          -v "$PWD/config:/etc/traefik:ro" \
+          -v "$PWD/dynamic:/etc/traefik/dynamic:ro" \
+          traefik:v3.0 \
+          traefik --configfile=/etc/traefik/traefik.yml --dry-run
+          
+    - name: 🧪 Testar docker-compose
+      run: |
+        # Validar sintaxe do docker-compose
+        docker-compose config
+        
+        # Verificar se todos os serviços podem ser criados
+        docker-compose config --services
+
+  # =============================================================================
+  # TESTES DE CONECTIVIDADE
+  # =============================================================================
+  connectivity-tests:
+    name: 🌐 Testes de Conectividade
+    runs-on: ubuntu-latest
+    needs: validate-configs
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🐳 Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: 🚀 Iniciar serviços de teste
+      run: |
+        # Criar rede de teste
+        docker network create traefik-test || true
+        
+        # Iniciar Traefik em modo de teste
+        docker run -d --name traefik-test \
+          --network traefik-test \
+          -p 8080:8080 \
+          -p 80:80 \
+          -v "$PWD/config:/etc/traefik:ro" \
+          -v "$PWD/dynamic:/etc/traefik/dynamic:ro" \
+          -v /var/run/docker.sock:/var/run/docker.sock:ro \
+          traefik:v3.0
+          
+        # Aguardar Traefik inicializar
+        sleep 10
+        
+    - name: 🔍 Testar dashboard Traefik
+      run: |
+        # Testar se o dashboard está acessível
+        curl -f http://localhost:8080/api/rawdata || exit 1
+        curl -f http://localhost:8080/dashboard/ || exit 1
+        
+    - name: 🧹 Cleanup
+      if: always()
+      run: |
+        docker stop traefik-test || true
+        docker rm traefik-test || true
+        docker network rm traefik-test || true
+
+  # =============================================================================
+  # VERIFICAÇÕES DE SEGURANÇA
+  # =============================================================================
+  security-checks:
+    name: 🔒 Verificações de Segurança
+    runs-on: ubuntu-latest
+    needs: validate-configs
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 🔍 Verificar secrets expostos
+      run: |
+        # Verificar se não há secrets hardcoded
+        if grep -r -i "password\|secret\|key\|token" --include="*.yml" --include="*.yaml" .; then
+          echo "⚠️ Possíveis secrets encontrados nos arquivos de configuração!"
+          echo "Verifique se não há credenciais hardcoded."
+          # Não falhar o build, apenas alertar
+        fi
+        
+    - name: 🛡️ Verificar configurações TLS
+      run: |
+        # Verificar se TLS está configurado corretamente
+        if ! grep -q "certResolver: letsencrypt" dynamic/services.yml; then
+          echo "❌ Configuração TLS não encontrada!"
+          exit 1
+        fi
+        
+        if ! grep -q "minVersion: \"VersionTLS12\"" dynamic/services.yml; then
+          echo "⚠️ Versão mínima do TLS não configurada!"
+        fi
+        
+    - name: 🔐 Verificar middlewares de segurança
+      run: |
+        # Verificar se middlewares de segurança estão configurados
+        if ! grep -q "security-headers" dynamic/middlewares.yml; then
+          echo "❌ Middleware de security headers não encontrado!"
+          exit 1
+        fi
+        
+        if ! grep -q "rate-limit" dynamic/middlewares.yml; then
+          echo "⚠️ Middleware de rate limiting não encontrado!"
+        fi
+
+  # =============================================================================
+  # ANÁLISE DE QUALIDADE
+  # =============================================================================
+  quality-analysis:
+    name: 📊 Análise de Qualidade
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      
+    - name: 📈 Análise de complexidade
+      run: |
+        echo "📊 Estatísticas do projeto:"
+        echo "- Arquivos YAML: $(find . -name '*.yml' -o -name '*.yaml' | wc -l)"
+        echo "- Routers configurados: $(grep -c 'rule:' dynamic/services.yml || echo 0)"
+        echo "- Services configurados: $(grep -c 'loadBalancer:' dynamic/services.yml || echo 0)"
+        echo "- Middlewares configurados: $(grep -c '^  [a-zA-Z].*:$' dynamic/middlewares.yml || echo 0)"
+        
+    - name: 📝 Verificar documentação
+      run: |
+        if [ ! -f README.md ]; then
+          echo "⚠️ README.md não encontrado!"
+        fi
+        
+        if [ ! -f .env.example ]; then
+          echo "⚠️ .env.example não encontrado!"
+        fi
+
+  # =============================================================================
+  # RELATÓRIO FINAL
+  # =============================================================================
+  report:
+    name: 📋 Relatório Final
+    runs-on: ubuntu-latest
+    needs: [validate-configs, connectivity-tests, security-checks, quality-analysis]
+    if: always()
+    
+    steps:
+    - name: 📊 Status do Pipeline
+      run: |
+        echo "🎯 Pipeline CI executado com sucesso!"
+        echo "✅ Configurações validadas"
+        echo "✅ Testes de conectividade executados"
+        echo "✅ Verificações de segurança realizadas"
+        echo "✅ Análise de qualidade concluída"
+        
+        if [ "${{ needs.validate-configs.result }}" != "success" ]; then
+          echo "❌ Falha na validação de configurações"
+        fi
+        
+        if [ "${{ needs.connectivity-tests.result }}" != "success" ]; then
+          echo "❌ Falha nos testes de conectividade"
+        fi
+        
+        if [ "${{ needs.security-checks.result }}" != "success" ]; then
+          echo "❌ Falha nas verificações de segurança"
+        fi

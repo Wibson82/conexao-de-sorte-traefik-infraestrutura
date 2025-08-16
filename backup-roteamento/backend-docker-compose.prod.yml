@@ -1,0 +1,223 @@
+# 🚀 Docker Compose para Produção Completa - Docker Compose Puro
+# ✅ Backend + Frontend + Traefik + MySQL 8.4
+# ✅ Domínios: conexaodesorte.com.br e www.conexaodesorte.com.br
+# ✅ SSL automático com Let's Encrypt
+# ✅ Azure Key Vault via Managed Identity (apenas endpoint necessário)
+
+networks:
+  conexao-net:
+    driver: overlay
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  traefik-public:
+    external: true
+
+volumes:
+  mysql_data:
+    driver: local
+  logs_data:
+    driver: local
+  tmp_data:
+    driver: local
+  traefik_data:
+    driver: local
+  traefik_certs:
+    driver: local
+
+services:
+  # ===== TRAEFIK - Reverse Proxy com SSL Automático =====
+  traefik:
+    image: traefik:v3.0
+    container_name: conexao-traefik-prod
+    restart: unless-stopped
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_data:/etc/traefik
+      - traefik_certs:/certs
+    
+    networks:
+      - traefik-public
+      - conexao-net
+    
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@conexaodesorte.com.br"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ===== BACKEND - API Spring Boot 3.5 + Java 21 =====
+  backend:
+    image: ${REGISTRY:-facilita}/${IMAGE_NAME:-conexao-de-sorte-backend}:${TAG:-latest}
+    container_name: conexao-backend-prod
+    restart: unless-stopped
+    
+    environment:
+      # Spring Profiles - Azure Key Vault via Managed Identity
+      - SPRING_PROFILES_ACTIVE=azure,prod
+      
+      # Azure Key Vault - Managed Identity (apenas endpoint necessário)
+      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
+      - AZURE_MANAGED_IDENTITY_ENABLED=true
+      
+      # JVM Options para Produção
+      - JAVA_OPTS=-server -Xms512m -Xmx2048m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError
+      
+      # Application Configuration
+      - SERVER_PORT=8080
+      - TZ=America/Sao_Paulo
+      
+      # IMPORTANTE: Todos os outros secrets vêm do Azure Key Vault automaticamente:
+      # - conexao-de-sorte-frontend-database-url
+      # - conexao-de-sorte-frontend-database-username  
+      # - conexao-de-sorte-frontend-database-password
+      # - conexao-de-sorte-frontend-jwt-*
+      # - conexao-de-sorte-frontend-security-oauth2-*
+      - MAIL_USERNAME=naoresponder@conexaodesorte.com.br
+      - ADMIN_EMAIL_RECIPIENTS=admin@conexaodesorte.com.br
+
+    volumes:
+      - logs_data:/app/logs
+      - tmp_data:/app/tmp
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 90s
+    
+    depends_on:
+      - mysql
+    
+    networks:
+      - conexao-net
+      - traefik-public
+    
+    labels:
+      # Traefik Labels para Backend API
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend-api.rule=(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/rest`)"
+      - "traefik.http.routers.backend-api.entrypoints=websecure"
+      - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-api.priority=10"
+      - "traefik.http.routers.backend-api.middlewares=backend-stripprefix"
+      - "traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/rest"
+      - "traefik.http.services.backend-api.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik-public"
+    
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # ===== FRONTEND - React App =====
+  frontend:
+    image: ${REGISTRY:-facilita}/${IMAGE_NAME_FRONTEND:-conexao-de-sorte-frontend}:${TAG:-latest}
+    container_name: conexao-frontend-prod
+    restart: unless-stopped
+    
+    networks:
+      - conexao-net
+      - traefik-public
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    labels:
+      # Traefik Labels para Frontend
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && !PathPrefix(`/rest`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend.priority=1"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-public"
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ===== BANCO DE DADOS - MySQL 8.4 =====
+  mysql:
+    image: ${REGISTRY:-facilita}/${MYSQL_IMAGE_NAME:-conexao-de-sorte-mysql}:${TAG:-latest}
+    container_name: conexao-mysql-prod
+    restart: unless-stopped
+    
+    environment:
+      # Database Configuration
+      - MYSQL_DATABASE=conexaodb
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-12345678AbcD}
+      - MYSQL_USER=${MYSQL_USER:-app_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-app_password}
+      - TZ=America/Sao_Paulo
+
+    volumes:
+      # Dados persistentes do MySQL
+      - mysql_data:/var/lib/mysql
+      
+      # Configurações customizadas
+      - ./mysql-config/mysql.cnf:/etc/mysql/conf.d/custom.cnf:ro
+      
+      # Script de inicialização
+      - ./scripts/database/init-mysql-secure.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    
+    networks:
+      - conexao-net
+    
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-12345678AbcD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'

@@ -1,0 +1,106 @@
+# =============================================================================
+# PROMETHEUS CONFIGURATION - CONEXÃO DE SORTE
+# =============================================================================
+# Configuração migrada e unificada do projeto conexao-traefik-infrastructure
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+  # Labels externos para identificação
+  external_labels:
+    ambiente: 'conexao-de-sorte'
+    região: 'brasil'
+    projeto: 'centralizado'
+
+# =============================================================================
+# REGRAS DE ALERTA
+# =============================================================================
+rule_files:
+  - "alert_rules.yml"
+
+# =============================================================================
+# ALVOS DE MONITORAMENTO
+# =============================================================================
+scrape_configs:
+  # Próprio Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # Traefik Proxy Centralizado
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['conexao-traefik-centralizado:8080']
+    scrape_interval: 5s
+    metrics_path: /metrics
+    
+  # Backend Spring Boot
+  - job_name: 'conexao-backend'
+    static_configs:
+      - targets: ['conexao-backend:8080']
+    scrape_interval: 10s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 8s
+    
+  # Backend de Teste
+  - job_name: 'conexao-backend-teste'
+    static_configs:
+      - targets: ['conexao-backend-teste:8081']
+    scrape_interval: 10s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 8s
+
+  # Frontend (Nginx metrics via nginx-prometheus-exporter se configurado)
+  - job_name: 'conexao-frontend'
+    static_configs:
+      - targets: ['conexao-frontend:9113']  # nginx-prometheus-exporter
+    scrape_interval: 15s
+    metrics_path: /metrics
+    
+  # Docker Host Metrics (se node_exporter estiver rodando)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
+    scrape_interval: 15s
+    
+  # MySQL Database (se mysql_exporter estiver configurado)
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysql-exporter:9104']
+    scrape_interval: 30s
+    
+  # Redis Cache (se redis_exporter estiver configurado)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+# =============================================================================
+# CONFIGURAÇÕES DE ALERTAS (ALERTMANAGER)
+# =============================================================================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+      timeout: 10s
+
+# =============================================================================
+# CONFIGURAÇÕES DE PERFORMANCE
+# =============================================================================
+storage:
+  tsdb:
+    retention.time: 15d
+    retention.size: 10GB
+    
+# =============================================================================
+# CONFIGURAÇÕES DE SEGURANÇA
+# =============================================================================
+# Configurações básicas de segurança para o Prometheus
+web:
+  enable_admin_api: false
+  enable_lifecycle: true

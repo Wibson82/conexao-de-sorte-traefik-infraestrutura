@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!--
+    Arquivo de supressões para falsos positivos conhecidos
+    Adicione supressões conforme necessário após análise manual
+    -->
+
+    <!-- Exemplo de supressão por CVE específico
+    <suppress>
+        <notes><![CDATA[
+        Falso positivo - não aplicável ao nosso uso
+        ]]></notes>
+        <cve>CVE-2021-12345</cve>
+    </suppress>
+    -->
+
+    <!-- Exemplo de supressão por arquivo específico
+    <suppress>
+        <notes><![CDATA[
+        Dependência de desenvolvimento apenas
+        ]]></notes>
+        <filePath regex="true">.*test.*\.jar</filePath>
+    </suppress>
+    -->
+</suppressions>

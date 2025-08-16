@@ -1,0 +1,155 @@
+name: 🧪 Testar Endpoints
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Tipo de teste'
+        required: true
+        default: 'completo'
+        type: choice
+        options:
+          - completo
+          - rapido
+          - diagnostico
+
+jobs:
+  testar-endpoints:
+    name: 🧪 Testar Endpoints via SSH
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🔑 Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🧪 Executar testes de endpoints
+        run: |
+          echo "🧪 TESTE DE ENDPOINTS VIA SSH"
+          echo "=============================="
+          echo ""
+          
+          # Configurações
+          SERVER_HOST="${{ secrets.SERVER_HOST }}"
+          SERVER_USER="${{ secrets.SERVER_USER }}"
+          DOMAIN="www.conexaodesorte.com.br"
+          
+          # Função para executar comando SSH
+          execute_ssh() {
+            ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_HOST" "$1"
+          }
+          
+          echo "🔍 1. Verificando status dos containers..."
+          execute_ssh "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+          echo ""
+          
+          echo "🧪 2. Testando backend-teste (localhost:8081)..."
+          TESTE_8081=$(execute_ssh "curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/rest/actuator/health || echo 'ERRO'")
+          echo "Backend-teste (8081): $TESTE_8081"
+          
+          echo "🚀 3. Testando backend-prod (localhost:8080)..."
+          TESTE_8080=$(execute_ssh "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/rest/actuator/health || echo 'ERRO'")
+          echo "Backend-prod (8080): $TESTE_8080"
+          
+          echo "🌐 4. Testando endpoint público direto..."
+          TESTE_PUBLICO=$(execute_ssh "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/rest/v1/publico/resultados/hoje || echo 'ERRO'")
+          echo "Endpoint público: $TESTE_PUBLICO"
+          
+          echo "🏥 5. Testando health check direto..."
+          TESTE_HEALTH=$(execute_ssh "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/rest/actuator/health || echo 'ERRO'")
+          echo "Health check: $TESTE_HEALTH"
+          
+          echo "🧪 6. Testando endpoint de teste direto..."
+          TESTE_ENDPOINT_TESTE=$(execute_ssh "curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/rest/actuator/health || echo 'ERRO'")
+          echo "Endpoint teste: $TESTE_ENDPOINT_TESTE"
+          
+          echo ""
+          echo "📋 7. Verificando logs backend-teste..."
+          execute_ssh "docker logs --tail 10 backend-teste 2>&1 | grep -E '(ERROR|WARN|mapping|controller|endpoint)' || echo 'Nenhum log relevante'"
+          
+          echo ""
+          echo "📋 8. Verificando conectividade direta..."
+          CONECTIVIDADE=$(execute_ssh "curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/rest/actuator/health || echo 'ERRO'")
+          echo "Conectividade direta backend-teste: $([[ "$CONECTIVIDADE" == "200" ]] && echo "OK" || echo "FALHA")"
+          
+          echo ""
+          echo "📊 RESUMO DOS TESTES:"
+          echo "   🧪 Backend-teste (8081): $([[ "$TESTE_8081" == "200" ]] && echo "✅ OK" || echo "❌ FALHA")"
+          echo "   🚀 Backend-prod (8080): $([[ "$TESTE_8080" == "200" ]] && echo "✅ OK" || echo "⚠️ INATIVO")"
+          echo "   🌐 Endpoint público: $([[ "$TESTE_PUBLICO" == "200" ]] && echo "✅ OK" || echo "❌ FALHA")"
+          echo "   🏥 Health check: $([[ "$TESTE_HEALTH" == "200" ]] && echo "✅ OK" || echo "❌ FALHA")"
+          echo "   🧪 Teste direto: $([[ "$TESTE_ENDPOINT_TESTE" == "200" ]] && echo "✅ OK" || echo "❌ FALHA")"
+          echo "   🔗 Conectividade interna: $([[ "$CONECTIVIDADE" != "FALHA" ]] && echo "✅ OK" || echo "❌ FALHA")"
+          
+          # Determinar resultado final
+          if [[ "$TESTE_8081" == "200" && "$TESTE_PUBLICO" == "200" ]]; then
+            echo ""
+            echo "🎉 SUCESSO: Sistema funcionando corretamente!"
+            exit 0
+          else
+            echo ""
+            echo "🚨 FALHA: Sistema com problemas identificados!"
+            exit 1
+          fi
+
+      - name: 🧪 Teste adicional de mapeamento de controladores
+        if: always()
+        run: |
+          echo "🔍 TESTE ESPECÍFICO: Mapeamento de controladores"
+          echo "=============================================="
+          
+          SERVER_HOST="${{ secrets.SERVER_HOST }}"
+          SERVER_USER="${{ secrets.SERVER_USER }}"
+          
+          # Função para executar comando SSH
+          execute_ssh() {
+            ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_HOST" "$1"
+          }
+          
+          echo "📋 Verificando logs de inicialização do Spring..."
+          execute_ssh "docker logs backend-teste 2>&1 | grep -E '(RequestMapping|Controller|mapping|handler|router)' | tail -10 || echo 'Nenhum log de mapeamento encontrado'"
+          
+          echo ""
+          echo "🔍 Verificando se controladores estão sendo registrados..."
+          execute_ssh "docker logs backend-teste 2>&1 | grep -E '(ConfiguracaoWebFluxControladores|RequestMappingHandlerMapping)' || echo 'Configuração WebFlux não encontrada nos logs'"
+          
+          echo ""
+          echo "🧪 Testando endpoints específicos..."
+          
+          # Teste endpoint JWK Set
+          JWK_TEST=$(execute_ssh "curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/rest/.well-known/jwks.json || echo 'ERRO'")
+          echo "JWK Set endpoint: $JWK_TEST"
+          
+          # Teste endpoint de resultados
+          RESULTADOS_TEST=$(execute_ssh "curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/rest/v1/publico/resultados/hoje || echo 'ERRO'")
+          echo "Resultados endpoint: $RESULTADOS_TEST"
+
+          # Teste endpoint de estatísticas
+          STATS_TEST=$(execute_ssh "curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/rest/v1/publico/estatisticas/resumo || echo 'ERRO'")
+          echo "Estatísticas endpoint: $STATS_TEST"
+
+      - name: 📥 Obter logs do projeto
+        if: always()
+        run: |
+          mkdir -p logs
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+            "docker logs --tail 200 backend-teste 2>&1" > logs/backend-teste.log
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+            "docker logs --tail 200 backend-prod 2>&1" > logs/backend-prod.log || true
+
+      - name: 📤 Enviar logs para o workflow
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-backend
+          path: logs/*.log
+
+      - name: 🔍 Analisar causa da falha
+        if: failure()
+        run: .github/workflows/scripts/analisar-falha-127.sh logs/workflow.log
