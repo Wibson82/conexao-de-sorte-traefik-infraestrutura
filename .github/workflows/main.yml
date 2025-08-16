@@ -484,8 +484,22 @@ jobs:
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           echo "🔍 Verificação em: $(hostname) ($(hostname -I | awk '{print $1}'))"
           cd ~/traefik-deploy/current
+          
+          echo "📊 Status dos containers:"
           docker compose ps
-        docker compose logs --tail=20 traefik
+          
+          echo "\n🔐 Verificando certificados SSL:"
+          docker exec conexao-traefik ls -la /certs/ 2>/dev/null || echo "❌ Diretório de certificados não encontrado"
+          
+          echo "\n📋 Logs do Traefik (últimas 50 linhas):"
+          docker compose logs --tail=50 traefik
+          
+          echo "\n🌐 Testando conectividade interna:"
+          docker exec conexao-traefik wget -qO- --timeout=5 http://conexao-frontend:3000 > /dev/null && echo "✅ Frontend acessível" || echo "❌ Frontend inacessível"
+          docker exec conexao-traefik wget -qO- --timeout=5 http://backend-prod:8080/actuator/health > /dev/null && echo "✅ Backend acessível" || echo "❌ Backend inacessível"
+          
+          echo "\n🔍 Verificando configuração do Traefik:"
+          docker exec conexao-traefik traefik version
         EOF
 
         echo "✅ Verificações concluídas!"
