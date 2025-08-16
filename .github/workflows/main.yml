@@ -496,7 +496,7 @@ jobs:
           
           echo "\n🌐 Testando conectividade interna:"
           docker exec conexao-traefik wget -qO- --timeout=5 http://conexao-frontend:3000 > /dev/null && echo "✅ Frontend acessível" || echo "❌ Frontend inacessível"
-          docker exec conexao-traefik wget -qO- --timeout=5 http://backend-prod:8080/actuator/health > /dev/null && echo "✅ Backend acessível" || echo "❌ Backend inacessível"
+          docker exec conexao-traefik wget -qO- --timeout=5 http://conexao-backend:8080/actuator/health > /dev/null && echo "✅ Backend acessível" || echo "❌ Backend inacessível"
           
           echo "\n🔍 Verificando configuração do Traefik:"
           docker exec conexao-traefik traefik version
