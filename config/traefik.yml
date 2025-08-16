@@ -52,10 +52,6 @@ providers:
     exposedByDefault: false  # Apenas serviços com traefik.enable=true
     network: conexao-network  # Rede padrão para comunicação
     watch: true  # Monitorar mudanças em tempo real
-    swarmMode: false
-
-    # Configurações de polling
-    pollInterval: "5s"
 
     # Configurações de segurança
     useBindPortIP: false
@@ -65,9 +61,7 @@ providers:
     directory: /etc/traefik/dynamic
     watch: true  # Monitorar mudanças nos arquivos
 
-  # Ping Provider - Health check interno
-  ping:
-    entryPoint: traefik
+
 
 # =============================================================================
 # CERTIFICADOS SSL/TLS
@@ -133,11 +127,7 @@ log:
   format: json
   filePath: /var/log/traefik/traefik.log
 
-  # Configurações de rotação de logs
-  maxSize: 100
-  maxAge: 30
-  maxBackups: 3
-  compress: true
+  # Rotação de logs gerenciada externamente (logrotate ou Docker)
 
 # Access Logs
 accessLog:
@@ -166,11 +156,7 @@ accessLog:
     retryAttempts: true
     minDuration: "10ms"
 
-  # Configurações de rotação
-  maxSize: 100
-  maxAge: 30
-  maxBackups: 3
-  compress: true
+  # Rotação de logs gerenciada externamente (logrotate ou Docker)
 
 # =============================================================================
 # MÉTRICAS
@@ -212,6 +198,12 @@ serversTransport:
     dialTimeout: 30s
     responseHeaderTimeout: 0s
     idleConnTimeout: 90s
+
+# =============================================================================
+# PING - HEALTH CHECK
+# =============================================================================
+ping:
+  entryPoint: traefik
 
 # =============================================================================
 # CONFIGURAÇÕES DE CLUSTER (para futuro uso)

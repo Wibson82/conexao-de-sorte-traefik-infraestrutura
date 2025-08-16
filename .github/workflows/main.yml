@@ -146,12 +146,12 @@ jobs:
           -v "$PWD/config:/etc/traefik:ro" \
           -v "$PWD/dynamic:/etc/traefik/dynamic:ro" \
           traefik:v3.0 \
-          traefik --configfile=/etc/traefik/traefik.yml --dry-run
+          traefik --configfile=/etc/traefik/traefik.yml --dry-run=true
 
     - name: 🧪 Testar docker-compose
       run: |
-        docker-compose config
-        docker-compose config --services
+        docker compose config
+        docker compose config --services
 
     - name: 🌐 Testes de conectividade
       run: |
@@ -399,9 +399,9 @@ jobs:
           cd current
 
           # Deploy
-          docker-compose config
-          docker-compose pull
-          docker-compose up -d --force-recreate traefik
+          docker compose config
+        docker compose pull
+        docker compose up -d --force-recreate traefik
 
           echo "✅ Deploy concluído!"
         EOF
@@ -413,8 +413,8 @@ jobs:
 
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
           cd ~/traefik-deploy/current
-          docker-compose ps
-          docker-compose logs --tail=20 traefik
+          docker compose ps
+        docker compose logs --tail=20 traefik
         EOF
 
         echo "✅ Verificações concluídas!"
