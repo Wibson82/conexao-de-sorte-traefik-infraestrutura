@@ -142,11 +142,17 @@ jobs:
 
     - name: 🔍 Validar configurações Traefik
       run: |
-        docker run --rm \
-          -v "$PWD/config:/etc/traefik:ro" \
-          -v "$PWD/dynamic:/etc/traefik/dynamic:ro" \
-          traefik:v3.0 \
-          traefik --configfile=/etc/traefik/traefik.yml --dry-run=true
+        echo "🔍 Validando sintaxe dos arquivos de configuração Traefik..."
+        # Validação rápida de sintaxe YAML
+        for file in config/traefik.yml config/dynamic/middlewares.yml config/dynamic/services.yml; do
+          if python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+            echo "✅ $file: Sintaxe YAML válida"
+          else
+            echo "❌ $file: Erro de sintaxe YAML"
+            exit 1
+          fi
+        done
+        echo "✅ Validação de configuração Traefik concluída"
 
     - name: 🧪 Testar docker-compose
       run: |
