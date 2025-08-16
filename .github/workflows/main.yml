@@ -500,9 +500,52 @@ jobs:
           
           echo "\n🔍 Verificando configuração do Traefik:"
           docker exec conexao-traefik traefik version
+          
+          echo "\n🌍 Testando conectividade externa (SSL):"
+          curl -I --connect-timeout 10 https://conexaodesorte.com.br 2>/dev/null | head -1 || echo "❌ Falha na conectividade HTTPS"
+          curl -I --connect-timeout 10 https://www.conexaodesorte.com.br 2>/dev/null | head -1 || echo "❌ Falha na conectividade HTTPS (www)"
+          
+          echo "\n🔐 Verificando status dos certificados Let's Encrypt:"
+          docker exec conexao-traefik find /certs -name "*.crt" -exec ls -la {} \; 2>/dev/null || echo "❌ Certificados não encontrados"
+          
+          echo "\n📋 Verificando configurações dinâmicas:"
+          docker exec conexao-traefik cat /etc/traefik/dynamic/services.yml | grep -A 5 -B 5 "certResolver" || echo "❌ Configuração certResolver não encontrada"
+          
+          echo "\n🔍 Verificando rotas ativas no Traefik:"
+          curl -s http://localhost:8090/api/http/routers 2>/dev/null | jq '.[] | {name: .name, rule: .rule, status: .status}' 2>/dev/null || echo "❌ API do Traefik inacessível"
         EOF
 
-        echo "✅ Verificações concluídas!"
+        echo "✅ Diagnósticos automáticos concluídos!"
+
+    - name: 🔐 Diagnóstico SSL Automático
+      run: |
+        echo "🔐 Executando diagnósticos SSL automáticos..."
+        sleep 10
+
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          cd ~/traefik-deploy/current
+          
+          echo "🔍 Verificando processo de geração de certificados:"
+          docker logs conexao-traefik --since=5m | grep -i "acme\|certificate\|ssl\|tls" | tail -20 || echo "❌ Nenhum log de certificado encontrado"
+          
+          echo "\n🌐 Testando endpoints específicos:"
+          echo "Frontend (/):"
+          curl -I --connect-timeout 5 -k https://conexaodesorte.com.br/ 2>/dev/null | head -3 || echo "❌ Frontend inacessível"
+          
+          echo "\nBackend API (/api/v1):"
+          curl -I --connect-timeout 5 -k https://conexaodesorte.com.br/api/v1/ 2>/dev/null | head -3 || echo "❌ Backend API inacessível"
+          
+          echo "\nBackend REST (/rest):"
+          curl -I --connect-timeout 5 -k https://conexaodesorte.com.br/rest/ 2>/dev/null | head -3 || echo "❌ Backend REST inacessível"
+          
+          echo "\n🔍 Verificando configuração ACME:"
+          docker exec conexao-traefik cat /etc/traefik/traefik.yml | grep -A 10 -B 5 "acme" || echo "❌ Configuração ACME não encontrada"
+          
+          echo "\n📊 Status final dos serviços:"
+          docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+        EOF
+
+        echo "✅ Diagnóstico SSL automático concluído!"
 
   # =============================================================================
   # NOTIFICAÇÕES E RELATÓRIOS
