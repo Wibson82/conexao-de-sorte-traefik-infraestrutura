@@ -203,7 +203,42 @@ Para integrar um novo serviço ao Traefik:
 
 ## 🚀 Deploy
 
-### Produção
+### ⚠️ IMPORTANTE: Containers Backend e Frontend
+
+Os containers `conexao-backend` e `conexao-frontend` **NÃO** são gerenciados por este projeto. Eles devem ser iniciados pelos seus respectivos projetos antes de iniciar o Traefik.
+
+### Ordem de Inicialização
+
+1. **Primeiro**: Inicie os containers backend e frontend pelos seus projetos:
+   ```bash
+   # No projeto backend
+   docker-compose up -d
+   
+   # No projeto frontend  
+   docker-compose up -d
+   ```
+
+2. **Depois**: Inicie o Traefik:
+   ```bash
+   # Produção (apenas Traefik + monitoramento)
+   docker-compose up -d
+   
+   # Desenvolvimento local (com override)
+   docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+   ```
+
+### Verificação
+
+Para verificar se todos os containers estão rodando corretamente:
+```bash
+# Verificar containers
+docker ps --filter "name=conexao"
+
+# Verificar rede
+docker network inspect conexao-network
+```
+
+### Deploy Automatizado
 
 ```bash
 # Deploy completo
@@ -211,13 +246,6 @@ Para integrar um novo serviço ao Traefik:
 
 # Ou manualmente
 docker-compose -f docker-compose.yml up -d
-```
-
-### Desenvolvimento
-
-```bash
-# Com override para desenvolvimento
-docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
 ```
 
 ## 🔍 Troubleshooting

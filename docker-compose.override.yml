@@ -1,0 +1,41 @@
+# =============================================================================
+# DOCKER COMPOSE OVERRIDE - CONEXÃO DE SORTE
+# =============================================================================
+# Este arquivo define containers externos que são gerenciados por seus
+# respectivos projetos, mas precisam estar na mesma rede do Traefik
+#
+# IMPORTANTE: Os containers backend e frontend devem ser iniciados pelos
+# seus respectivos projetos antes de iniciar este stack do Traefik
+
+services:
+  # Container Backend Externo (gerenciado pelo projeto backend)
+  backend:
+    image: placeholder  # Será substituído pelo projeto backend
+    container_name: conexao-backend
+    external_links:
+      - conexao-backend:conexao-backend
+    networks:
+      - conexao-network
+    profiles:
+      - external-services
+
+  # Container Frontend Externo (gerenciado pelo projeto frontend)
+  frontend:
+    image: placeholder  # Será substituído pelo projeto frontend
+    container_name: conexao-frontend
+    external_links:
+      - conexao-frontend:conexao-frontend
+    networks:
+      - conexao-network
+    profiles:
+      - external-services
+
+# =============================================================================
+# CONFIGURAÇÃO PARA CONTAINERS EXTERNOS
+# =============================================================================
+# Para usar containers externos já em execução:
+# 1. Certifique-se que os containers backend e frontend estão rodando
+# 2. Execute: docker-compose --profile external-services up -d
+#
+# Alternativamente, para usar apenas o Traefik (modo atual):
+# docker-compose up -d
