@@ -410,11 +410,33 @@ jobs:
         echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         
-        # Adicionar host às known_hosts
-        echo "🔍 Adicionando ${{ secrets.SSH_HOST }} às known_hosts..."
-        ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
-        
-        echo "✅ SSH configurado com sucesso"
+        # Validar conectividade do host
+         echo "🔍 Testando conectividade com ${{ secrets.SSH_HOST }}..."
+         
+         # Primeiro, testar resolução DNS
+         if ! nslookup "${{ secrets.SSH_HOST }}" > /dev/null 2>&1; then
+           echo "❌ Erro: Não foi possível resolver o hostname ${{ secrets.SSH_HOST }}"
+           echo "Verifique se o SSH_HOST está correto"
+           exit 1
+         fi
+         
+         # Testar conectividade de rede
+         if ! ping -c 1 -W 5 "${{ secrets.SSH_HOST }}" > /dev/null 2>&1; then
+           echo "⚠️ Host não responde ao ping, mas DNS resolve. Continuando..."
+         fi
+         
+         # Testar porta SSH
+         if ! ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" > /dev/null 2>&1; then
+           echo "❌ Erro: Não foi possível conectar ao servidor SSH na porta 22"
+           echo "Verifique se o servidor SSH está rodando e acessível"
+           exit 1
+         fi
+         
+         # Adicionar host às known_hosts
+         echo "🔍 Adicionando ${{ secrets.SSH_HOST }} às known_hosts..."
+         ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+         
+         echo "✅ SSH configurado com sucesso"
 
     - name: 📦 Preparar e enviar arquivos
       run: |
