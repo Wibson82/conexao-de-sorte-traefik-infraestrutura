@@ -425,6 +425,10 @@ jobs:
 
     - name: 📦 Preparar e enviar arquivos
       run: |
+        # Criar diretório no servidor se não existir
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/traefik-deploy"
+        
+        # Preparar e enviar arquivos
         tar -czf deploy-package.tar.gz config/ dynamic/ docker-compose.yml .env
         scp deploy-package.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/traefik-deploy/
 
