@@ -387,19 +387,43 @@ jobs:
 
     - name: 🔑 Setup SSH
       run: |
+        # Validar secrets obrigatórios
+        if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+          echo "❌ Erro: VPS_SSH_KEY não configurado"
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.SSH_HOST }}" ]; then
+          echo "❌ Erro: SSH_HOST não configurado"
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.SSH_USER }}" ]; then
+          echo "❌ Erro: SSH_USER não configurado"
+          exit 1
+        fi
+        
+        echo "✅ Secrets SSH validados"
+        
+        # Configurar SSH
         mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        
+        # Adicionar host às known_hosts
+        echo "🔍 Adicionando ${{ secrets.SSH_HOST }} às known_hosts..."
+        ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+        
+        echo "✅ SSH configurado com sucesso"
 
     - name: 📦 Preparar e enviar arquivos
       run: |
         tar -czf deploy-package.tar.gz config/ dynamic/ docker-compose.yml .env
-        scp deploy-package.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }}:~/traefik-deploy/
+        scp deploy-package.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/traefik-deploy/
 
     - name: 🐳 Deploy via SSH
       run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           cd ~/traefik-deploy
 
           echo "🚀 Iniciando deploy para ${{ needs.detect-changes.outputs.environment }}"
@@ -428,7 +452,7 @@ jobs:
         echo "🔍 Verificando saúde dos serviços..."
         sleep 30
 
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           cd ~/traefik-deploy/current
           docker compose ps
         docker compose logs --tail=20 traefik
