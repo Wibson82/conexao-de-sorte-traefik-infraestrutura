@@ -431,6 +431,13 @@ jobs:
     - name: 🐳 Deploy via SSH
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          # Capturar informações do servidor
+          echo "🖥️  Conectado ao servidor: $(hostname)"
+          echo "📍 IP do servidor: $(hostname -I | awk '{print $1}')"
+          echo "🕐 Data/hora do servidor: $(date)"
+          echo "👤 Usuário conectado: $(whoami)"
+          echo ""
+          
           cd ~/traefik-deploy
 
           echo "🚀 Iniciando deploy para ${{ needs.detect-changes.outputs.environment }}"
@@ -460,6 +467,7 @@ jobs:
         sleep 30
 
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🔍 Verificação em: $(hostname) ($(hostname -I | awk '{print $1}'))"
           cd ~/traefik-deploy/current
           docker compose ps
         docker compose logs --tail=20 traefik
