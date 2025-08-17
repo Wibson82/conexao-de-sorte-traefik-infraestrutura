@@ -36,66 +36,24 @@ docker network create conexao-network
 docker-compose up -d
 ```
 
-### 3. Conectar outros projetos
-Para conectar outros projetos Docker ao Traefik, adicione as labels apropriadas aos seus serviços no docker-compose.yml:
+## 🌐 Mapeamento de Rotas - Conexão de Sorte
 
-```yaml
-services:
-  meu-app:
-    image: nginx
-    networks:
-      - conexao-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.meu-app.rule=Host(`meuapp.exemplo.com`)"
-      - "traefik.http.routers.meu-app.entrypoints=websecure"
-      - "traefik.http.routers.meu-app.tls.certresolver=letsencrypt"
-      - "traefik.http.services.meu-app.loadbalancer.server.port=80"
+O Traefik está configurado para gerenciar as seguintes rotas:
 
-networks:
-  conexao-network:
-    external: true
-```
+| Serviço | Domínios/Paths |
+|---------|----------------|
+| **Frontend Principal** | `conexaodesorte.com.br` e `www.conexaodesorte.com.br` |
+| **Backend Produção** | `conexaodesorte.com.br/rest` e `www.conexaodesorte.com.br/rest` |
+| **Backend Teste** | `conexaodesorte.com.br/teste/rest` e `www.conexaodesorte.com.br/teste/rest` |
+| **Frontend Teste** | `conexaodesorte.com.br/teste` e `www.conexaodesorte.com.br/teste` |
+| **Frontend Frete** | `conexaodesorte.com.br/teste/frete` e `www.conexaodesorte.com.br/teste/frete` |
+| **Traefik Dashboard** | `traefik.conexaodesorte.com.br` |
 
-## 📋 Configuração para Outros Projetos
+## 📋 Configuração dos Projetos
 
-### Labels Obrigatórias
-Todo serviço que deve ser roteado pelo Traefik precisa das seguintes labels:
+### 1. Frontend Principal
+**Domínios**: `conexaodesorte.com.br` e `www.conexaodesorte.com.br`
 
-```yaml
-labels:
-  # Habilitar o Traefik para este serviço
-  - "traefik.enable=true"
-  
-  # Definir a regra de roteamento (substitua pelo seu domínio)
-  - "traefik.http.routers.NOME-DO-SERVICO.rule=Host(`seu-dominio.com`)"
-  
-  # Usar HTTPS (websecure)
-  - "traefik.http.routers.NOME-DO-SERVICO.entrypoints=websecure"
-  
-  # Certificado SSL automático
-  - "traefik.http.routers.NOME-DO-SERVICO.tls.certresolver=letsencrypt"
-  
-  # Porta interna do container (ajuste conforme necessário)
-  - "traefik.http.services.NOME-DO-SERVICO.loadbalancer.server.port=PORTA"
-```
-
-### Middlewares Disponíveis
-Você pode usar os middlewares configurados adicionando:
-
-```yaml
-labels:
-  # Middlewares de segurança e compressão
-  - "traefik.http.routers.NOME-DO-SERVICO.middlewares=gzip-compress@file,security-headers@file"
-  
-  # Para APIs, use CORS:
-  - "traefik.http.routers.NOME-DO-SERVICO.middlewares=gzip-compress@file,cors-api@file"
-  
-  # Para desenvolvimento local, use CORS mais permissivo:
-  - "traefik.http.routers.NOME-DO-SERVICO.middlewares=gzip-compress@file,cors-dev@file"
-```
-
-### Exemplo Completo - Frontend React
 ```yaml
 services:
   frontend:
@@ -104,87 +62,191 @@ services:
       - conexao-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`meusite.com`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      # Rota principal (sem www)
+      - "traefik.http.routers.frontend-main.rule=Host(`conexaodesorte.com.br`)"
+      - "traefik.http.routers.frontend-main.entrypoints=websecure"
+      - "traefik.http.routers.frontend-main.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-main.priority=1"
+      # Rota com www (redirecionamento)
+      - "traefik.http.routers.frontend-www.rule=Host(`www.conexaodesorte.com.br`)"
+      - "traefik.http.routers.frontend-www.entrypoints=websecure"
+      - "traefik.http.routers.frontend-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-www.middlewares=redirect-www-to-non-www@file"
+      # Configuração do serviço
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
-      - "traefik.http.routers.frontend.middlewares=gzip-compress@file,security-headers@file"
+      - "traefik.http.routers.frontend-main.middlewares=gzip-compress@file,security-headers@file"
 
 networks:
   conexao-network:
     external: true
 ```
 
-### Exemplo Completo - Backend API
+### 2. Backend Produção
+**Paths**: `/rest` em ambos os domínios
+
 ```yaml
 services:
-  backend:
+  backend-prod:
     build: .
     networks:
       - conexao-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`api.meusite.com`)"
-      - "traefik.http.routers.backend.entrypoints=websecure"
-      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.backend.loadbalancer.server.port=8080"
-      - "traefik.http.routers.backend.middlewares=gzip-compress@file,cors-api@file"
+      # Rota principal (sem www)
+      - "traefik.http.routers.backend-prod-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/rest`)"
+      - "traefik.http.routers.backend-prod-main.entrypoints=websecure"
+      - "traefik.http.routers.backend-prod-main.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-prod-main.priority=100"
+      # Rota com www
+      - "traefik.http.routers.backend-prod-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest`)"
+      - "traefik.http.routers.backend-prod-www.entrypoints=websecure"
+      - "traefik.http.routers.backend-prod-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-prod-www.priority=100"
+      # Configuração do serviço
+      - "traefik.http.services.backend-prod.loadbalancer.server.port=8080"
+      - "traefik.http.routers.backend-prod-main.middlewares=gzip-compress@file,cors-api@file"
+      - "traefik.http.routers.backend-prod-www.middlewares=gzip-compress@file,cors-api@file"
 
 networks:
   conexao-network:
     external: true
 ```
 
-### Exemplo Completo - Múltiplos Serviços
+### 3. Backend Teste
+**Paths**: `/teste/rest` em ambos os domínios
+
 ```yaml
 services:
-  frontend:
-    build: ./frontend
+  backend-teste:
+    build: .
     networks:
       - conexao-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app-frontend.rule=Host(`meuapp.com`)"
-      - "traefik.http.routers.app-frontend.entrypoints=websecure"
-      - "traefik.http.routers.app-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.app-frontend.loadbalancer.server.port=80"
-      - "traefik.http.routers.app-frontend.middlewares=gzip-compress@file,security-headers@file"
-
-  backend:
-    build: ./backend
-    networks:
-      - conexao-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.app-backend.rule=Host(`api.meuapp.com`)"
-      - "traefik.http.routers.app-backend.entrypoints=websecure"
-      - "traefik.http.routers.app-backend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.app-backend.loadbalancer.server.port=3000"
-      - "traefik.http.routers.app-backend.middlewares=gzip-compress@file,cors-api@file"
-
-  database:
-    image: postgres:15
-    networks:
-      - conexao-network
-    # Sem labels do Traefik - não será exposto externamente
-    environment:
-      POSTGRES_DB: myapp
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      # Rota principal (sem www)
+      - "traefik.http.routers.backend-teste-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)"
+      - "traefik.http.routers.backend-teste-main.entrypoints=websecure"
+      - "traefik.http.routers.backend-teste-main.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-teste-main.priority=200"
+      # Rota com www
+      - "traefik.http.routers.backend-teste-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)"
+      - "traefik.http.routers.backend-teste-www.entrypoints=websecure"
+      - "traefik.http.routers.backend-teste-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-teste-www.priority=200"
+      # Configuração do serviço
+      - "traefik.http.services.backend-teste.loadbalancer.server.port=8080"
+      - "traefik.http.routers.backend-teste-main.middlewares=gzip-compress@file,cors-api@file"
+      - "traefik.http.routers.backend-teste-www.middlewares=gzip-compress@file,cors-api@file"
 
 networks:
   conexao-network:
     external: true
 ```
+
+### 4. Frontend Teste
+**Paths**: `/teste` em ambos os domínios
+
+```yaml
+services:
+  frontend-teste:
+    build: .
+    networks:
+      - conexao-network
+    labels:
+      - "traefik.enable=true"
+      # Rota principal (sem www)
+      - "traefik.http.routers.frontend-teste-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste`) && !PathPrefix(`/teste/rest`) && !PathPrefix(`/teste/frete`)"
+      - "traefik.http.routers.frontend-teste-main.entrypoints=websecure"
+      - "traefik.http.routers.frontend-teste-main.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-teste-main.priority=50"
+      # Rota com www
+      - "traefik.http.routers.frontend-teste-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste`) && !PathPrefix(`/teste/rest`) && !PathPrefix(`/teste/frete`)"
+      - "traefik.http.routers.frontend-teste-www.entrypoints=websecure"
+      - "traefik.http.routers.frontend-teste-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-teste-www.priority=50"
+      # Configuração do serviço
+      - "traefik.http.services.frontend-teste.loadbalancer.server.port=80"
+      - "traefik.http.routers.frontend-teste-main.middlewares=gzip-compress@file,security-headers@file"
+      - "traefik.http.routers.frontend-teste-www.middlewares=gzip-compress@file,security-headers@file"
+
+networks:
+  conexao-network:
+    external: true
+```
+
+### 5. Frontend Frete
+**Paths**: `/teste/frete` em ambos os domínios
+
+```yaml
+services:
+  frontend-frete:
+    build: .
+    networks:
+      - conexao-network
+    labels:
+      - "traefik.enable=true"
+      # Rota principal (sem www)
+      - "traefik.http.routers.frontend-frete-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/frete`)"
+      - "traefik.http.routers.frontend-frete-main.entrypoints=websecure"
+      - "traefik.http.routers.frontend-frete-main.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-frete-main.priority=300"
+      # Rota com www
+      - "traefik.http.routers.frontend-frete-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/frete`)"
+      - "traefik.http.routers.frontend-frete-www.entrypoints=websecure"
+      - "traefik.http.routers.frontend-frete-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-frete-www.priority=300"
+      # Configuração do serviço
+      - "traefik.http.services.frontend-frete.loadbalancer.server.port=80"
+      - "traefik.http.routers.frontend-frete-main.middlewares=gzip-compress@file,security-headers@file"
+      - "traefik.http.routers.frontend-frete-www.middlewares=gzip-compress@file,security-headers@file"
+
+networks:
+  conexao-network:
+    external: true
+```
+
+## 🔧 Middlewares Disponíveis
+
+### Middlewares de Segurança
+- `security-headers@file` - Cabeçalhos de segurança (CSP, HSTS, etc.)
+- `gzip-compress@file` - Compressão GZIP
+- `cors-api@file` - CORS para APIs
+- `ip-allow-local@file` - Whitelist de IPs locais
+
+### Middlewares de Redirecionamento
+- `redirect-to-https@file` - Redirecionamento HTTP → HTTPS
+- `redirect-www-to-non-www@file` - Redirecionamento www → sem www
+- `redirect-non-www-to-www@file` - Redirecionamento sem www → www
 
 ## 📊 Dashboard
 - **URL**: https://traefik.conexaodesorte.com.br
 - **Usuário**: admin
 - **Senha**: Configurada no arquivo `secrets/traefik-basicauth`
 
-## 🌐 Domínios configurados
-- **Frontend**: https://conexaodesorte.com.br
-- **Backend API**: https://api.conexaodesorte.com.br
-- **Traefik Dashboard**: https://traefik.conexaodesorte.com.br
-- **Prometheus**: https://prometheus.conexaodesorte.com.br
-- **Grafana**: https://grafana.conexaodesorte.com.br
+## ⚠️ Observações Importantes
+
+### Prioridades de Roteamento
+As prioridades estão configuradas para garantir o roteamento correto:
+- **Frontend Frete** (300) - Mais específico: `/teste/frete`
+- **Backend Teste** (200) - Específico: `/teste/rest`
+- **Backend Produção** (100) - Específico: `/rest`
+- **Frontend Teste** (50) - Menos específico: `/teste` (excluindo `/teste/rest` e `/teste/frete`)
+- **Frontend Principal** (1) - Catch-all para o domínio principal
+
+### Certificados SSL
+- Certificados automáticos via Let's Encrypt
+- Suporte para ambos os domínios (`conexaodesorte.com.br` e `www.conexaodesorte.com.br`)
+- Redirecionamento automático HTTP → HTTPS
+
+### Rede Docker
+Todos os projetos devem usar a rede externa `conexao-network`:
+
+```bash
+docker network create conexao-network
+```
+
+### Estrutura de Arquivos nos Projetos
+Cada projeto deve ter seu `docker-compose.yml` configurado conforme os exemplos acima, sempre incluindo:
+1. A rede `conexao-network` como externa
+2. As labels do Traefik apropriadas
+3. As prioridades corretas para evitar conflitos de roteamento
