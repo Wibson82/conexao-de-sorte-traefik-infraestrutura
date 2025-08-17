@@ -208,10 +208,22 @@ networks:
 ## 🔧 Middlewares Disponíveis
 
 ### Middlewares de Segurança
-- `security-headers@file` - Cabeçalhos de segurança (CSP, HSTS, etc.)
+- `security-headers@file` - Cabeçalhos de segurança completos (CSP, HSTS, XSS, etc.)
+- `security-headers-api@file` - Cabeçalhos de segurança específicos para APIs
+- `injection-protection@file` - Proteção contra ataques de injeção
 - `gzip-compress@file` - Compressão GZIP
 - `cors-api@file` - CORS para APIs
 - `ip-allow-local@file` - Whitelist de IPs locais
+
+### Middlewares de Rate Limiting
+- `rate-limit-general@file` - Rate limiting geral (100 req/min)
+- `rate-limit-api@file` - Rate limiting para APIs (50 req/min)
+- `rate-limit-strict@file` - Rate limiting rigoroso (20 req/min)
+- `rate-limit-auth@file` - Rate limiting para autenticação (5 req/min)
+
+### Middlewares de Resiliência
+- `circuit-breaker@file` - Circuit breaker para proteção contra sobrecarga
+- `retry-policy@file` - Política de retry automático
 
 ### Middlewares de Redirecionamento
 - `redirect-to-https@file` - Redirecionamento HTTP → HTTPS

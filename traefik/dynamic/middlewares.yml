@@ -44,3 +44,43 @@ http:
         regex: '^https://conexaodesorte\.com\.br/(.*)'
         replacement: 'https://www.conexaodesorte.com.br/${1}'
         permanent: true
+    
+    # Rate Limiting - Proteção contra ataques DDoS
+    rate-limit-general:
+      rateLimit:
+        average: 100
+        period: 1m
+        burst: 200
+    
+    rate-limit-api:
+      rateLimit:
+        average: 50
+        period: 1m
+        burst: 100
+    
+    rate-limit-strict:
+      rateLimit:
+        average: 20
+        period: 1m
+        burst: 40
+    
+    # Proteção contra ataques de força bruta
+    rate-limit-auth:
+      rateLimit:
+        average: 5
+        period: 1m
+        burst: 10
+    
+    # Circuit Breaker - Proteção contra sobrecarga
+    circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.30"
+        checkPeriod: 10s
+        fallbackDuration: 30s
+        recoveryDuration: 10s
+    
+    # Retry - Tentativas automáticas em caso de falha
+    retry-policy:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
