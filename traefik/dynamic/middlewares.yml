@@ -1,0 +1,34 @@
+http:
+  middlewares:
+    gzip-compress:
+      compress: {}
+    
+    ip-allow-local:
+      ipWhiteList:
+        sourceRange:
+          - "10.0.0.0/8"
+          - "172.16.0.0/12"
+          - "192.168.0.0/16"
+    
+    cors-api:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+          - PATCH
+        accessControlAllowOriginList:
+          - https://conexaodesorte.com.br
+          - https://www.conexaodesorte.com.br
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 86400
+        addVaryHeader: true
+    
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true

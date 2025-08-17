@@ -1,192 +1,33 @@
-# =============================================================================
-# TRAEFIK INFRASTRUCTURE - CONEXÃO DE SORTE
-# =============================================================================
-# Projeto independente para gerenciamento de proxy reverso e load balancer
-#
-# Responsabilidades:
-# - Roteamento HTTP/HTTPS para todos os serviços
-# - Terminação SSL com Let's Encrypt
-# - Load balancing e health checks
-# - Middlewares de segurança
-# - Monitoramento de infraestrutura
-#
-# Uso:
-#   docker-compose up -d
-#   docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+version: "3.9"
 
-# =============================================================================
-# SERVIÇOS
-# =============================================================================
 services:
-  # Traefik - Proxy Reverso Principal
   traefik:
     image: traefik:v3.1
-    container_name: conexao-traefik
+    container_name: traefik
     restart: unless-stopped
-
-    # Portas expostas
     ports:
-      - "80:80"       # HTTP (redirect para HTTPS)
-      - "443:443"     # HTTPS principal
-      - "8090:8080"   # Dashboard do Traefik
-
-    # Volumes
+      - "80:80"
+      - "443:443"
+    environment:
+      - TZ=${TZ}
+    networks:
+      - reverse-proxy
     volumes:
-      # Socket Docker para descoberta automática
       - /var/run/docker.sock:/var/run/docker.sock:ro
-
-      # Configurações centralizadas (file-based)
-      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./dynamic:/etc/traefik/dynamic:ro
-
-      # Dados persistentes
-      - traefik_certs:/certs
-      - traefik_logs:/var/log/traefik
-
-    # Variáveis de ambiente
-    environment:
-      - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - ACME_EMAIL=${ACME_EMAIL:-admin@conexaodesorte.com.br}
-      - DOMAIN=${DOMAIN:-conexaodesorte.com.br}
-
-    # Redes
-    networks:
-      - conexao-network
-      - monitoring
-
-    # ✅ SEM LABELS - Configuração 100% file-based em dynamic/
-    # Toda configuração de roteamento está em dynamic/services.yml
+      - ./traefik/traefik.yml:/traefik.yml:ro
+      - ./traefik/dynamic:/dynamic:ro
+      - ./letsencrypt:/letsencrypt
+      - ./secrets:/secrets:ro
     labels:
-      - "com.conexaodesorte.service=proxy"
-      - "com.conexaodesorte.component=traefik"
-      - "com.conexaodesorte.version=${VERSION:-latest}"
-      - "com.conexaodesorte.environment=${ENVIRONMENT:-production}"
+      - traefik.enable=true
+      # Dashboard seguro
+      - traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_HOST}`)
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/secrets/traefik-basicauth
+      - traefik.http.routers.dashboard.middlewares=dashboard-auth,security-headers@file
 
-    # Health check
-    healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-    # Configurações de deploy
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-        window: 120s
-
-  # Prometheus para métricas do Traefik
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: conexao-prometheus-traefik
-    restart: unless-stopped
-
-    ports:
-      - "9090:9090"
-
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-
-    networks:
-      - monitoring
-
-    # ✅ SEM LABELS - Roteamento em dynamic/services.yml
-    labels:
-      - "com.conexaodesorte.service=monitoring"
-      - "com.conexaodesorte.component=prometheus"
-      - "com.conexaodesorte.version=${VERSION:-latest}"
-      - "com.conexaodesorte.environment=${ENVIRONMENT:-production}"
-
-  # Grafana para visualização de métricas
-  grafana:
-    image: grafana/grafana:latest
-    container_name: conexao-grafana-traefik
-    restart: unless-stopped
-
-    ports:
-      - "3001:3000"
-
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana-dashboard.json:/etc/grafana/provisioning/dashboards/traefik.json:ro
-
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
-      - GF_USERS_ALLOW_SIGN_UP=false
-
-    networks:
-      - monitoring
-
-    # ✅ SEM LABELS - Roteamento em dynamic/services.yml
-    labels:
-      - "com.conexaodesorte.service=monitoring"
-      - "com.conexaodesorte.component=grafana"
-      - "com.conexaodesorte.version=${VERSION:-latest}"
-      - "com.conexaodesorte.environment=${ENVIRONMENT:-production}"
-
-# =============================================================================
-# VOLUMES
-# =============================================================================
-volumes:
-  # Certificados SSL (persistente)
-  traefik_certs:
-    driver: local
-
-  # Logs do Traefik
-  traefik_logs:
-    driver: local
-
-  # Dados do Prometheus
-  prometheus_data:
-    driver: local
-
-  # Dados do Grafana
-  grafana_data:
-    driver: local
-
-# =============================================================================
-# REDES
-# =============================================================================
 networks:
-  # Rede principal para comunicação com serviços
-  conexao-network:
+  reverse-proxy:
     external: true
-    name: conexao-network
-
-  # Rede interna para monitoramento
-  monitoring:
-    driver: bridge
-    name: conexao-monitoring
-
-# =============================================================================
-# CONFIGURAÇÕES PADRÃO
-# =============================================================================
-x-logging: &default-logging
-  driver: "json-file"
-  options:
-    max-size: "10m"
-    max-file: "3"
-
-x-deploy-defaults: &deploy-defaults
-  restart_policy:
-    condition: on-failure
-    max_attempts: 3
-    window: 120s
