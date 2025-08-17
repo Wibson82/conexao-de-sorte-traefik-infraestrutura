@@ -30,7 +30,7 @@ services:
 
   # Frontend Web - Conexão de Sorte
   frontend-web:
-    image: ${FRONTEND_IMAGE:-conexaodesorte/frontend:latest}
+    image: ${FRONTEND_IMAGE:-facilita/conexao-de-sorte-frontend:latest}
     container_name: conexao-frontend
     restart: unless-stopped
     networks:
@@ -39,6 +39,7 @@ services:
       - NODE_ENV=production
       - API_BASE_URL=https://www.conexaodesorte.com.br/api
       - NEXT_PUBLIC_API_URL=https://www.conexaodesorte.com.br/api
+      - PORT=3000
     labels:
       - traefik.enable=true
       # Roteamento para domínio principal
@@ -51,7 +52,7 @@ services:
 
   # Backend API - Conexão de Sorte
   backend-api:
-    image: ${BACKEND_IMAGE:-conexaodesorte/backend:latest}
+    image: ${BACKEND_IMAGE:-facilita/conexao-de-sorte-backend:latest}
     container_name: conexao-backend
     restart: unless-stopped
     networks:
@@ -74,7 +75,7 @@ services:
 
   # Backend Teste - Ambiente de Testes
   backend-teste:
-    image: ${BACKEND_TEST_IMAGE:-conexaodesorte/backend-test:latest}
+    image: ${BACKEND_TEST_IMAGE:-facilita/conexao-de-sorte-backend:latest}
     container_name: conexao-backend-teste
     restart: unless-stopped
     networks:
