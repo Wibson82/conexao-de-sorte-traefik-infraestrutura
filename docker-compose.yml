@@ -41,21 +41,78 @@ services:
       - PORT=3000
     labels:
       - traefik.enable=true
-      # Roteamento para domínio principal
-      # Rota principal (sem www)
+      # Roteamento para domínio principal (sem www)
       - traefik.http.routers.frontend-main.rule=Host(`conexaodesorte.com.br`)
       - traefik.http.routers.frontend-main.entrypoints=websecure
       - traefik.http.routers.frontend-main.tls.certresolver=letsencrypt
       - traefik.http.routers.frontend-main.middlewares=security-headers@file,gzip-compress@file
       - traefik.http.routers.frontend-main.priority=1
-      # Rota com www (redirecionamento)
+      # Roteamento para domínio com www
       - traefik.http.routers.frontend-www.rule=Host(`www.conexaodesorte.com.br`)
       - traefik.http.routers.frontend-www.entrypoints=websecure
       - traefik.http.routers.frontend-www.tls.certresolver=letsencrypt
-      - traefik.http.routers.frontend-www.middlewares=redirect-www-to-non-www@file
+      - traefik.http.routers.frontend-www.middlewares=security-headers@file,gzip-compress@file
       - traefik.http.routers.frontend-www.priority=1
       - traefik.http.services.frontend.loadbalancer.server.port=3000
 
+
+  # Backend Produção - Ambiente de Produção
+  backend-prod:
+    image: ${BACKEND_PROD_IMAGE:-facilita/conexao-de-sorte-backend:latest}
+    container_name: conexao-backend-prod
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${PROD_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=${PROD_REDIS_URL}
+      - PORT=8080
+    labels:
+      - traefik.enable=true
+      # Roteamento para APIs de produção (sem www)
+      - traefik.http.routers.backend-prod-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/rest`)
+      - traefik.http.routers.backend-prod-main.entrypoints=websecure
+      - traefik.http.routers.backend-prod-main.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-prod-main.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file
+      - traefik.http.routers.backend-prod-main.priority=100
+      # Roteamento para APIs de produção (com www)
+      - traefik.http.routers.backend-prod-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest`)
+      - traefik.http.routers.backend-prod-www.entrypoints=websecure
+      - traefik.http.routers.backend-prod-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-prod-www.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file
+      - traefik.http.routers.backend-prod-www.priority=100
+      - traefik.http.services.backend-prod.loadbalancer.server.port=8080
+
+  # Backend Teste - Ambiente de Testes
+  backend-teste:
+    image: ${BACKEND_TEST_IMAGE:-conexao-de-sorte-test:latest}
+    container_name: conexao-backend-teste
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=${TEST_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=${TEST_REDIS_URL}
+      - PORT=8081
+    labels:
+      - traefik.enable=true
+      # Roteamento para APIs de teste (sem www)
+      - traefik.http.routers.backend-teste-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)
+      - traefik.http.routers.backend-teste-main.entrypoints=websecure
+      - traefik.http.routers.backend-teste-main.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-teste-main.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
+      - traefik.http.routers.backend-teste-main.priority=200
+      # Roteamento para APIs de teste (com www)
+      - traefik.http.routers.backend-teste-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)
+      - traefik.http.routers.backend-teste-www.entrypoints=websecure
+      - traefik.http.routers.backend-teste-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-teste-www.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
+      - traefik.http.routers.backend-teste-www.priority=200
+      - traefik.http.services.backend-teste.loadbalancer.server.port=8081
 networks:
   conexao-network:
     external: true

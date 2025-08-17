@@ -35,19 +35,19 @@ http:
     
     redirect-to-www:
       redirectRegex:
-        regex: "^https://conexaodesorte\\.com\\.br/(.*)"
+        regex: "^https://conexaodesorte.com.br/(.*)"
         replacement: "https://www.conexaodesorte.com.br/${1}"
         permanent: true
     
     redirect-www-to-non-www:
       redirectRegex:
-        regex: '^https://www\.conexaodesorte\.com\.br/(.*)'
+        regex: '^https://www.conexaodesorte.com.br/(.*)'
         replacement: 'https://conexaodesorte.com.br/${1}'
         permanent: true
     
     redirect-non-www-to-www:
       redirectRegex:
-        regex: '^https://conexaodesorte\.com\.br/(.*)'
+        regex: '^https://conexaodesorte.com.br/(.*)'
         replacement: 'https://www.conexaodesorte.com.br/${1}'
         permanent: true
     

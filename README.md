@@ -40,14 +40,19 @@ docker-compose up -d
 
 O Traefik está configurado para gerenciar as seguintes rotas:
 
-| Serviço | Domínios/Paths |
-|---------|----------------|
-| **Frontend Principal** | `conexaodesorte.com.br` e `www.conexaodesorte.com.br` |
-| **Backend Produção** | `conexaodesorte.com.br/rest` e `www.conexaodesorte.com.br/rest` |
-| **Backend Teste** | `conexaodesorte.com.br/teste/rest` e `www.conexaodesorte.com.br/teste/rest` |
-| **Frontend Teste** | `conexaodesorte.com.br/teste` e `www.conexaodesorte.com.br/teste` |
-| **Frontend Frete** | `conexaodesorte.com.br/teste/frete` e `www.conexaodesorte.com.br/teste/frete` |
-| **Traefik Dashboard** | `traefik.conexaodesorte.com.br` |
+| Serviço | Domínio/Path | Descrição |
+|---------|--------------|----------|
+| Frontend Principal | `conexaodesorte.com.br` | Site principal |
+| Frontend Principal | `www.conexaodesorte.com.br` | Site principal (aceita diretamente) |
+| Backend Produção | `conexaodesorte.com.br/rest` | API de produção |
+| Backend Produção | `www.conexaodesorte.com.br/rest` | API de produção (com www) |
+| Backend Teste | `conexaodesorte.com.br/teste/rest` | API de teste |
+| Backend Teste | `www.conexaodesorte.com.br/teste/rest` | API de teste (com www) |
+| Frontend Teste | `conexaodesorte.com.br/teste` | Ambiente de teste do frontend |
+| Frontend Teste | `www.conexaodesorte.com.br/teste` | Ambiente de teste do frontend (com www) |
+| Frontend Frete | `conexaodesorte.com.br/teste/frete` | Sistema de frete |
+| Frontend Frete | `www.conexaodesorte.com.br/teste/frete` | Sistema de frete (com www) |
+| Traefik Dashboard | `traefik.conexaodesorte.com.br` | Dashboard do Traefik |
 
 ## 📋 Configuração dos Projetos
 
@@ -66,15 +71,16 @@ services:
       - "traefik.http.routers.frontend-main.rule=Host(`conexaodesorte.com.br`)"
       - "traefik.http.routers.frontend-main.entrypoints=websecure"
       - "traefik.http.routers.frontend-main.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend-main.middlewares=security-headers@file,gzip-compress@file"
       - "traefik.http.routers.frontend-main.priority=1"
-      # Rota com www (redirecionamento)
+      # Rota com www (aceita diretamente)
       - "traefik.http.routers.frontend-www.rule=Host(`www.conexaodesorte.com.br`)"
       - "traefik.http.routers.frontend-www.entrypoints=websecure"
       - "traefik.http.routers.frontend-www.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend-www.middlewares=redirect-www-to-non-www@file"
+      - "traefik.http.routers.frontend-www.middlewares=security-headers@file,gzip-compress@file"
+      - "traefik.http.routers.frontend-www.priority=1"
       # Configuração do serviço
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"
-      - "traefik.http.routers.frontend-main.middlewares=gzip-compress@file,security-headers@file"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
 networks:
   conexao-network:
@@ -96,16 +102,16 @@ services:
       - "traefik.http.routers.backend-prod-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/rest`)"
       - "traefik.http.routers.backend-prod-main.entrypoints=websecure"
       - "traefik.http.routers.backend-prod-main.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-prod-main.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file"
       - "traefik.http.routers.backend-prod-main.priority=100"
       # Rota com www
       - "traefik.http.routers.backend-prod-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest`)"
       - "traefik.http.routers.backend-prod-www.entrypoints=websecure"
       - "traefik.http.routers.backend-prod-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-prod-www.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file"
       - "traefik.http.routers.backend-prod-www.priority=100"
       # Configuração do serviço
       - "traefik.http.services.backend-prod.loadbalancer.server.port=8080"
-      - "traefik.http.routers.backend-prod-main.middlewares=gzip-compress@file,cors-api@file"
-      - "traefik.http.routers.backend-prod-www.middlewares=gzip-compress@file,cors-api@file"
 
 networks:
   conexao-network:
@@ -136,16 +142,16 @@ services:
       - "traefik.http.routers.backend-teste-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)"
       - "traefik.http.routers.backend-teste-main.entrypoints=websecure"
       - "traefik.http.routers.backend-teste-main.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-teste-main.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file"
       - "traefik.http.routers.backend-teste-main.priority=200"
       # Rota com www
       - "traefik.http.routers.backend-teste-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)"
       - "traefik.http.routers.backend-teste-www.entrypoints=websecure"
       - "traefik.http.routers.backend-teste-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-teste-www.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file"
       - "traefik.http.routers.backend-teste-www.priority=200"
       # Configuração do serviço
-      - "traefik.http.services.backend-teste.loadbalancer.server.port=8080"
-      - "traefik.http.routers.backend-teste-main.middlewares=gzip-compress@file,cors-api@file"
-      - "traefik.http.routers.backend-teste-www.middlewares=gzip-compress@file,cors-api@file"
+      - "traefik.http.services.backend-teste.loadbalancer.server.port=8081"
 
 networks:
   conexao-network:
@@ -254,10 +260,16 @@ As prioridades estão configuradas para garantir o roteamento correto:
 - **Frontend Teste** (50) - Menos específico: `/teste` (excluindo `/teste/rest` e `/teste/frete`)
 - **Frontend Principal** (1) - Catch-all para o domínio principal
 
+### Estratégia de Domínios
+- **Frontend**: Aceita tanto `conexaodesorte.com.br` quanto `www.conexaodesorte.com.br` diretamente
+- **APIs**: Funcionam em ambos os domínios (com e sem www)
+- **Sem redirecionamentos**: Ambas as versões são tratadas como válidas
+
 ### Certificados SSL
 - Certificados automáticos via Let's Encrypt
 - Suporte para ambos os domínios (`conexaodesorte.com.br` e `www.conexaodesorte.com.br`)
 - Redirecionamento automático HTTP → HTTPS
+- Certificados gerados para ambas as versões dos domínios
 
 ### Rede Docker
 Todos os projetos devem usar a rede externa `conexao-network`:
