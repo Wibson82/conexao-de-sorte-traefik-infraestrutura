@@ -11,7 +11,7 @@ services:
     environment:
       - TZ=${TZ}
     networks:
-      - reverse-proxy
+      - conexao-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/traefik.yml:ro
@@ -29,5 +29,5 @@ services:
       - traefik.http.routers.dashboard.middlewares=dashboard-auth,security-headers@file
 
 networks:
-  reverse-proxy:
+  conexao-network:
     external: true
