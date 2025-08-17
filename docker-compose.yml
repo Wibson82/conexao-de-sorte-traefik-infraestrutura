@@ -95,22 +95,7 @@ services:
       - traefik.http.routers.backend-teste.priority=200
       - traefik.http.services.backend-teste.loadbalancer.server.port=8081
 
-  # Database - PostgreSQL
-  postgres:
-    image: postgres:15-alpine
-    container_name: conexao-postgres
-    restart: unless-stopped
-    networks:
-      - conexao-network
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-conexaodesorte}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "127.0.0.1:5432:5432"
+
 
   # Redis - Cache e Sessions
   redis:
@@ -131,7 +116,5 @@ networks:
     name: conexao-network
 
 volumes:
-  postgres_data:
-    driver: local
   redis_data:
     driver: local
