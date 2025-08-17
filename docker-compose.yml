@@ -38,8 +38,8 @@ services:
       - conexao-network
     environment:
       - NODE_ENV=production
-      - API_BASE_URL=https://www.conexaodesorte.com.br/api
-      - NEXT_PUBLIC_API_URL=https://www.conexaodesorte.com.br/api
+      - API_BASE_URL=https://www.conexaodesorte.com.br/rest
+      - NEXT_PUBLIC_API_URL=https://www.conexaodesorte.com.br/rest
       - PORT=3000
     labels:
       - traefik.enable=true
