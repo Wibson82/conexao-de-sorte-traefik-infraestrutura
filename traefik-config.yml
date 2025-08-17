@@ -1,0 +1,9 @@
+# Dynamic configuration loaded via file provider
+# Add routers, services, middlewares or TLS options here.
+
+http:
+  middlewares:
+    example-headers:
+      headers:
+        customResponseHeaders:
+          X-Example: "Traefik dynamic config loaded"

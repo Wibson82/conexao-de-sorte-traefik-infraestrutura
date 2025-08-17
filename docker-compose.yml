@@ -11,10 +11,14 @@ services:
       - LETSENCRYPT_EMAIL=facilitaservicos.dev@gmail.com
     networks:
       - conexao-network
+    command:
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/traefik.yml:ro
       - ./traefik/dynamic:/dynamic:ro
+      - ./traefik-config.yml:/etc/traefik/dynamic/traefik-config.yml:ro
       - ./letsencrypt:/letsencrypt
       - ./secrets:/secrets:ro
     labels:
