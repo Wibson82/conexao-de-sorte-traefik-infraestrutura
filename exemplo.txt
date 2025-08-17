@@ -1,417 +1,200 @@
-name: "� Traefik Infrastructure - Pipeline Principal"
+# =============================================================================
+# DOCKER COMPOSE BASE - CONEXÃO DE SORTE BACKEND
+# =============================================================================
+# Configuração base compartilhada entre todos os ambientes
+# Use com override files para configurações específicas por ambiente
+#
+# Uso:
+#   docker-compose -f docker-compose.base.yml -f docker-compose.prod.yml up
+#   docker-compose -f docker-compose.base.yml -f docker-compose.dev.yml up
+#   docker-compose -f docker-compose.base.yml -f docker-compose.test.yml up
 
-on:
-  push:
-    branches: [main]
-    tags: ['v*']
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
-    inputs:
-      force_deploy:
-        description: 'Forçar deploy mesmo se validação falhar'
-        required: false
-        default: false
-        type: boolean
-      skip_security:
-        description: 'Pular verificações de segurança'
-        required: false
-        default: false
-        type: boolean
-      environment:
-        description: 'Ambiente de destino'
-        required: false
-        default: 'production'
-        type: choice
-        options:
-        - production
-        - staging
-  schedule:
-    # Verificações de segurança diárias às 02:00 UTC
-  - cron: '0 2 * * *'
-    # Diagnósticos completos diários às 06:00 UTC (03:00 BRT)
-  - cron: '0 6 * * *'
+# =============================================================================
+# REDES
+# =============================================================================
+networks:
+  conexao-network:
+    driver: bridge
+    name: conexao-network
 
-env:
-  DOCKER_BUILDKIT: 1
-  COMPOSE_DOCKER_CLI_BUILD: 1
-  TZ: America/Sao_Paulo
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  mysql-data:
+    driver: local
+  backend-logs:
+    driver: local
+  backend-tmp:
+    driver: local
 
-jobs:
-  # 
-  # DETECÇÃO DE MUDANÇAS
-  # 
-  detect-changes:
-    name: � Detectar Mudanças
-    runs-on: ubuntu-latest
-    outputs:
-      config-changed: ${{ steps.changes.outputs.config }}
-      workflows-changed: ${{ steps.changes.outputs.workflows }}
-      should-deploy: ${{ steps.deploy-check.outputs.should-deploy }}
-      environment: ${{ steps.deploy-check.outputs.environment }}
-      run-security: ${{ steps.security-check.outputs.run-security }}
-
-    steps:
-    - name: � Checkout código
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: � Detectar mudanças em arquivos
-      uses: dorny/paths-filter@v3
-      id: changes
-      with:
-        filters: |
-          config:
-            - 'config/**'
-            - 'dynamic/**'
-            - 'docker-compose.yml'
-            - '.env.example'
-          workflows:
-            - '.github/workflows/**'
-            - 'scripts/**'
-    - name: � Verificar necessidade de deploy
-      id: deploy-check
-      run: |
-        SHOULD_DEPLOY"false"
-        ENVIRONMENT"staging"
-        # Deploy forçado via workflow_dispatch
-        if [ "${{ github.event.inputs.force_deploy }}"  "true" ]; then
-          SHOULD_DEPLOY"true"
-          ENVIRONMENT"${{ github.event.inputs.environment }}"
-          echo "� Deploy forçado pelo usuário"
-        # Deploy automático em tags para produção
-        elif [[ "${{ github.ref }}"  refs/tags/* ]]; then
-          SHOULD_DEPLOY"true"
-          ENVIRONMENT"production"
-          echo "�️ Deploy automático via tag"
-        # Deploy automático em push para main (padrão)
-        elif [ "${{ github.event_name }}"  "push" ] && [ "${{ github.ref }}"  "refs/heads/main" ]; then
-          SHOULD_DEPLOY"true"
-          ENVIRONMENT"staging"
-          echo "� Deploy automático em push para main"
-        fi
-        echo "should-deploy$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
-        echo "environment$ENVIRONMENT" >> $GITHUB_OUTPUT
-    - name: � Verificar necessidade de security scan
-      id: security-check
-      run: |
-        RUN_SECURITY"false"
-        # Executar sempre em schedule
-        if [ "${{ github.event_name }}"  "schedule" ]; then
-          RUN_SECURITY"true"
-        # Executar em push/PR se não foi pulado
-        elif [ "${{ github.event.inputs.skip_security }}" ! "true" ]; then
-          RUN_SECURITY"true"
-        fi
-        echo "run-security$RUN_SECURITY" >> $GITHUB_OUTPUT
-  # 
-  # VALIDAÇÃO E CI
-  # 
-  validate:
-    name: ✅ Validação e Testes
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: github.event_name  'push' || github.event_name  'pull_request' || needs.detect-changes.outputs.config-changed  'true' || needs.detect-changes.outputs.workflows-changed  'true'
-
-    steps:
-    - name: � Checkout código
-      uses: actions/checkout@v4
-
-    - name: � Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: � Cache Docker layers
-      uses: actions/cache@v4
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
-    - name: � Validar sintaxe YAML
-      run: |
-        python3 -m pip install yamllint
-        find . -name "*.yml" -o -name "*.yaml" | xargs python3 -m yamllint -d relaxed || true
-        echo "✅ Validação YAML concluída (warnings ignorados)"
-    - name: � Validar configurações Traefik
-      run: |
-        echo "� Validando sintaxe dos arquivos de configuração Traefik..."
-        # Validação rápida de sintaxe YAML
-        for file in config/traefik.yml dynamic/middlewares.yml dynamic/services.yml; do
-          if python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
-            echo "✅ $file: Sintaxe YAML válida"
-          else
-            echo "❌ $file: Erro de sintaxe YAML"
-            exit 1
-          fi
-        done
-        echo "✅ Validação de configuração Traefik concluída"
-    - name: � Testar docker-compose
-      run: |
-        docker compose config
-        docker compose config --services
-    - name: � Testes de conectividade
-      run: |
-        echo "� Testando conectividade básica do Traefik..."
-        
-        # Criar rede de teste
-        docker network create traefik-test || true
-        # Criar configuração mínima para teste
-        mkdir -p /tmp/traefik-test
-        cat > /tmp/traefik-test/traefik.yml << 'EOF'
-        api:
-          dashboard: true
-          insecure: true
-        entryPoints:
-          web:
-            address: ":80"
-        providers:
-          file:
-            directory: /etc/traefik/dynamic
-            watch: true
-        EOF
-        # Iniciar Traefik em modo de teste (sem portas expostas para evitar conflitos)
-        docker run -d --name traefik-test \
-          --network traefik-test \
-          -v "/tmp/traefik-test/traefik.yml:/etc/traefik/traefik.yml:ro" \
-          traefik:v3.1
-        # Aguardar Traefik inicializar
-        sleep 15
-        # Verificar se o container está rodando
-        if docker ps | grep -q traefik-test; then
-          echo "✅ Traefik iniciou com sucesso"
-          echo "� Status do container:"
-          docker ps --filter "nametraefik-test" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-        else
-          echo "❌ Falha ao iniciar Traefik"
-          echo "� Logs do container:"
-          docker logs traefik-test
-          exit 1
-        fi
-        # Verificar logs para erros críticos
-        echo "� Verificando logs do Traefik:"
-        docker logs traefik-test 2>&1 | head -20
-        
-        if docker logs traefik-test 2>&1 | grep -i "error\|fatal\|panic" | grep -v "levelerror.*acme"; then
-          echo "⚠️ Avisos encontrados nos logs (podem ser normais para ambiente de teste)"
-        else
-          echo "✅ Nenhum erro crítico encontrado nos logs"
-        fi
-        # Cleanup
-        docker stop traefik-test || true
-        docker rm traefik-test || true
-        docker network rm traefik-test || true
-        rm -rf /tmp/traefik-test
-        
-        echo "✅ Teste de conectividade concluído"
-  # 
-  # VERIFICAÇÕES DE SEGURANÇA
-  # 
-  security:
-    name: � Verificações de Segurança
-    runs-on: ubuntu-latest
-    needs: [detect-changes, validate]
-    if: needs.detect-changes.outputs.run-security  'true' && (success() || github.event_name  'schedule')
-
-    steps:
-    - name: � Checkout código
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: � Scan de secrets
-      uses: trufflesecurity/trufflehog@main
-      with:
-        path: ./
-        base: ${{ github.event_name  'pull_request' && github.event.pull_request.base.sha || 'HEAD~1' }}
-        head: HEAD
-        extra_args: --debug --only-verified
-
-    - name: � Scan de vulnerabilidades em imagens
-      run: |
-        # Instalar Trivy
-        sudo apt-get update
-        sudo apt-get install wget apt-transport-https gnupg lsb-release
-        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-        sudo apt-get update
-        sudo apt-get install trivy
-        # Scan da imagem Traefik
-        trivy image --severity HIGH,CRITICAL traefik:v3.1
-    - name: �️ Verificar configurações de segurança
-      run: |
-        echo "� Verificando configurações de segurança..."
-        SCORE0
-        TOTAL8
-        # HTTPS obrigatório
-        if grep -q "websecure" config/traefik.yml; then
-          echo "✅ HTTPS configurado"
-          SCORE$((SCORE + 1))
-        else
-          echo "❌ HTTPS não configurado"
-        fi
-        # Let's Encrypt
-        if grep -q "letsencrypt" config/traefik.yml; then
-          echo "✅ Let's Encrypt configurado"
-          SCORE$((SCORE + 1))
-        else
-          echo "❌ Let's Encrypt não configurado"
-        fi
-        # Security headers
-        if grep -q "security-headers" dynamic/middlewares.yml; then
-          echo "✅ Security headers configurados"
-          SCORE$((SCORE + 1))
-        else
-          echo "❌ Security headers não configurados"
-        fi
-        # Rate limiting
-        if grep -q "rate-limit" dynamic/middlewares.yml; then
-          echo "✅ Rate limiting configurado"
-          SCORE$((SCORE + 1))
-        else
-          echo "❌ Rate limiting não configurado"
-        fi
-        # Dashboard protegido
-        if grep -A 10 "traefik-dashboard" dynamic/services.yml | grep -q "auth"; then
-          echo "✅ Dashboard protegido"
-          SCORE$((SCORE + 1))
-        else
-          echo "❌ Dashboard não protegido"
-        fi
-        # TLS versão mínima
-        if grep -q "VersionTLS12" dynamic/services.yml; then
-          echo "✅ TLS versão mínima configurada"
-          SCORE$((SCORE + 1))
-        else
-          echo "❌ TLS versão mínima não configurada"
-        fi
-        # Logs de acesso
-        if grep -q "accessLog" config/traefik.yml; then
-          echo "✅ Logs de acesso habilitados"
-          SCORE$((SCORE + 1))
-        else
-          echo "❌ Logs de acesso não habilitados"
-        fi
-        # Métricas
-        if grep -q "prometheus" config/traefik.yml; then
-          echo "✅ Métricas habilitadas"
-          SCORE$((SCORE + 1))
-        else
-          echo "❌ Métricas não habilitadas"
-        fi
-        echo ""
-        echo "� Score de Segurança: $SCORE/$TOTAL ($(( SCORE * 100 / TOTAL ))%)"
-        if [ $SCORE -lt 6 ]; then
-          echo "⚠️ Score de segurança baixo. Revisar configurações."
-          exit 1
-        fi
- 
-  # 
-  # DEPLOY
-  # 
-  deploy:
-    name: � Deploy ${{ needs.detect-changes.outputs.environment }}
-    runs-on: ubuntu-latest
-    needs: [detect-changes, validate, security, backup]
-    if: needs.detect-changes.outputs.should-deploy  'true' && success()
-    environment: ${{ needs.detect-changes.outputs.environment }}
-
-    steps:
-    - name: � Checkout código
-      uses: actions/checkout@v4
-
-    - name: � Configurar ambiente
-      run: |
-        # Configurações básicas
-        echo "DOMAINconexaodesorte.com.br" >> .env
-        echo "ACME_EMAILfacilitaservicos.dev@gmail.com" >> .env
-        echo "VERSIONlatest" >> .env
-        
-        if [ "${{ needs.detect-changes.outputs.environment }}"  "production" ]; then
-          echo "ENVIRONMENTproduction" >> .env
-          echo "LOG_LEVELINFO" >> .env
-          echo "TRAEFIK_LOG_LEVELINFO" >> .env
-        else
-          echo "ENVIRONMENTstaging" >> .env
-          echo "LOG_LEVELDEBUG" >> .env
-          echo "TRAEFIK_LOG_LEVELDEBUG" >> .env
-        fi
-        echo "DEPLOY_TIMESTAMP$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
-        echo "DEPLOY_COMMIT${{ github.sha }}" >> .env
-    - name: � Teste de Conectividade SSH
-      run: |
-        # Validar secrets obrigatórios
-        if [ -z "${{ secrets.SSH_HOST }}" ]; then
-          echo "❌ Erro: SSH_HOST não configurado"
-          exit 1
-        fi
-        
-        if [ -z "${{ secrets.SSH_USER }}" ]; then
-          echo "❌ Erro: SSH_USER não configurado"
-          exit 1
-        fi
-        
-        # Executar teste de conectividade SSH
-        echo "� Executando teste de conectividade SSH..."
-        GITHUB_ACTIONStrue ./scripts/test-ssh-connectivity.sh "${{ secrets.SSH_HOST }}" "${{ secrets.SSH_USER }}"
-    - name: � Setup SSH
-      run: |
-        # Validar chave SSH
-        if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
-          echo "❌ Erro: VPS_SSH_KEY não configurado"
-          exit 1
-        fi
-        
-        echo "✅ Secrets SSH validados"
-        
-        # Configurar SSH
-        mkdir -p ~/.ssh
-        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        
-        # Adicionar host às known_hosts
-        echo "� Adicionando ${{ secrets.SSH_HOST }} às known_hosts..."
-        ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
-        
-        echo "✅ SSH configurado com sucesso"
-    - name: � Preparar e enviar arquivos
-      run: |
-        # Criar diretório no servidor se não existir
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/traefik-deploy"
-        
-        # Preparar e enviar arquivos
-        tar -czf deploy-package.tar.gz config/ dynamic/ docker-compose.yml .env
-        scp deploy-package.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/traefik-deploy/
-    - name: � Deploy via SSH
-      run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          # Capturar informações do servidor
-          echo "�️  Conectado ao servidor: $(hostname)"
-          echo "� IP do servidor: $(hostname -I | awk '{print $1}')"
-          echo "� Data/hora do servidor: $(date)"
-          echo "� Usuário conectado: $(whoami)"
-          echo ""
-          
-          cd ~/traefik-deploy
-          echo "� Iniciando deploy para ${{ needs.detect-changes.outputs.environment }}"
-          # Extrair e preparar
-          tar -xzf deploy-package.tar.gz
-          if [ -d "current" ]; then
-            mv current backup-$(date +%Y%m%d_%H%M%S)
-          fi
-          mkdir -p current
-          mv config dynamic docker-compose.yml .env current/
-          cd current
-          # Parar containers Traefik existentes para evitar conflito de porta
-          echo "� Parando containers Traefik existentes..."
-          docker stop $(docker ps -q --filter "nametraefik") 2>/dev/null || echo "Nenhum container Traefik rodando"
-          docker rm $(docker ps -aq --filter "nametraefik") 2>/dev/null || echo "Nenhum container Traefik para remover"
-          
-          # Deploy
-          echo "� Iniciando novo deploy..."
-          docker compose config
-          docker compose pull
-          docker compose up -d --force-recreate traefik
-          echo "✅ Deploy concluído!"
-        EOF
+# =============================================================================
+# SERVIÇOS BASE
+# =============================================================================
+services:
+  # =============================================================================
+  # BACKEND - CONFIGURAÇÃO BASE
+  # =============================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.multistage
+      args:
+        ENVIRONMENT: ${ENVIRONMENT:-prod}
+        JAVA_VERSION: ${JAVA_VERSION:-24}
+        MAVEN_VERSION: ${MAVEN_VERSION:-3.9.8}
+        SKIP_TESTS: ${SKIP_TESTS:-true}
+        ENABLE_AZURE_KEYVAULT: ${ENABLE_AZURE_KEYVAULT:-true}
+    image: facilita/conexao-de-sorte-backend:${BACKEND_TAG:-latest}
+    container_name: backend-${ENVIRONMENT:-prod}
     
+    # Configurações base de ambiente
+    environment:
+      # Configurações gerais
+      - TZ=America/Sao_Paulo
+      - SERVER_PORT=8080
+      - ENVIRONMENT=${ENVIRONMENT:-prod}
+      
+      # Spring Profiles (será sobrescrito por ambiente específico)
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      
+      # Configurações de banco de dados
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:mysql://conexao-mysql:3306/conexao_de_sorte?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      
+      # Configurações R2DBC
+      - DB_HOST=${DB_HOST:-conexao-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-conexao_de_sorte}
+      - DB_USERNAME=${DB_USERNAME:-${SPRING_DATASOURCE_USERNAME}}
+      - DB_PASSWORD=${DB_PASSWORD:-${SPRING_DATASOURCE_PASSWORD}}
+      - DB_SSL=${DB_SSL:-false}
+      
+      # Azure Key Vault (configurações base)
+      - AZURE_KEYVAULT_ENABLED=${AZURE_KEYVAULT_ENABLED:-true}
+      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      
+      # Configurações JWT
+      - JWT_ISSUER=${JWT_ISSUER:-https://conexaodesorte.com.br}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-conexao-de-sorte-frontend-app}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-RS256}
+      
+      # Configurações de segurança
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://conexaodesorte.com.br,https://www.conexaodesorte.com.br}
+      - SEGURANCA_TAXA_ATIVADO=${SEGURANCA_TAXA_ATIVADO:-true}
+      - SEGURANCA_TAXA_LIMITE_POR_MINUTO=${SEGURANCA_TAXA_LIMITE_POR_MINUTO:-60}
+      
+      # Configurações de auditoria
+      - AUDITORIA_ENABLED=${AUDITORIA_ENABLED:-true}
+      - GDPR_COMPLIANCE_ENABLED=${GDPR_COMPLIANCE_ENABLED:-true}
+      
+      # Configurações de monitoramento
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:-health,info,metrics}
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=${MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS:-when-authorized}
+      
+      # Configurações JVM base
+      - JAVA_OPTS=${JAVA_OPTS:--server -Xms256m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200}
+    
+    # Portas removidas - Traefik gerencia o roteamento
+    # ports:
+    #   - "${BACKEND_PORT:-8080}:8080"
+    
+    # Volumes
+    volumes:
+      - backend-logs:/app/logs
+      - backend-tmp:/app/tmp
+      - ./config:/app/config:ro
+    
+    # Health check padrão
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/readiness"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    
+    # Configurações de restart
+    restart: unless-stopped
+    
+    # Dependências
+    depends_on:
+      mysql:
+        condition: service_healthy
+    
+    # Labels para integração com Traefik externo
+    labels:
+      # Labels para organização e monitoramento
+      - "com.conexaodesorte.service=backend"
+      - "com.conexaodesorte.version=${BACKEND_TAG:-latest}"
+      - "com.conexaodesorte.environment=${ENVIRONMENT:-prod}"
+      # REMOVIDO: Labels Traefik (gerenciado por file-based em conexao-traefik-infrastructure)
+    
+    # Rede
+    networks:
+      - conexao-network
+
+  # =============================================================================
+  # MYSQL - CONFIGURAÇÃO BASE
+  # =============================================================================
+  mysql:
+    image: mysql:8.4
+    container_name: conexao-mysql
+    
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-conexao_de_sorte}
+      - MYSQL_USER=${MYSQL_USER:-conexao_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - TZ=America/Sao_Paulo
+    
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql-config:/etc/mysql/conf.d:ro
+      - ./scripts/mysql-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-time-zone='-03:00'
+      --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO
+    
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    restart: unless-stopped
+    
+    networks:
+      - conexao-network
+
+# =============================================================================
+# CONFIGURAÇÕES PADRÃO
+# =============================================================================
+# Estas configurações podem ser sobrescritas pelos arquivos de override
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-deploy-defaults: &deploy-defaults
+  restart_policy:
+    condition: on-failure
+    max_attempts: 3
+    window: 120s
+  resources:
+    limits:
+      memory: 1G
+    reservations:
+      memory: 512M

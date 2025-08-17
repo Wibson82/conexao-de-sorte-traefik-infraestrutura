@@ -1,0 +1,69 @@
+root@srv649924:~# docker container ps
+CONTAINER ID   IMAGE                                                COMMAND                  CREATED          STATUS                    PORTS                                                                          NAMES
+2d565a5586d5   facilita/conexao-de-sorte-frontend:latest            "dumb-init -- serve …"   24 minutes ago   Up 24 minutes (healthy)   0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp                                    conexao-frontend
+da6e42939678   traefik:v3.1                                         "/entrypoint.sh trae…"   41 minutes ago   Up 41 minutes             0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp   traefik
+3dcbb32fc262   mysql:8.4                                            "docker-entrypoint.s…"   5 days ago       Up 3 days                 0.0.0.0:3306->3306/tcp, [::]:3306->3306/tcp, 33060/tcp                         conexao-mysql
+037bafe7e94c   facilita/conexao-de-sorte-backend:30-07-2025-17-01   "dumb-init -- /app/b…"   2 weeks ago      Up 3 days (healthy)       8080/tcp                                                                       backend-prod
+97ff4c87c716   b5239da13ab0                                         "/bin/prometheus --c…"   5 weeks ago      Up 3 days                 0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp                                    conexao-prometheus
+root@srv649924:~# docker logs da6e42939678
+2025-08-17T13:27:56Z INF Traefik version 3.1.7 built on 2024-10-28T10:41:06Z version=3.1.7
+2025-08-17T13:27:56Z INF
+Stats collection is disabled.
+Help us improve Traefik by turning this feature on :)
+More details on: https://doc.traefik.io/traefik/contributing/data-collection/
+
+2025-08-17T13:27:56Z INF Starting provider aggregator aggregator.ProviderAggregator
+2025-08-17T13:27:56Z INF Starting provider *file.Provider
+2025-08-17T13:27:56Z INF Starting provider *traefik.Provider
+2025-08-17T13:27:56Z INF Starting provider *acme.Provider
+2025-08-17T13:27:56Z INF Testing certificate renew... acmeCA=https://acme-v02.api.letsencrypt.org/directory providerName=letsencrypt.acme
+2025-08-17T13:27:56Z INF Starting provider *docker.Provider
+2025-08-17T13:27:56Z INF Starting provider *acme.ChallengeTLSALPN
+2025-08-17T13:27:56Z WRN Could not find network named "reverse-proxy" for container "/traefik". Maybe you're missing the project's prefix in the label? container=traefik-current-da6e42939678f2a4ae54af33c0f586b4d17bbe82593fb0e4be35f0ca6ea58c84 providerName=docker serviceName=traefik-current
+2025-08-17T13:27:56Z WRN Defaulting to first available network (&{"conexao-network" "172.19.0.4" '\x00' "" "5613ec22796feb57a4338eadd9267229b903296b3a86079ceac9c18e6c40a7bb"}) for container "/traefik". container=traefik-current-da6e42939678f2a4ae54af33c0f586b4d17bbe82593fb0e4be35f0ca6ea58c84 providerName=docker serviceName=traefik-current
+2025-08-17T13:27:56Z ERR error="open /secrets/traefik-basicauth: no such file or directory" entryPointName=websecure routerName=dashboard@docker
+2025-08-17T13:27:56Z ERR error="error while adding rule (Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/v1/publico`, `/v1/resultados/publico`, `/v1/horario/publico`, `/v1/usuarios/publico`, `/v1/info`): error while adding rule PathPrefix: unexpected number of parameters; got 5, expected one of [1]" entryPointName=websecure routerName=backend-prod-public-https@docker
+2025-08-17T13:27:56Z ERR Error while adding route for host error="error while adding rule HostSNI(``): empty args for matcher HostSNI, []"
+2025-08-17T13:27:56Z ERR Unable to obtain ACME certificate for domains error="no domain was given" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=[""] providerName=letsencrypt.acme routerName=dashboard@docker rule=Host(``)
+2025-08-17T13:27:58Z INF Register... providerName=letsencrypt.acme
+2025-08-17T13:28:15Z ERR error="open /secrets/traefik-basicauth: no such file or directory" entryPointName=websecure routerName=dashboard@docker
+2025-08-17T13:28:15Z ERR error="error while adding rule (Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/v1/publico`, `/v1/resultados/publico`, `/v1/horario/publico`, `/v1/usuarios/publico`, `/v1/info`): error while adding rule PathPrefix: unexpected number of parameters; got 5, expected one of [1]" entryPointName=websecure routerName=backend-prod-public-https@docker
+2025-08-17T13:28:15Z ERR Error while adding route for host error="error while adding rule HostSNI(``): empty args for matcher HostSNI, []"
+2025-08-17T13:28:15Z ERR Unable to obtain ACME certificate for domains error="no domain was given" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=[""] providerName=letsencrypt.acme routerName=dashboard@docker rule=Host(``)
+104.252.191.72 - - [17/Aug/2025:13:29:47 +0000] "GET / HTTP/1.1" 404 19 "-" "-" 1 "-" "-" 0ms
+104.164.126.35 - - [17/Aug/2025:13:29:51 +0000] "GET / HTTP/1.1" 404 19 "-" "-" 2 "-" "-" 0ms
+104.164.126.192 - - [17/Aug/2025:13:30:05 +0000] "GET / HTTP/1.1" 404 19 "-" "-" 3 "-" "-" 0ms
+177.55.196.100 - - [17/Aug/2025:13:30:33 +0000] "GET / HTTP/2.0" 404 19 "-" "-" 4 "-" "-" 0ms
+177.55.196.100 - - [17/Aug/2025:13:31:43 +0000] "GET /rest/v1/resultados/publico/ultimo/federal HTTP/1.1" 200 162 "-" "-" 5 "backend-prod-https@docker" "http://172.19.0.7:8080" 28ms
+177.55.196.100 - - [17/Aug/2025:13:32:09 +0000] "GET / HTTP/2.0" 404 19 "-" "-" 6 "-" "-" 0ms
+177.55.196.100 - - [17/Aug/2025:13:32:12 +0000] "GET / HTTP/2.0" 404 19 "-" "-" 7 "-" "-" 0ms
+177.55.196.100 - - [17/Aug/2025:13:32:23 +0000] "GET / HTTP/2.0" 404 19 "-" "-" 8 "-" "-" 0ms
+2025-08-17T13:37:11Z ERR Cannot retrieve the ACME challenge for conexaodesorte.com.br (token "C3Tm7VbRNlEPp-uQ6iinvnAALnrh_cFN0KUm-PAT-Uo") providerName=acme
+2025-08-17T13:37:18Z ERR Cannot retrieve the ACME challenge for www.conexaodesorte.com.br (token "Lw5KACJJ5wMWaBkbyEhIDeD7Dvu7vzHpMywtdVw2yjM") providerName=acme
+43.135.185.59 - - [17/Aug/2025:13:42:30 +0000] "GET / HTTP/1.1" 404 19 "-" "-" 9 "-" "-" 0ms
+2025-08-17T13:45:37Z WRN Could not find network named "reverse-proxy" for container "/traefik". Maybe you're missing the project's prefix in the label? container=traefik-current-da6e42939678f2a4ae54af33c0f586b4d17bbe82593fb0e4be35f0ca6ea58c84 providerName=docker serviceName=traefik-current
+2025-08-17T13:45:37Z WRN Defaulting to first available network (&{"conexao-network" "172.19.0.4" '\x00' "" "5613ec22796feb57a4338eadd9267229b903296b3a86079ceac9c18e6c40a7bb"}) for container "/traefik". container=traefik-current-da6e42939678f2a4ae54af33c0f586b4d17bbe82593fb0e4be35f0ca6ea58c84 providerName=docker serviceName=traefik-current
+2025-08-17T13:45:43Z WRN Could not find network named "reverse-proxy" for container "/traefik". Maybe you're missing the project's prefix in the label? container=traefik-current-da6e42939678f2a4ae54af33c0f586b4d17bbe82593fb0e4be35f0ca6ea58c84 providerName=docker serviceName=traefik-current
+2025-08-17T13:45:43Z WRN Defaulting to first available network (&{"conexao-network" "172.19.0.4" '\x00' "" "5613ec22796feb57a4338eadd9267229b903296b3a86079ceac9c18e6c40a7bb"}) for container "/traefik". container=traefik-current-da6e42939678f2a4ae54af33c0f586b4d17bbe82593fb0e4be35f0ca6ea58c84 providerName=docker serviceName=traefik-current
+2025-08-17T13:45:48Z WRN Could not find network named "reverse-proxy" for container "/traefik". Maybe you're missing the project's prefix in the label? container=traefik-current-da6e42939678f2a4ae54af33c0f586b4d17bbe82593fb0e4be35f0ca6ea58c84 providerName=docker serviceName=traefik-current
+2025-08-17T13:45:48Z WRN Defaulting to first available network (&{"conexao-network" "172.19.0.4" '\x00' "" "5613ec22796feb57a4338eadd9267229b903296b3a86079ceac9c18e6c40a7bb"}) for container "/traefik". container=traefik-current-da6e42939678f2a4ae54af33c0f586b4d17bbe82593fb0e4be35f0ca6ea58c84 providerName=docker serviceName=traefik-current
+2025-08-17T13:48:24Z ERR Cannot retrieve the ACME challenge for www.conexaodesorte.com.br (token "QI9-KT8epE_3UNVfZnzNPy2c5gKWVxjrYudxiLzJ58E") providerName=acme
+2025-08-17T13:48:25Z ERR Cannot retrieve the ACME challenge for conexaodesorte.com.br (token "TfOvsehjgDowVkIJiC8fmZWvgACNlDae5E0C-wsqRO0") providerName=acme
+2025-08-17T13:48:29Z ERR Cannot retrieve the ACME challenge for www.conexaodesorte.com.br (token "3Gq70F3I0jABEDClvFpU0KgT6ultk6JB7rdcWqnpNTY") providerName=acme
+103.4.250.205 - - [17/Aug/2025:13:51:54 +0000] "GET / HTTP/1.1" 404 19 "-" "-" 10 "-" "-" 0ms
+104.252.191.155 - - [17/Aug/2025:13:51:54 +0000] "GET / HTTP/1.1" 404 19 "-" "-" 11 "-" "-" 0ms
+103.4.251.224 - - [17/Aug/2025:13:52:03 +0000] "GET / HTTP/1.1" 404 19 "-" "-" 12 "-" "-" 0ms
+146.70.185.32 - - [17/Aug/2025:13:54:10 +0000] "HEAD / HTTP/1.1" 404 19 "-" "-" 13 "-" "-" 0ms
+146.70.185.32 - - [17/Aug/2025:13:54:11 +0000] "HEAD / HTTP/1.1" 404 19 "-" "-" 14 "-" "-" 0ms
+34.1.45.3 - - [17/Aug/2025:13:59:40 +0000] "GET / HTTP/1.1" 404 19 "-" "-" 15 "-" "-" 0ms
+2025-08-17T14:00:37Z ERR Cannot retrieve the ACME challenge for conexaodesorte.com.br (token "lGdFqgYilW4a_jTZO27Cb2-hGCSAb4aeS6utokeBx8w") providerName=acme
+2025-08-17T14:00:44Z ERR Cannot retrieve the ACME challenge for www.conexaodesorte.com.br (token "bxdcJtrvkz8KtpQWKBAOzoMBWCOK_uYsjjHhqUU4hbc") providerName=acme
+34.87.99.31 - - [17/Aug/2025:14:02:45 +0000] "GET /wordpress/ HTTP/2.0" 404 19 "-" "-" 16 "-" "-" 0ms
+177.55.196.100 - - [17/Aug/2025:14:03:21 +0000] "GET /rest/v1/resultados/publico/ultimo/federal HTTP/1.1" 200 162 "-" "-" 17 "backend-prod-https@docker" "http://172.19.0.7:8080" 37ms
+177.55.196.100 - - [17/Aug/2025:14:03:27 +0000] "GET / HTTP/2.0" 404 19 "-" "-" 18 "-" "-" 0ms
+177.55.196.100 - - [17/Aug/2025:14:04:56 +0000] "GET / HTTP/2.0" 404 19 "-" "-" 19 "-" "-" 0ms
+177.55.196.100 - - [17/Aug/2025:14:05:25 +0000] "GET /rest/actuator/health HTTP/2.0" 200 3027 "-" "-" 20 "backend-prod-https@docker" "http://172.19.0.7:8080" 674ms
+177.55.196.100 - - [17/Aug/2025:14:08:29 +0000] "GET / HTTP/2.0" 404 19 "-" "-" 21 "-" "-" 0ms
+177.55.196.100 - - [17/Aug/2025:14:09:17 +0000] "GET /rest/actuator/health HTTP/2.0" 200 3027 "-" "-" 22 "backend-prod-https@docker" "http://172.19.0.7:8080" 485ms
+177.55.196.100 - - [17/Aug/2025:14:09:23 +0000] "GET /rest/actuator/health HTTP/2.0" 200 3027 "-" "-" 23 "backend-prod-https@docker" "http://172.19.0.7:8080" 508ms
+177.55.196.100 - - [17/Aug/2025:14:09:27 +0000] "GET /actuator/health HTTP/2.0" 404 19 "-" "-" 24 "-" "-" 0ms

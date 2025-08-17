@@ -25,7 +25,7 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
-    network: "reverse-proxy"
+    network: "conexao-network"
   file:
     directory: "/dynamic"
     watch: true

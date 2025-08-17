@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   traefik:
     image: traefik:v3.1
@@ -129,7 +127,8 @@ services:
 
 networks:
   conexao-network:
-    external: true
+    driver: bridge
+    name: conexao-network
 
 volumes:
   postgres_data:
