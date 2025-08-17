@@ -10,6 +10,7 @@ services:
       - "443:443"
     environment:
       - TZ=${TZ}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     networks:
       - conexao-network
     volumes:
@@ -51,8 +52,8 @@ services:
       - traefik.http.services.frontend.loadbalancer.server.port=3000
 
   # Backend API - Conexão de Sorte
-  backend-api:
-    image: ${BACKEND_IMAGE:-facilita/conexao-de-sorte-backend:latest}
+  backend:
+    image: ${BACKEND_IMAGE:-conexao-de-sorte-complete:latest}
     container_name: conexao-backend
     restart: unless-stopped
     networks:
@@ -66,16 +67,16 @@ services:
     labels:
       - traefik.enable=true
       # Roteamento para APIs principais
-      - traefik.http.routers.backend-api.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest`)
-      - traefik.http.routers.backend-api.entrypoints=websecure
-      - traefik.http.routers.backend-api.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-api.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-api@file
-      - traefik.http.routers.backend-api.priority=300
-      - traefik.http.services.backend-api.loadbalancer.server.port=8080
+      - traefik.http.routers.backend.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest`)
+      - traefik.http.routers.backend.entrypoints=websecure
+      - traefik.http.routers.backend.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-api@file
+      - traefik.http.routers.backend.priority=300
+      - traefik.http.services.backend.loadbalancer.server.port=8080
 
   # Backend Teste - Ambiente de Testes
   backend-teste:
-    image: ${BACKEND_TEST_IMAGE:-facilita/conexao-de-sorte-backend:latest}
+    image: ${BACKEND_TEST_IMAGE:-conexao-de-sorte-test:latest}
     container_name: conexao-backend-teste
     restart: unless-stopped
     networks:

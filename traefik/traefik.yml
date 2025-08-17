@@ -33,7 +33,7 @@ providers:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: "${LETSENCRYPT_EMAIL}"
+      email: "facilitaservicos.dev@gmail.com"
       storage: "/letsencrypt/acme.json"
       httpChallenge:
         entryPoint: web
