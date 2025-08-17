@@ -223,7 +223,7 @@ http:
     backend-service:
       loadBalancer:
         servers:
-          - url: "http://conexao-backend:8080"
+          - url: "http://backend-prod:8080"
 
         # Health check para backend
         healthCheck:
@@ -252,7 +252,7 @@ http:
     prometheus-service:
       loadBalancer:
         servers:
-          - url: "http://conexao-prometheus-centralizado:9090"
+          - url: "http://conexao-prometheus-traefik:9090"
         healthCheck:
           path: /-/healthy
           interval: 30s
@@ -262,7 +262,7 @@ http:
     grafana-service:
       loadBalancer:
         servers:
-          - url: "http://conexao-grafana-centralizado:3000"
+          - url: "http://conexao-grafana-traefik:3000"
         healthCheck:
           path: /api/health
           interval: 30s
@@ -276,7 +276,7 @@ http:
     backend-teste-service:
       loadBalancer:
         servers:
-          - url: "http://conexao-backend-teste:8081"
+          - url: "http://backend-teste:8081"
 
         # Health check para backend teste
         healthCheck:
@@ -301,7 +301,7 @@ http:
     frontend-teste-service:
       loadBalancer:
         servers:
-          - url: "http://conexao-frontend-teste:3000"
+          - url: "http://frontend-teste:3000"
 
         # Health check para frontend teste
         healthCheck:

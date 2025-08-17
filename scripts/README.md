@@ -1,10 +1,49 @@
-# Scripts de Infraestrutura
+# Scripts de Automação - Traefik Infrastructure
 
-Este diretório contém scripts utilitários para gerenciamento da infraestrutura Traefik.
+Este diretório contém scripts para automação, diagnóstico e manutenção da infraestrutura Traefik.
 
-## 🧪 test-ssh-connectivity.sh
+## Scripts Disponíveis
 
-Script para testar conectividade SSH com servidores remotos antes do deploy.
+### 🔧 Scripts de Diagnóstico
+
+#### `diagnostico-completo.sh`
+**Script principal de diagnóstico completo da infraestrutura Traefik.**
+
+**Uso:**
+```bash
+./diagnostico-completo.sh
+```
+
+**Funcionalidades:**
+- ✅ Verificação completa de containers Docker
+- 🔗 Análise detalhada de redes Docker
+- 📡 Testes de conectividade interna e externa
+- 🔐 Verificação de certificados SSL
+- 📊 Análise da API do Traefik
+- 📋 Verificação de logs recentes
+- 🎯 Recomendações automáticas para problemas
+
+#### `diagnostico-rapido.sh`
+**Script de diagnóstico rápido baseado nos testes manuais validados.**
+
+**Uso:**
+```bash
+./diagnostico-rapido.sh
+```
+
+**Funcionalidades:**
+- 🚀 Execução rápida (< 30 segundos)
+- 📋 Status dos containers principais
+- 📡 Testes de conectividade essenciais
+- 🌐 Verificação de endpoints HTTPS
+- 📊 Status da API do Traefik
+- 🎯 Resumo executivo com próximos passos
+
+### 🔌 Scripts de Conectividade
+
+#### 🧪 test-ssh-connectivity.sh
+
+**Script para testar conectividade SSH com servidores remotos antes do deploy.**
 
 ### Funcionalidades
 

@@ -496,7 +496,7 @@ jobs:
           
           echo "\n📋 Verificando containers backend e frontend:"
             docker ps --filter "name=conexao-frontend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Container frontend não encontrado"
-            docker ps --filter "name=conexao-backend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Container backend não encontrado"
+            docker ps --filter "name=backend-prod" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Container backend não encontrado"
             
             echo "\n🔗 Verificando redes Docker:"
             docker network ls | grep conexao || echo "❌ Rede conexao não encontrada"
@@ -505,7 +505,7 @@ jobs:
             
             echo "\n🌐 Testando conectividade interna:"
             docker exec conexao-traefik wget -qO- --timeout=5 http://conexao-frontend:3000 > /dev/null && echo "✅ Frontend acessível" || echo "❌ Frontend inacessível"
-            docker exec conexao-traefik wget -qO- --timeout=5 http://conexao-backend:8080/actuator/health > /dev/null && echo "✅ Backend acessível" || echo "❌ Backend inacessível"
+            docker exec conexao-traefik wget -qO- --timeout=5 http://backend-prod:8080/actuator/health > /dev/null && echo "✅ Backend acessível" || echo "❌ Backend inacessível"
           
           echo "\n🔍 Verificando configuração do Traefik:"
           docker exec conexao-traefik traefik version
@@ -561,6 +561,121 @@ jobs:
         EOF
 
         echo "✅ Diagnóstico SSL automático concluído!"
+
+  # =============================================================================
+  # DIAGNÓSTICOS AUTOMATIZADOS
+  # =============================================================================
+  diagnostics:
+    name: 🔧 Diagnósticos Automatizados
+    runs-on: ubuntu-latest
+    needs: [detect-changes]
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || contains(github.event.head_commit.message, '[diagnostics]')
+
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+
+    - name: 🔑 Setup SSH
+      run: |
+        if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+          echo "❌ Erro: VPS_SSH_KEY não configurado"
+          exit 1
+        fi
+        
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+        echo "✅ SSH configurado com sucesso"
+
+    - name: 📦 Enviar script de diagnóstico
+      run: |
+        scp scripts/diagnostico-completo.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "chmod +x ~/diagnostico-completo.sh"
+
+    - name: 🔧 Executar diagnósticos completos
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🔧 Executando diagnósticos automatizados em: $(hostname) ($(hostname -I | awk '{print $1}'))"
+          echo "🕐 Data/hora: $(date)"
+          echo "👤 Usuário: $(whoami)"
+          echo ""
+          
+          # Executar script de diagnóstico completo
+          ~/diagnostico-completo.sh
+          
+          echo ""
+          echo "🔍 Diagnósticos adicionais específicos:"
+          
+          # Verificar conectividade interna (baseado nos seus testes)
+          echo "📡 Testando conectividade Traefik -> Backend:"
+          if docker exec conexao-traefik wget -qO- --timeout=10 http://backend-prod:8080/actuator/health > /tmp/health_check.json 2>/dev/null; then
+            echo "✅ Backend acessível via Traefik"
+            echo "📊 Health Check Response:"
+            cat /tmp/health_check.json | jq '.' 2>/dev/null || cat /tmp/health_check.json
+          else
+            echo "❌ Backend inacessível via Traefik"
+          fi
+          
+          echo ""
+          echo "📡 Testando conectividade Traefik -> Frontend:"
+          if docker exec conexao-traefik wget -qO- --timeout=10 http://conexao-frontend:3000 > /dev/null 2>&1; then
+            echo "✅ Frontend acessível via Traefik"
+          else
+            echo "❌ Frontend inacessível via Traefik"
+          fi
+          
+          echo ""
+          echo "🔗 Verificando redes Docker detalhadamente:"
+          echo "Containers na rede conexao-network:"
+          docker network inspect conexao-network --format '{{range .Containers}}{{.Name}} ({{.IPv4Address}}){{"\n"}}{{end}}' 2>/dev/null || echo "❌ Rede conexao-network não existe"
+          
+          echo ""
+          echo "📋 Status detalhado dos containers principais:"
+          docker ps --filter "name=conexao-traefik" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Traefik não encontrado"
+          docker ps --filter "name=conexao-frontend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Frontend não encontrado"
+          docker ps --filter "name=backend-prod" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Backend não encontrado"
+          
+          echo ""
+          echo "🌐 Testando endpoints externos:"
+          curl -I --connect-timeout 10 https://conexaodesorte.com.br 2>/dev/null | head -1 || echo "❌ HTTPS principal inacessível"
+          curl -I --connect-timeout 10 https://www.conexaodesorte.com.br 2>/dev/null | head -1 || echo "❌ HTTPS www inacessível"
+          
+          echo ""
+          echo "🔐 Verificando certificados SSL:"
+          docker exec conexao-traefik find /certs -name "*.crt" -exec ls -la {} \; 2>/dev/null || echo "❌ Certificados não encontrados"
+          
+          echo ""
+          echo "📊 API do Traefik - Rotas ativas:"
+          if curl -s http://localhost:8090/api/http/routers 2>/dev/null | jq -r '.[] | select(.status == "enabled") | {name: .name, rule: .rule}' 2>/dev/null; then
+            echo "✅ Rotas ativas listadas"
+          else
+            echo "❌ Erro ao acessar API do Traefik"
+          fi
+          
+          echo ""
+          echo "🚨 API do Traefik - Rotas desabilitadas:"
+          if curl -s http://localhost:8090/api/http/routers 2>/dev/null | jq -r '.[] | select(.status == "disabled") | {name: .name, rule: .rule, service: .service}' 2>/dev/null; then
+            echo "⚠️ Rotas desabilitadas listadas"
+          else
+            echo "❌ Erro ao verificar rotas desabilitadas"
+          fi
+          
+          echo ""
+          echo "✅ Diagnósticos automatizados concluídos!"
+        EOF
+
+    - name: 📊 Gerar relatório de diagnóstico
+      run: |
+        echo "📋 Relatório de Diagnósticos - $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "================================================"
+        echo "🖥️ Servidor: ${{ secrets.SSH_HOST }}"
+        echo "👤 Usuário: ${{ secrets.SSH_USER }}"
+        echo "📝 Commit: ${{ github.sha }}"
+        echo "🌿 Branch: ${{ github.ref_name }}"
+        echo ""
+        echo "✅ Diagnósticos executados com sucesso!"
+        echo "📋 Verifique os logs acima para detalhes completos."
 
   # =============================================================================
   # NOTIFICAÇÕES E RELATÓRIOS

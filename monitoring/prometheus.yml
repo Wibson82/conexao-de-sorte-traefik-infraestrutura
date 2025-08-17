@@ -40,7 +40,7 @@ scrape_configs:
   # Backend Principal
   - job_name: 'conexao-backend'
     static_configs:
-    - targets: ['conexao-backend:8080']
+    - targets: ['backend-prod:8080']
     scrape_interval: 10s
     metrics_path: /actuator/prometheus
     scrape_timeout: 8s

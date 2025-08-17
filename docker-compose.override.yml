@@ -11,9 +11,9 @@ services:
   # Container Backend Externo (gerenciado pelo projeto backend)
   backend:
     image: placeholder  # Será substituído pelo projeto backend
-    container_name: conexao-backend
+    container_name: backend-prod
     external_links:
-      - conexao-backend:conexao-backend
+      - backend-prod:backend-prod
     networks:
       - conexao-network
     profiles:
