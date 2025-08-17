@@ -22,14 +22,8 @@ services:
       - ./letsencrypt:/letsencrypt
       - ./secrets:/secrets:ro
     labels:
-      - traefik.enable=true
-      # Dashboard seguro
-      - traefik.http.routers.dashboard.rule=Host(`traefik.conexaodesorte.com.br`)
-      - traefik.http.routers.dashboard.entrypoints=websecure
-      - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
-      - traefik.http.routers.dashboard.service=api@internal
-      - traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/secrets/traefik-basicauth
-      - traefik.http.routers.dashboard.middlewares=dashboard-auth,security-headers@file
+      - traefik.enable=false
+      # Dashboard desabilitado - DNS não configurado para traefik.conexaodesorte.com.br
 
   # Frontend Web - Conexão de Sorte
   frontend-web:
@@ -95,9 +89,6 @@ services:
       - conexao-network
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${PROD_DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - REDIS_URL=${PROD_REDIS_URL}
       - PORT=8080
     labels:
       - traefik.enable=true
@@ -124,9 +115,6 @@ services:
       - conexao-network
     environment:
       - NODE_ENV=test
-      - DATABASE_URL=${TEST_DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - REDIS_URL=${TEST_REDIS_URL}
       - PORT=8081
     labels:
       - traefik.enable=true
