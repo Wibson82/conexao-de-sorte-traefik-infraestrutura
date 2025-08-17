@@ -28,7 +28,7 @@ volumes:
 services:
   # ===== TRAEFIK - Reverse Proxy com SSL Automático =====
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.1
     container_name: conexao-traefik-prod
     restart: unless-stopped
 

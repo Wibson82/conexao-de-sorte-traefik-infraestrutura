@@ -20,7 +20,7 @@
 services:
   # Traefik - Proxy Reverso Principal
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.1
     container_name: conexao-traefik
     restart: unless-stopped
 

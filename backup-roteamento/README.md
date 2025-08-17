@@ -11,7 +11,7 @@ Esta pasta contém arquivos que foram identificados como conflitantes com o rote
 
 ### Backend (conexao-de-sorte-backend-backup)
 - `backend-docker-compose.prod.yml` - Continha labels do Traefik para roteamento
-- `backend-docker-compose.dev.yml` - Continha labels do Traefik para desenvolvimento
+
 - `backend-traefik-dockerfiles/` - Diretório com Dockerfile e configurações do Traefik
 
 ### Frontend (conexao-de-sorte-frontend)

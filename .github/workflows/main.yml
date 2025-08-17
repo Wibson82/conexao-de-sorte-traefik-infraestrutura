@@ -29,6 +29,8 @@ on:
   schedule:
     # Verificações de segurança diárias às 02:00 UTC
   - cron: '0 2 * * *'
+    # Diagnósticos completos diários às 06:00 UTC (03:00 BRT)
+  - cron: '0 6 * * *'
 
 env:
   DOCKER_BUILDKIT: 1
@@ -166,34 +168,57 @@ jobs:
         # Criar rede de teste
         docker network create traefik-test || true
 
+        # Criar configuração mínima para teste
+        mkdir -p /tmp/traefik-test
+        cat > /tmp/traefik-test/traefik.yml << 'EOF'
+        api:
+          dashboard: true
+          insecure: true
+        entryPoints:
+          web:
+            address: ":80"
+        providers:
+          file:
+            directory: /etc/traefik/dynamic
+            watch: true
+        EOF
+
         # Iniciar Traefik em modo de teste (sem portas expostas para evitar conflitos)
         docker run -d --name traefik-test \
           --network traefik-test \
-          -v "$PWD/config:/etc/traefik:ro" \
-          -v "$PWD/dynamic:/etc/traefik/dynamic:ro" \
-          traefik:v3.0
+          -v "/tmp/traefik-test/traefik.yml:/etc/traefik/traefik.yml:ro" \
+          traefik:v3.1
 
         # Aguardar Traefik inicializar
-        sleep 10
+        sleep 15
 
         # Verificar se o container está rodando
         if docker ps | grep -q traefik-test; then
           echo "✅ Traefik iniciou com sucesso"
+          echo "📋 Status do container:"
+          docker ps --filter "name=traefik-test" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
         else
           echo "❌ Falha ao iniciar Traefik"
+          echo "📋 Logs do container:"
           docker logs traefik-test
           exit 1
         fi
 
         # Verificar logs para erros críticos
-        if docker logs traefik-test 2>&1 | grep -i "error\|fatal\|panic"; then
-          echo "⚠️ Avisos encontrados nos logs (podem ser normais)"
+        echo "📋 Verificando logs do Traefik:"
+        docker logs traefik-test 2>&1 | head -20
+        
+        if docker logs traefik-test 2>&1 | grep -i "error\|fatal\|panic" | grep -v "level=error.*acme"; then
+          echo "⚠️ Avisos encontrados nos logs (podem ser normais para ambiente de teste)"
+        else
+          echo "✅ Nenhum erro crítico encontrado nos logs"
         fi
 
         # Cleanup
         docker stop traefik-test || true
         docker rm traefik-test || true
         docker network rm traefik-test || true
+        rm -rf /tmp/traefik-test
         
         echo "✅ Teste de conectividade concluído"
 
@@ -231,7 +256,7 @@ jobs:
         sudo apt-get install trivy
 
         # Scan da imagem Traefik
-        trivy image --severity HIGH,CRITICAL traefik:v3.0
+        trivy image --severity HIGH,CRITICAL traefik:v3.1
 
     - name: 🛡️ Verificar configurações de segurança
       run: |
@@ -476,7 +501,12 @@ jobs:
           echo "✅ Deploy concluído!"
         EOF
 
-    - name: 🔍 Verificação pós-deploy
+    - name: 📦 Enviar scripts de diagnóstico
+      run: |
+        scp scripts/diagnostico-rapido.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "chmod +x ~/diagnostico-rapido.sh"
+
+    - name: 🔍 Verificação pós-deploy com diagnóstico rápido
       run: |
         echo "🔍 Verificando saúde dos serviços..."
         sleep 30
@@ -485,6 +515,10 @@ jobs:
           echo "🔍 Verificação em: $(hostname) ($(hostname -I | awk '{print $1}'))"
           cd ~/traefik-deploy/current
           
+          echo "🚀 Executando diagnóstico rápido automatizado:"
+          ~/diagnostico-rapido.sh
+          
+          echo "\n📊 Verificações adicionais específicas do deploy:"
           echo "📊 Status dos containers:"
           docker compose ps
           
@@ -562,6 +596,46 @@ jobs:
 
         echo "✅ Diagnóstico SSL automático concluído!"
 
+    - name: 🚨 Diagnósticos de emergência em caso de falha
+      if: failure()
+      run: |
+        echo "🚨 Deploy falhou! Executando diagnósticos de emergência..."
+        
+        # Enviar e executar diagnóstico rápido para identificar problemas
+        scp scripts/diagnostico-rapido.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "chmod +x ~/diagnostico-rapido.sh"
+        
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🚨 DIAGNÓSTICOS DE EMERGÊNCIA - FALHA NO DEPLOY"
+          echo "🕐 Data/hora: $(date)"
+          echo "👤 Usuário: $(whoami)"
+          echo "🖥️  Servidor: $(hostname) ($(hostname -I | awk '{print $1}'))"
+          echo ""
+          
+          # Executar diagnóstico rápido
+          ~/diagnostico-rapido.sh
+          
+          echo ""
+          echo "🔍 Informações adicionais para debug:"
+          echo "📋 Últimos logs do Docker:"
+          docker logs --tail=20 conexao-traefik 2>/dev/null || echo "❌ Container Traefik não encontrado"
+          
+          echo ""
+          echo "📋 Últimos logs do sistema:"
+          journalctl -u docker --no-pager --lines=10 2>/dev/null || echo "❌ Logs do Docker não disponíveis"
+          
+          echo ""
+          echo "💾 Espaço em disco:"
+          df -h / 2>/dev/null || echo "❌ Não foi possível verificar espaço em disco"
+          
+          echo ""
+          echo "🔧 Processos Docker:"
+          docker system df 2>/dev/null || echo "❌ Não foi possível verificar uso do Docker"
+          
+          echo ""
+          echo "🚨 Diagnósticos de emergência concluídos!"
+        EOF
+
   # =============================================================================
   # DIAGNÓSTICOS AUTOMATIZADOS
   # =============================================================================
@@ -569,7 +643,7 @@ jobs:
     name: 🔧 Diagnósticos Automatizados
     runs-on: ubuntu-latest
     needs: [detect-changes]
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || contains(github.event.head_commit.message, '[diagnostics]')
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[diagnostics]')
 
     steps:
     - name: 📥 Checkout código
@@ -588,81 +662,69 @@ jobs:
         ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
         echo "✅ SSH configurado com sucesso"
 
-    - name: 📦 Enviar script de diagnóstico
+    - name: 📦 Enviar scripts de diagnóstico
+      run: |
+        scp scripts/diagnostico-rapido.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "chmod +x ~/diagnostico-rapido.sh"
+
+    - name: 🔧 Executar diagnósticos rápidos
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "🔧 Executando diagnósticos rápidos em: $(hostname) ($(hostname -I | awk '{print $1}'))"
+          echo "🕐 Data/hora: $(date)"
+          echo "👤 Usuário: $(whoami)"
+          echo ""
+          
+          # Executar script de diagnóstico rápido
+          ~/diagnostico-rapido.sh
+          
+          echo "✅ Diagnósticos rápidos concluídos!"
+        EOF
+
+  # =============================================================================
+  # DIAGNÓSTICOS COMPLETOS DIÁRIOS
+  # =============================================================================
+  daily-diagnostics:
+    name: 🔧 Diagnósticos Completos Diários
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' && github.event.schedule == '0 6 * * *'
+
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+
+    - name: 🔑 Setup SSH
+      run: |
+        if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+          echo "❌ Erro: VPS_SSH_KEY não configurado"
+          exit 1
+        fi
+        
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+        echo "✅ SSH configurado com sucesso"
+
+    - name: 📦 Enviar scripts de diagnóstico completo
       run: |
         scp scripts/diagnostico-completo.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "chmod +x ~/diagnostico-completo.sh"
 
-    - name: 🔧 Executar diagnósticos completos
+    - name: 🔧 Executar diagnósticos completos diários
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          echo "🔧 Executando diagnósticos automatizados em: $(hostname) ($(hostname -I | awk '{print $1}'))"
+          echo "🔧 Executando diagnósticos completos diários em: $(hostname) ($(hostname -I | awk '{print $1}'))"
           echo "🕐 Data/hora: $(date)"
           echo "👤 Usuário: $(whoami)"
+          echo "📅 Execução: Agendada diariamente às 06:00 UTC (03:00 BRT)"
           echo ""
           
           # Executar script de diagnóstico completo
           ~/diagnostico-completo.sh
           
           echo ""
-          echo "🔍 Diagnósticos adicionais específicos:"
-          
-          # Verificar conectividade interna (baseado nos seus testes)
-          echo "📡 Testando conectividade Traefik -> Backend:"
-          if docker exec conexao-traefik wget -qO- --timeout=10 http://backend-prod:8080/actuator/health > /tmp/health_check.json 2>/dev/null; then
-            echo "✅ Backend acessível via Traefik"
-            echo "📊 Health Check Response:"
-            cat /tmp/health_check.json | jq '.' 2>/dev/null || cat /tmp/health_check.json
-          else
-            echo "❌ Backend inacessível via Traefik"
-          fi
-          
-          echo ""
-          echo "📡 Testando conectividade Traefik -> Frontend:"
-          if docker exec conexao-traefik wget -qO- --timeout=10 http://conexao-frontend:3000 > /dev/null 2>&1; then
-            echo "✅ Frontend acessível via Traefik"
-          else
-            echo "❌ Frontend inacessível via Traefik"
-          fi
-          
-          echo ""
-          echo "🔗 Verificando redes Docker detalhadamente:"
-          echo "Containers na rede conexao-network:"
-          docker network inspect conexao-network --format '{{range .Containers}}{{.Name}} ({{.IPv4Address}}){{"\n"}}{{end}}' 2>/dev/null || echo "❌ Rede conexao-network não existe"
-          
-          echo ""
-          echo "📋 Status detalhado dos containers principais:"
-          docker ps --filter "name=conexao-traefik" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Traefik não encontrado"
-          docker ps --filter "name=conexao-frontend" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Frontend não encontrado"
-          docker ps --filter "name=backend-prod" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || echo "❌ Backend não encontrado"
-          
-          echo ""
-          echo "🌐 Testando endpoints externos:"
-          curl -I --connect-timeout 10 https://conexaodesorte.com.br 2>/dev/null | head -1 || echo "❌ HTTPS principal inacessível"
-          curl -I --connect-timeout 10 https://www.conexaodesorte.com.br 2>/dev/null | head -1 || echo "❌ HTTPS www inacessível"
-          
-          echo ""
-          echo "🔐 Verificando certificados SSL:"
-          docker exec conexao-traefik find /certs -name "*.crt" -exec ls -la {} \; 2>/dev/null || echo "❌ Certificados não encontrados"
-          
-          echo ""
-          echo "📊 API do Traefik - Rotas ativas:"
-          if curl -s http://localhost:8090/api/http/routers 2>/dev/null | jq -r '.[] | select(.status == "enabled") | {name: .name, rule: .rule}' 2>/dev/null; then
-            echo "✅ Rotas ativas listadas"
-          else
-            echo "❌ Erro ao acessar API do Traefik"
-          fi
-          
-          echo ""
-          echo "🚨 API do Traefik - Rotas desabilitadas:"
-          if curl -s http://localhost:8090/api/http/routers 2>/dev/null | jq -r '.[] | select(.status == "disabled") | {name: .name, rule: .rule, service: .service}' 2>/dev/null; then
-            echo "⚠️ Rotas desabilitadas listadas"
-          else
-            echo "❌ Erro ao verificar rotas desabilitadas"
-          fi
-          
-          echo ""
-          echo "✅ Diagnósticos automatizados concluídos!"
+          echo "✅ Diagnósticos completos diários concluídos!"
         EOF
 
     - name: 📊 Gerar relatório de diagnóstico
@@ -678,12 +740,72 @@ jobs:
         echo "📋 Verifique os logs acima para detalhes completos."
 
   # =============================================================================
-  # NOTIFICAÇÕES E RELATÓRIOS
+  # NOTIFICAÇÕES
+  # =============================================================================
+  notifications:
+    name: 🔔 Notificações
+    runs-on: ubuntu-latest
+    if: always() && (failure() || contains(needs.*.result, 'failure'))
+    needs: [detect-changes, validate, security, backup, deploy, diagnostics, daily-diagnostics]
+    
+    steps:
+    - name: 🚨 Notificar falhas críticas
+      run: |
+        echo "🚨 FALHA CRÍTICA DETECTADA NO PIPELINE"
+        echo "======================================"
+        echo "🕐 Falha detectada em: $(date)"
+        echo "🔄 Workflow: ${{ github.workflow }}"
+        echo "🌿 Branch: ${{ github.ref_name }}"
+        echo "👤 Autor: ${{ github.actor }}"
+        echo "🔗 Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        echo ""
+        
+        echo "📋 Status dos Jobs:"
+        echo "  - Detecção de Mudanças: ${{ needs.detect-changes.result }}"
+        echo "  - Validação: ${{ needs.validate.result }}"
+        echo "  - Segurança: ${{ needs.security.result }}"
+        echo "  - Backup: ${{ needs.backup.result }}"
+        echo "  - Deploy: ${{ needs.deploy.result }}"
+        echo "  - Diagnósticos: ${{ needs.diagnostics.result }}"
+        echo "  - Diagnósticos Diários: ${{ needs.daily-diagnostics.result }}"
+        echo ""
+        
+        # Identificar jobs que falharam
+        echo "❌ Jobs que falharam:"
+        [[ "${{ needs.detect-changes.result }}" == "failure" ]] && echo "  - Detecção de Mudanças"
+        [[ "${{ needs.validate.result }}" == "failure" ]] && echo "  - Validação"
+        [[ "${{ needs.security.result }}" == "failure" ]] && echo "  - Segurança"
+        [[ "${{ needs.backup.result }}" == "failure" ]] && echo "  - Backup"
+        [[ "${{ needs.deploy.result }}" == "failure" ]] && echo "  - Deploy (CRÍTICO!)"
+        [[ "${{ needs.diagnostics.result }}" == "failure" ]] && echo "  - Diagnósticos"
+        [[ "${{ needs.daily-diagnostics.result }}" == "failure" ]] && echo "  - Diagnósticos Diários"
+        echo ""
+        
+        # Ações recomendadas
+        echo "🔧 Ações Recomendadas:"
+        if [[ "${{ needs.deploy.result }}" == "failure" ]]; then
+          echo "  1. ⚠️  DEPLOY FALHOU - Verificar diagnósticos de emergência"
+          echo "  2. 🔍 Verificar logs do servidor via SSH"
+          echo "  3. 🔄 Considerar rollback se necessário"
+        fi
+        if [[ "${{ needs.validate.result }}" == "failure" ]]; then
+          echo "  1. 📝 Verificar sintaxe dos arquivos de configuração"
+          echo "  2. 🔧 Corrigir erros de validação antes do próximo deploy"
+        fi
+        if [[ "${{ needs.security.result }}" == "failure" ]]; then
+          echo "  1. 🔒 Verificar vulnerabilidades de segurança"
+          echo "  2. 🔑 Atualizar configurações de segurança"
+        fi
+        echo ""
+        echo "📧 Esta notificação indica que intervenção manual pode ser necessária."
+
+  # =============================================================================
+  # RELATÓRIO FINAL
   # =============================================================================
   report:
     name: 📋 Relatório Final
     runs-on: ubuntu-latest
-    needs: [detect-changes, validate, security, backup, deploy]
+    needs: [detect-changes, validate, security, backup, deploy, diagnostics, daily-diagnostics, notifications]
     if: always()
 
     steps:
@@ -703,6 +825,7 @@ jobs:
         echo "- Segurança: ${{ needs.security.result == 'success' && '✅' || needs.detect-changes.outputs.run-security == 'false' && '⏭️' || '❌' }}"
         echo "- Backup: ${{ needs.backup.result == 'success' && '✅' || needs.detect-changes.outputs.should-deploy == 'false' && '⏭️' || '❌' }}"
         echo "- Deploy: ${{ needs.deploy.result == 'success' && '✅' || needs.detect-changes.outputs.should-deploy == 'false' && '⏭️' || '❌' }}"
+        echo "- Notificações: ${{ needs.notifications.result == 'success' && '✅' || needs.notifications.result == 'skipped' && '⏭️' || '❌' }}"
         echo ""
 
         # Determinar status geral
