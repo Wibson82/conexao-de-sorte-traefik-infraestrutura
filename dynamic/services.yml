@@ -14,6 +14,16 @@ http:
     # FRONTEND - APLICAÇÃO WEB PRINCIPAL
     # =========================================================================
 
+    # Frontend HTTP redirect
+    frontend-http:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && !PathPrefix(`/rest`, `/api`, `/actuator`)"
+      entryPoints:
+        - web
+      service: frontend-service
+      priority: 10
+      middlewares:
+        - redirect-to-https@file
+
     # Frontend HTTPS - Rota principal
     frontend-https:
       rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && !PathPrefix(`/rest`, `/api`, `/actuator`)"
@@ -34,6 +44,16 @@ http:
     # BACKEND - API REST
     # =========================================================================
 
+    # Backend API REST HTTP redirect
+    backend-api-rest-http:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/rest`)"
+      entryPoints:
+        - web
+      service: backend-service
+      priority: 100
+      middlewares:
+        - redirect-to-https@file
+
     # Backend API REST - /rest/*
     backend-api-rest:
       rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/rest`)"
@@ -43,6 +63,10 @@ http:
       priority: 100  # Prioridade alta
       tls:
         certResolver: letsencrypt
+        domains:
+          - main: conexaodesorte.com.br
+            sans:
+              - www.conexaodesorte.com.br
       middlewares:
         - api-chain@file
 
@@ -199,11 +223,11 @@ http:
     frontend-service:
       loadBalancer:
         servers:
-          - url: "http://conexao-frontend:3000"
+          - url: "http://conexao-de-sorte-frontend:3000"
 
         # Health check para frontend
         healthCheck:
-          path: /
+          path: /health.json
           method: GET
           interval: 30s
           timeout: 5s

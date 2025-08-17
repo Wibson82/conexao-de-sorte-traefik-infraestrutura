@@ -10,7 +10,7 @@
 # =============================================================================
 api:
   dashboard: true
-  insecure: true   # Permitir acesso local para diagnósticos
+  insecure: false  # CORRIGIDO: Forçar HTTPS para dashboard
   debug: false
 
 # =============================================================================

@@ -208,6 +208,12 @@ http:
         replacement: "https://www.${1}"
         permanent: true
 
+    # Redirect HTTP para HTTPS
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
     # =============================================================================
     # MIDDLEWARES DE CIRCUIT BREAKER
     # =============================================================================
