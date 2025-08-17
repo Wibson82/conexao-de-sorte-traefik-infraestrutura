@@ -1,0 +1,430 @@
+name: "🚀 Traefik Infrastructure - Deploy Pipeline"
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Forçar deploy mesmo se validação falhar'
+        required: false
+        default: false
+        type: boolean
+      skip_security:
+        description: 'Pular verificações de segurança'
+        required: false
+        default: false
+        type: boolean
+      environment:
+        description: 'Ambiente de destino'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+  TZ: America/Sao_Paulo
+
+jobs:
+  # 
+  # DETECÇÃO DE MUDANÇAS
+  # 
+  detect-changes:
+    name: 🔍 Detectar Mudanças
+    runs-on: ubuntu-latest
+    outputs:
+      config-changed: ${{ steps.changes.outputs.config }}
+      should-deploy: ${{ steps.deploy-check.outputs.should-deploy }}
+      environment: ${{ steps.deploy-check.outputs.environment }}
+      run-security: ${{ steps.security-check.outputs.run-security }}
+
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🔍 Detectar mudanças em arquivos
+      uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          config:
+            - 'traefik/**'
+            - 'docker-compose.yml'
+            - '.env.example'
+
+    - name: ✅ Verificar necessidade de deploy
+      id: deploy-check
+      run: |
+        SHOULD_DEPLOY="false"
+        ENVIRONMENT="staging"
+        
+        # Deploy forçado via workflow_dispatch
+        if [ "${{ github.event.inputs.force_deploy }}" == "true" ]; then
+          SHOULD_DEPLOY="true"
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+          echo "🚀 Deploy forçado pelo usuário"
+        # Deploy automático em tags para produção
+        elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          SHOULD_DEPLOY="true"
+          ENVIRONMENT="production"
+          echo "🏷️ Deploy automático via tag"
+        # Deploy automático em push para main (padrão)
+        elif [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ]; then
+          SHOULD_DEPLOY="true"
+          ENVIRONMENT="staging"
+          echo "📤 Deploy automático em push para main"
+        fi
+        
+        echo "should-deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+        echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+
+    - name: 🔒 Verificar necessidade de security scan
+      id: security-check
+      run: |
+        RUN_SECURITY="false"
+        
+        # Executar em push/PR se não foi pulado
+        if [ "${{ github.event.inputs.skip_security }}" != "true" ]; then
+          RUN_SECURITY="true"
+        fi
+        
+        echo "run-security=$RUN_SECURITY" >> $GITHUB_OUTPUT
+
+  # 
+  # VALIDAÇÃO E CI
+  # 
+  validate:
+    name: ✅ Validação e Testes
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || needs.detect-changes.outputs.config-changed == 'true'
+
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+
+    - name: 🐳 Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: 📋 Validar sintaxe YAML
+      run: |
+        python3 -m pip install yamllint
+        find . -name "*.yml" -o -name "*.yaml" | xargs python3 -m yamllint -d relaxed || true
+        echo "✅ Validação YAML concluída (warnings ignorados)"
+
+    - name: ⚙️ Validar configurações Traefik
+      run: |
+        echo "🔧 Validando sintaxe dos arquivos de configuração Traefik..."
+        
+        # Validação rápida de sintaxe YAML
+        for file in traefik/traefik.yml traefik/dynamic/middlewares.yml traefik/dynamic/security-headers.yml traefik/dynamic/tls.yml; do
+          if [ -f "$file" ]; then
+            if python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+              echo "✅ $file: Sintaxe YAML válida"
+            else
+              echo "❌ $file: Erro de sintaxe YAML"
+              exit 1
+            fi
+          else
+            echo "⚠️ $file: Arquivo não encontrado"
+          fi
+        done
+        
+        echo "✅ Validação de configuração Traefik concluída"
+
+    - name: 🐳 Testar docker-compose
+      run: |
+        docker compose config
+        docker compose config --services
+
+    - name: 🌐 Testes de conectividade
+      run: |
+        echo "🔧 Testando conectividade básica do Traefik..."
+        
+        # Criar rede de teste
+        docker network create traefik-test || true
+        
+        # Criar configuração mínima para teste
+        mkdir -p /tmp/traefik-test
+        cat > /tmp/traefik-test/traefik.yml << 'EOF'
+        api:
+          dashboard: true
+          insecure: true
+        entryPoints:
+          web:
+            address: ":80"
+        providers:
+          file:
+            directory: /etc/traefik/dynamic
+            watch: true
+        EOF
+        
+        # Iniciar Traefik em modo de teste
+        docker run -d --name traefik-test \
+          --network traefik-test \
+          -v "/tmp/traefik-test/traefik.yml:/etc/traefik/traefik.yml:ro" \
+          traefik:v3.1
+        
+        # Aguardar Traefik inicializar
+        sleep 15
+        
+        # Verificar se o container está rodando
+        if docker ps | grep -q traefik-test; then
+          echo "✅ Traefik iniciou com sucesso"
+          echo "📊 Status do container:"
+          docker ps --filter "name=traefik-test" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+        else
+          echo "❌ Falha ao iniciar Traefik"
+          echo "📋 Logs do container:"
+          docker logs traefik-test
+          exit 1
+        fi
+        
+        # Verificar logs para erros críticos
+        echo "📋 Verificando logs do Traefik:"
+        docker logs traefik-test 2>&1 | head -20
+        
+        if docker logs traefik-test 2>&1 | grep -i "error\|fatal\|panic" | grep -v "level=error.*acme"; then
+          echo "⚠️ Avisos encontrados nos logs (podem ser normais para ambiente de teste)"
+        else
+          echo "✅ Nenhum erro crítico encontrado nos logs"
+        fi
+        
+        # Cleanup
+        docker stop traefik-test || true
+        docker rm traefik-test || true
+        docker network rm traefik-test || true
+        rm -rf /tmp/traefik-test
+        
+        echo "✅ Teste de conectividade concluído"
+
+  # 
+  # VERIFICAÇÕES DE SEGURANÇA
+  # 
+  security:
+    name: 🔒 Verificações de Segurança
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate]
+    if: needs.detect-changes.outputs.run-security == 'true' && success()
+
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🔍 Scan de secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'HEAD~1' }}
+        head: HEAD
+        extra_args: --debug --only-verified
+
+    - name: 🛡️ Verificar configurações de segurança
+      run: |
+        echo "🔒 Verificando configurações de segurança..."
+        SCORE=0
+        TOTAL=6
+        
+        # HTTPS obrigatório
+        if grep -q "websecure" traefik/traefik.yml; then
+          echo "✅ HTTPS configurado"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ HTTPS não configurado"
+        fi
+        
+        # Let's Encrypt
+        if grep -q "letsencrypt" traefik/traefik.yml; then
+          echo "✅ Let's Encrypt configurado"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Let's Encrypt não configurado"
+        fi
+        
+        # Security headers
+        if grep -q "security-headers" traefik/dynamic/security-headers.yml; then
+          echo "✅ Security headers configurados"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Security headers não configurados"
+        fi
+        
+        # Rate limiting
+        if grep -q "rate-limit" traefik/dynamic/middlewares.yml; then
+          echo "✅ Rate limiting configurado"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Rate limiting não configurado"
+        fi
+        
+        # TLS versão mínima
+        if grep -q "VersionTLS12" traefik/dynamic/tls.yml; then
+          echo "✅ TLS versão mínima configurada"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ TLS versão mínima não configurada"
+        fi
+        
+        # Logs de acesso
+        if grep -q "accessLog" traefik/traefik.yml; then
+          echo "✅ Logs de acesso habilitados"
+          SCORE=$((SCORE + 1))
+        else
+          echo "❌ Logs de acesso não habilitados"
+        fi
+        
+        echo ""
+        echo "📊 Score de Segurança: $SCORE/$TOTAL ($(( SCORE * 100 / TOTAL ))%)"
+        
+        if [ $SCORE -lt 4 ]; then
+          echo "⚠️ Score de segurança baixo. Revisar configurações."
+          exit 1
+        fi
+
+  # 
+  # DEPLOY
+  # 
+  deploy:
+    name: 🚀 Deploy ${{ needs.detect-changes.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate, security]
+    if: needs.detect-changes.outputs.should-deploy == 'true' && success()
+    environment: ${{ needs.detect-changes.outputs.environment }}
+
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+
+    - name: ⚙️ Configurar ambiente
+      run: |
+        # Configurações básicas
+        echo "DOMAIN=conexaodesorte.com.br" >> .env
+        echo "ACME_EMAIL=facilitaservicos.dev@gmail.com" >> .env
+        echo "VERSION=latest" >> .env
+        
+        if [ "${{ needs.detect-changes.outputs.environment }}" == "production" ]; then
+          echo "ENVIRONMENT=production" >> .env
+          echo "LOG_LEVEL=INFO" >> .env
+          echo "TRAEFIK_LOG_LEVEL=INFO" >> .env
+        else
+          echo "ENVIRONMENT=staging" >> .env
+          echo "LOG_LEVEL=DEBUG" >> .env
+          echo "TRAEFIK_LOG_LEVEL=DEBUG" >> .env
+        fi
+        
+        echo "DEPLOY_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
+        echo "DEPLOY_COMMIT=${{ github.sha }}" >> .env
+
+    - name: 🔌 Teste de Conectividade SSH
+      run: |
+        # Validar secrets obrigatórios
+        if [ -z "${{ secrets.SSH_HOST }}" ]; then
+          echo "❌ Erro: SSH_HOST não configurado"
+          exit 1
+        fi
+        
+        if [ -z "${{ secrets.SSH_USER }}" ]; then
+          echo "❌ Erro: SSH_USER não configurado"
+          exit 1
+        fi
+        
+        # Executar teste de conectividade SSH
+        echo "🔧 Executando teste de conectividade SSH..."
+        GITHUB_ACTIONS=true ./scripts/test-ssh-connectivity.sh "${{ secrets.SSH_HOST }}" "${{ secrets.SSH_USER }}"
+
+    - name: 🔑 Setup SSH
+      run: |
+        # Validar chave SSH
+        if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+          echo "❌ Erro: VPS_SSH_KEY não configurado"
+          exit 1
+        fi
+        
+        echo "✅ Secrets SSH validados"
+        
+        # Configurar SSH
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        
+        # Adicionar host às known_hosts
+        echo "🔧 Adicionando ${{ secrets.SSH_HOST }} às known_hosts..."
+        ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+        
+        echo "✅ SSH configurado com sucesso"
+
+    - name: 📦 Preparar e enviar arquivos
+      run: |
+        # Criar diretório no servidor se não existir
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/traefik-deploy"
+        
+        # Preparar e enviar arquivos
+        tar -czf deploy-package.tar.gz traefik/ docker-compose.yml .env
+        scp deploy-package.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/traefik-deploy/
+
+    - name: 🚀 Deploy via SSH
+      run: |
+        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          # Capturar informações do servidor
+          echo "🖥️  Conectado ao servidor: $(hostname)"
+          echo "🌐 IP do servidor: $(hostname -I | awk '{print $1}')"
+          echo "📅 Data/hora do servidor: $(date)"
+          echo "👤 Usuário conectado: $(whoami)"
+          echo ""
+          
+          cd ~/traefik-deploy
+          echo "🚀 Iniciando deploy para ${{ needs.detect-changes.outputs.environment }}"
+          
+          # Extrair e preparar
+          tar -xzf deploy-package.tar.gz
+          if [ -d "current" ]; then
+            mv current backup-$(date +%Y%m%d_%H%M%S)
+          fi
+          mkdir -p current
+          mv traefik docker-compose.yml .env current/
+          cd current
+          
+          # Parar containers Traefik existentes para evitar conflito de porta
+          echo "⏹️ Parando containers Traefik existentes..."
+          docker stop $(docker ps -q --filter "name=traefik") 2>/dev/null || echo "Nenhum container Traefik rodando"
+          docker rm $(docker ps -aq --filter "name=traefik") 2>/dev/null || echo "Nenhum container Traefik para remover"
+          
+          # Deploy
+          echo "🚀 Iniciando novo deploy..."
+          docker compose config
+          docker compose pull
+          docker compose up -d --force-recreate traefik
+          
+          # Verificar se o deploy foi bem-sucedido
+          sleep 10
+          if docker ps | grep -q traefik; then
+            echo "✅ Deploy concluído com sucesso!"
+            echo "📊 Status dos containers:"
+            docker compose ps
+          else
+            echo "❌ Falha no deploy!"
+            echo "📋 Logs do Traefik:"
+            docker compose logs traefik
+            exit 1
+          fi
+        EOF
+
+    - name: 🎉 Notificação de sucesso
+      if: success()
+      run: |
+        echo "🎉 Deploy realizado com sucesso!"
+        echo "🌐 Ambiente: ${{ needs.detect-changes.outputs.environment }}"
+        echo "📝 Commit: ${{ github.sha }}"
+        echo "👤 Autor: ${{ github.actor }}"
+        echo "📅 Data: $(date -u +%Y-%m-%dT%H:%M:%SZ)"

@@ -26,3 +26,12 @@ Thumbs.db
 
 # Docker
 .docker/
+
+# Pipeline e Deploy
+deploy-package.tar.gz
+*.tar.gz
+backup-*/
+current/
+
+# GitHub Actions
+.github/workflows/*.log
