@@ -7,3 +7,18 @@ http:
       headers:
         customResponseHeaders:
           X-Example: "Traefik dynamic config loaded"
+
+    backend-prod-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/rest"
+
+    backend-teste-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/teste/rest"
+
+    frontend-frete-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/teste/frete"

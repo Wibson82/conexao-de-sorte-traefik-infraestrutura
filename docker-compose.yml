@@ -60,6 +60,32 @@ services:
       - traefik.http.services.frontend.loadbalancer.server.port=3000
 
 
+  # Frontend Frete - Website de Frete
+  frontend-frete:
+    image: ${FRONTEND_FRETE_IMAGE:-facilita/conexao-de-sorte-frete:latest}
+    container_name: conexao-frontend-frete
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    labels:
+      - traefik.enable=true
+      # Roteamento para site de frete (sem www)
+      - traefik.http.routers.frontend-frete-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/frete`)
+      - traefik.http.routers.frontend-frete-main.entrypoints=websecure
+      - traefik.http.routers.frontend-frete-main.tls.certresolver=letsencrypt
+      - traefik.http.routers.frontend-frete-main.middlewares=frontend-frete-stripprefix,security-headers@file,gzip-compress@file
+      - traefik.http.routers.frontend-frete-main.priority=300
+      # Roteamento para site de frete (com www)
+      - traefik.http.routers.frontend-frete-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/frete`)
+      - traefik.http.routers.frontend-frete-www.entrypoints=websecure
+      - traefik.http.routers.frontend-frete-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.frontend-frete-www.middlewares=frontend-frete-stripprefix,security-headers@file,gzip-compress@file
+      - traefik.http.routers.frontend-frete-www.priority=300
+      - traefik.http.services.frontend-frete.loadbalancer.server.port=3001
+
   # Backend Produção - Ambiente de Produção
   backend-prod:
     image: ${BACKEND_PROD_IMAGE:-facilita/conexao-de-sorte-backend:latest}
@@ -79,13 +105,13 @@ services:
       - traefik.http.routers.backend-prod-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/rest`)
       - traefik.http.routers.backend-prod-main.entrypoints=websecure
       - traefik.http.routers.backend-prod-main.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-prod-main.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file
+      - traefik.http.routers.backend-prod-main.middlewares=backend-prod-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file
       - traefik.http.routers.backend-prod-main.priority=100
       # Roteamento para APIs de produção (com www)
       - traefik.http.routers.backend-prod-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest`)
       - traefik.http.routers.backend-prod-www.entrypoints=websecure
       - traefik.http.routers.backend-prod-www.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-prod-www.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file
+      - traefik.http.routers.backend-prod-www.middlewares=backend-prod-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file
       - traefik.http.routers.backend-prod-www.priority=100
       - traefik.http.services.backend-prod.loadbalancer.server.port=8080
 
@@ -108,13 +134,13 @@ services:
       - traefik.http.routers.backend-teste-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)
       - traefik.http.routers.backend-teste-main.entrypoints=websecure
       - traefik.http.routers.backend-teste-main.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-teste-main.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
+      - traefik.http.routers.backend-teste-main.middlewares=backend-teste-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
       - traefik.http.routers.backend-teste-main.priority=200
       # Roteamento para APIs de teste (com www)
       - traefik.http.routers.backend-teste-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)
       - traefik.http.routers.backend-teste-www.entrypoints=websecure
       - traefik.http.routers.backend-teste-www.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-teste-www.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
+      - traefik.http.routers.backend-teste-www.middlewares=backend-teste-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
       - traefik.http.routers.backend-teste-www.priority=200
       - traefik.http.services.backend-teste.loadbalancer.server.port=8081
 networks:
