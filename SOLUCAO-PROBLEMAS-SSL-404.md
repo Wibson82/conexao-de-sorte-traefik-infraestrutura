@@ -10,7 +10,7 @@
 
 1. **Nomes de containers inconsistentes**: 
    - Corrigido `conexao-backend` → `backend-prod` em todas as configurações
-   - Arquivos atualizados: `dynamic/services.yml`, `config/dynamic/services.yml`, `monitoring/prometheus.yml`, `.github/workflows/main.yml`
+   - Arquivos atualizados: `dynamic/services.yml`, `dynamic/middlewares.yml`, `monitoring/prometheus.yml`, `.github/workflows/main.yml`
 
 2. **Configuração do Traefik**:
    - Traefik está funcionando corretamente (HTTP/2, SSL ativo)
