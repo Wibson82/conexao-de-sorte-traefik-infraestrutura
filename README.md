@@ -83,22 +83,28 @@ conexao-traefik-infrastructure/
 ├── docker-compose.override.yml        # Configurações locais
 ├── .env.example                       # Exemplo de variáveis
 ├── config/
-│   ├── traefik.yml                    # Configuração estática
-│   └── dynamic/                       # Configurações dinâmicas
-│       ├── middlewares.yml            # Middlewares reusáveis
-│       ├── services.yml               # Definições de serviços
-│       └── tls.yml                    # Configurações TLS
+│   └── traefik.yml                    # Configuração estática
+├── dynamic/                           # Configurações dinâmicas
+│   ├── middlewares.yml                # Middlewares reusáveis
+│   └── services.yml                   # Definições de serviços
 ├── scripts/
-│   ├── deploy.sh                      # Script de deploy
-│   ├── backup-certs.sh                # Backup de certificados
-│   └── health-check.sh                # Verificação de saúde
+│   ├── README.md                      # Documentação dos scripts
+│   ├── diagnostico-completo.sh        # Diagnóstico detalhado
+│   ├── diagnostico-rapido.sh          # Diagnóstico essencial
+│   └── test-ssh-connectivity.sh       # Teste de conectividade SSH
 ├── monitoring/
 │   ├── prometheus.yml                 # Configuração Prometheus
-│   └── grafana-dashboard.json         # Dashboard Grafana
-└── docs/
-    ├── INTEGRATION.md                 # Guia de integração
-    ├── TROUBLESHOOTING.md             # Solução de problemas
-    └── SECURITY.md                    # Configurações de segurança
+│   └── grafana-dashboard.json/        # Dashboard Grafana
+├── backup-roteamento/                 # ⚠️ Configurações obsoletas
+│   └── README.md                      # Aviso sobre obsolescência
+├── .github/
+│   ├── SSH_SETUP.md                   # Configuração SSH para CI/CD
+│   └── workflows/
+│       └── main.yml                   # Pipeline CI/CD com diagnósticos
+├── ANALISE-ARQUITETURA-TRAEFIK.md     # Análise da arquitetura
+├── DIAGNOSTICOS-AUTOMATIZADOS.md      # Guia de diagnósticos
+├── SOLUCAO-PROBLEMAS-SSL-404.md       # Soluções de problemas
+└── test-local.sh                      # Testes locais
 ```
 
 ## 🔧 Configuração
@@ -248,24 +254,51 @@ docker network inspect conexao-network
 docker-compose -f docker-compose.yml up -d
 ```
 
-## 🔍 Troubleshooting
+## 🔍 Diagnósticos e Troubleshooting
+
+### 🚀 Diagnósticos Automatizados
+
+**Executar diagnósticos rápidos**:
+```bash
+# Diagnóstico essencial (conectividade, containers, redes)
+./scripts/diagnostico-rapido.sh
+
+# Diagnóstico completo (detalhado com logs e métricas)
+./scripts/diagnostico-completo.sh
+```
+
+**Executar via GitHub Actions**:
+- **Manual**: Workflow Dispatch no repositório
+- **Automático**: Commits com `[diagnostics]` na mensagem
+- **Agendado**: Execução diária para verificações de segurança
 
 ### Problemas Comuns
 
 1. **Certificado não gerado**
+   - Execute: `./scripts/diagnostico-rapido.sh`
    - Verifique se o domínio aponta para o servidor
    - Confirme que as portas 80/443 estão abertas
    - Verifique os logs: `docker-compose logs traefik`
 
 2. **Serviço não roteado**
+   - Execute: `./scripts/diagnostico-completo.sh`
    - Confirme que o serviço está na rede `conexao-network`
    - Verifique as labels do Docker
-   - Consulte o dashboard do Traefik
+   - Consulte a API do Traefik: `http://localhost:8090/api/rawdata`
 
 3. **Performance lenta**
    - Verifique health checks dos serviços
    - Analise métricas no Grafana
-   - Ajuste configurações de timeout
+   - Execute diagnósticos para identificar gargalos
+
+### Status Atual da Infraestrutura
+
+- ✅ **Traefik**: Funcionando corretamente (v3.0)
+- ✅ **Conectividade**: Backend e Frontend conectados
+- ✅ **Rede Docker**: `conexao-network` ativa
+- ✅ **API Traefik**: Acessível na porta 8090
+- ✅ **Monitoramento**: Grafana e Prometheus ativos
+- ✅ **Diagnósticos**: Automatizados via GitHub Actions
 
 ### Logs
 
@@ -273,19 +306,21 @@ docker-compose -f docker-compose.yml up -d
 # Logs do Traefik
 docker-compose logs -f traefik
 
-# Logs de acesso
-docker exec conexao-traefik tail -f /var/log/traefik/access.log
+# Status dos containers
+docker ps --filter name=conexao
 
-# Logs de erro
-docker exec conexao-traefik tail -f /var/log/traefik/traefik.log
+# Verificar rede
+docker network inspect conexao-network
 ```
 
 ## 📚 Documentação Adicional
 
-- [Guia de Integração](docs/INTEGRATION.md)
-- [Solução de Problemas](docs/TROUBLESHOOTING.md)
-- [Configurações de Segurança](docs/SECURITY.md)
-- [Documentação Oficial do Traefik](https://doc.traefik.io/traefik/)
+- [📊 Diagnósticos Automatizados](DIAGNOSTICOS-AUTOMATIZADOS.md) - Guia completo de diagnósticos
+- [🔧 Solução de Problemas SSL/404](SOLUCAO-PROBLEMAS-SSL-404.md) - Problemas resolvidos
+- [🏗️ Análise da Arquitetura](ANALISE-ARQUITETURA-TRAEFIK.md) - Arquitetura detalhada
+- [📝 Scripts de Diagnóstico](scripts/README.md) - Documentação dos scripts
+- [🔐 Configuração SSH](/.github/SSH_SETUP.md) - Setup para CI/CD
+- [📖 Documentação Oficial do Traefik](https://doc.traefik.io/traefik/)
 
 ## 🤝 Contribuição
 

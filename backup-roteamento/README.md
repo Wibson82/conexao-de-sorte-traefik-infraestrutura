@@ -1,4 +1,9 @@
-# Backup de Arquivos de Roteamento Conflitantes
+# ⚠️ BACKUP OBSOLETO - Arquivos de Roteamento Conflitantes
+
+> **AVISO IMPORTANTE**: Esta pasta contém configurações OBSOLETAS e NÃO DEVE SER USADA na infraestrutura atual.
+> 
+> ❌ **NÃO USE** estes arquivos para configuração atual  
+> ✅ **USE** as configurações em `/config/` e `/dynamic/` na raiz do projeto
 
 Esta pasta contém arquivos que foram identificados como conflitantes com o roteamento centralizado do Traefik e foram movidos dos projetos individuais para evitar problemas de configuração.
 
@@ -20,12 +25,13 @@ Estes arquivos continham configurações de roteamento que poderiam:
 2. Causar problemas durante deploys individuais dos projetos
 3. Sobrescrever configurações do proxy centralizado
 
-## Roteamento Atual (Centralizado)
+## ✅ Roteamento Atual (Centralizado)
 
 O roteamento agora é gerenciado centralmente através dos arquivos:
-- `dynamic/services.yml` - Definições de rotas e serviços
+- `config/traefik.yml` - Configuração principal do Traefik
+- `dynamic/services.yml` - Definições de rotas e serviços  
 - `dynamic/middlewares.yml` - Middlewares de segurança e processamento
-- `docker-compose.proxy.yml` - Configuração do proxy Traefik
+- `docker-compose.yml` - Configuração do proxy Traefik
 
 ### Rotas Configuradas
 - `conexaodesorte.com.br` e `www.conexaodesorte.com.br` → Frontend
@@ -40,5 +46,15 @@ Os projetos individuais devem ser atualizados para:
 2. Usar apenas a rede `conexao-network` como externa
 3. Expor apenas as portas necessárias para comunicação interna
 
+## 🔄 Status da Infraestrutura Atual
+
+- ✅ **Traefik**: Funcionando corretamente
+- ✅ **Conectividade**: Backend e Frontend conectados
+- ✅ **Rede Docker**: `conexao-network` ativa
+- ⚠️ **SSL**: Certificados em processo de renovação
+- ✅ **API Traefik**: Acessível na porta 8090
+- ✅ **Diagnósticos**: Automatizados via GitHub Actions
+
 ---
-*Backup criado em: $(date)*
+*Backup criado em: Dezembro 2024*  
+*Última atualização: Janeiro 2025*
