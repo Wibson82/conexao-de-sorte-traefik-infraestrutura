@@ -39,18 +39,20 @@ services:
       - PORT=3000
     labels:
       - traefik.enable=true
-      # Roteamento para domínio principal (sem www)
-      - traefik.http.routers.frontend-main.rule=Host(`conexaodesorte.com.br`)
-      - traefik.http.routers.frontend-main.entrypoints=websecure
-      - traefik.http.routers.frontend-main.tls.certresolver=letsencrypt
-      - traefik.http.routers.frontend-main.middlewares=security-headers@file,gzip-compress@file
-      - traefik.http.routers.frontend-main.priority=1
-      # Roteamento para domínio com www
+      # Roteamento principal para www (certificado principal)
       - traefik.http.routers.frontend-www.rule=Host(`www.conexaodesorte.com.br`)
       - traefik.http.routers.frontend-www.entrypoints=websecure
       - traefik.http.routers.frontend-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.frontend-www.tls.domains[0].main=www.conexaodesorte.com.br
+      - traefik.http.routers.frontend-www.tls.domains[0].sans=conexaodesorte.com.br
       - traefik.http.routers.frontend-www.middlewares=security-headers@file,gzip-compress@file
-      - traefik.http.routers.frontend-www.priority=1
+      - traefik.http.routers.frontend-www.priority=10
+      # Redirecionamento do apex para www
+      - traefik.http.routers.frontend-redirect.rule=Host(`conexaodesorte.com.br`)
+      - traefik.http.routers.frontend-redirect.entrypoints=websecure
+      - traefik.http.routers.frontend-redirect.tls=true
+      - traefik.http.routers.frontend-redirect.middlewares=redirect-non-www-to-www@file
+      - traefik.http.routers.frontend-redirect.priority=5
       - traefik.http.services.frontend.loadbalancer.server.port=3000
 
 
@@ -66,18 +68,18 @@ services:
       - PORT=3001
     labels:
       - traefik.enable=true
-      # Roteamento para site de frete (sem www)
-      - traefik.http.routers.frontend-frete-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/frete`)
-      - traefik.http.routers.frontend-frete-main.entrypoints=websecure
-      - traefik.http.routers.frontend-frete-main.tls.certresolver=letsencrypt
-      - traefik.http.routers.frontend-frete-main.middlewares=frontend-frete-stripprefix,security-headers@file,gzip-compress@file
-      - traefik.http.routers.frontend-frete-main.priority=300
-      # Roteamento para site de frete (com www)
+      # Roteamento para site de frete (www)
       - traefik.http.routers.frontend-frete-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/frete`)
       - traefik.http.routers.frontend-frete-www.entrypoints=websecure
-      - traefik.http.routers.frontend-frete-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.frontend-frete-www.tls=true
       - traefik.http.routers.frontend-frete-www.middlewares=frontend-frete-stripprefix,security-headers@file,gzip-compress@file
       - traefik.http.routers.frontend-frete-www.priority=300
+      # Roteamento para site de frete (apex domain)
+      - traefik.http.routers.frontend-frete-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/frete`)
+      - traefik.http.routers.frontend-frete-main.entrypoints=websecure
+      - traefik.http.routers.frontend-frete-main.tls=true
+      - traefik.http.routers.frontend-frete-main.middlewares=frontend-frete-stripprefix,security-headers@file,gzip-compress@file
+      - traefik.http.routers.frontend-frete-main.priority=290
       - traefik.http.services.frontend-frete.loadbalancer.server.port=3001
 
   # Backend Produção - Ambiente de Produção
@@ -92,18 +94,18 @@ services:
       - PORT=8080
     labels:
       - traefik.enable=true
-      # Roteamento para APIs de produção (sem www)
-      - traefik.http.routers.backend-prod-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/rest`)
-      - traefik.http.routers.backend-prod-main.entrypoints=websecure
-      - traefik.http.routers.backend-prod-main.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-prod-main.middlewares=backend-prod-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file
-      - traefik.http.routers.backend-prod-main.priority=100
-      # Roteamento para APIs de produção (com www)
+      # Roteamento principal para APIs (www)
       - traefik.http.routers.backend-prod-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest`)
       - traefik.http.routers.backend-prod-www.entrypoints=websecure
-      - traefik.http.routers.backend-prod-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-prod-www.tls=true
       - traefik.http.routers.backend-prod-www.middlewares=backend-prod-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file
       - traefik.http.routers.backend-prod-www.priority=100
+      # Roteamento para APIs (apex domain)
+      - traefik.http.routers.backend-prod-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/rest`)
+      - traefik.http.routers.backend-prod-main.entrypoints=websecure
+      - traefik.http.routers.backend-prod-main.tls=true
+      - traefik.http.routers.backend-prod-main.middlewares=backend-prod-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file
+      - traefik.http.routers.backend-prod-main.priority=90
       - traefik.http.services.backend-prod.loadbalancer.server.port=8080
 
   # Backend Teste - Ambiente de Testes
@@ -118,18 +120,18 @@ services:
       - PORT=8081
     labels:
       - traefik.enable=true
-      # Roteamento para APIs de teste (sem www)
-      - traefik.http.routers.backend-teste-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)
-      - traefik.http.routers.backend-teste-main.entrypoints=websecure
-      - traefik.http.routers.backend-teste-main.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-teste-main.middlewares=backend-teste-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
-      - traefik.http.routers.backend-teste-main.priority=200
-      # Roteamento para APIs de teste (com www)
+      # Roteamento para APIs de teste (www)
       - traefik.http.routers.backend-teste-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)
       - traefik.http.routers.backend-teste-www.entrypoints=websecure
-      - traefik.http.routers.backend-teste-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-teste-www.tls=true
       - traefik.http.routers.backend-teste-www.middlewares=backend-teste-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
       - traefik.http.routers.backend-teste-www.priority=200
+      # Roteamento para APIs de teste (apex domain)
+      - traefik.http.routers.backend-teste-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)
+      - traefik.http.routers.backend-teste-main.entrypoints=websecure
+      - traefik.http.routers.backend-teste-main.tls=true
+      - traefik.http.routers.backend-teste-main.middlewares=backend-teste-stripprefix,security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
+      - traefik.http.routers.backend-teste-main.priority=190
       - traefik.http.services.backend-teste.loadbalancer.server.port=8081
 networks:
   conexao-network:
