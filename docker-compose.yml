@@ -42,18 +42,19 @@ services:
     labels:
       - traefik.enable=true
       # Roteamento para domínio principal
-      - traefik.http.routers.frontend.rule=Host(`www.conexaodesorte.com.br`) || Host(`conexaodesorte.com.br`)
-      - traefik.http.routers.frontend.entrypoints=websecure
-      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
-      - traefik.http.routers.frontend.middlewares=security-headers@file,gzip-compress@file,redirect-to-www@file
-      - traefik.http.routers.frontend.priority=100
+      # Rota principal (sem www)
+      - traefik.http.routers.frontend-main.rule=Host(`conexaodesorte.com.br`)
+      - traefik.http.routers.frontend-main.entrypoints=websecure
+      - traefik.http.routers.frontend-main.tls.certresolver=letsencrypt
+      - traefik.http.routers.frontend-main.middlewares=security-headers@file,gzip-compress@file
+      - traefik.http.routers.frontend-main.priority=1
+      # Rota com www (redirecionamento)
+      - traefik.http.routers.frontend-www.rule=Host(`www.conexaodesorte.com.br`)
+      - traefik.http.routers.frontend-www.entrypoints=websecure
+      - traefik.http.routers.frontend-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.frontend-www.middlewares=redirect-www-to-non-www@file
+      - traefik.http.routers.frontend-www.priority=1
       - traefik.http.services.frontend.loadbalancer.server.port=3000
-
-
-
-
-
-
 
 networks:
   conexao-network:

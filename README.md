@@ -112,6 +112,15 @@ networks:
     external: true
 ```
 
+⚠️ **IMPORTANTE**: Se você estiver usando múltiplos paths, cada PathPrefix deve ser uma regra separada:
+```yaml
+# ❌ INCORRETO - Múltiplos parâmetros em um PathPrefix
+- "traefik.http.routers.backend.rule=Host(`example.com`) && PathPrefix(`/api`, `/v1`, `/public`)"
+
+# ✅ CORRETO - PathPrefix separados com OR
+- "traefik.http.routers.backend.rule=Host(`example.com`) && (PathPrefix(`/api`) || PathPrefix(`/v1`) || PathPrefix(`/public`))"
+```
+
 ### 3. Backend Teste
 **Paths**: `/teste/rest` em ambos os domínios
 
