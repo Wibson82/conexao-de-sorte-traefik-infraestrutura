@@ -223,7 +223,7 @@ http:
     frontend-service:
       loadBalancer:
         servers:
-          - url: "http://conexao-de-sorte-frontend:3000"
+          - url: "http://conexao-frontend:3000"
 
         # Health check para frontend
         healthCheck:
