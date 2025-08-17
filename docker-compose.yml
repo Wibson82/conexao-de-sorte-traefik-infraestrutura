@@ -28,6 +28,109 @@ services:
       - traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/secrets/traefik-basicauth
       - traefik.http.routers.dashboard.middlewares=dashboard-auth,security-headers@file
 
+  # Frontend Web - Conexão de Sorte
+  frontend-web:
+    image: ${FRONTEND_IMAGE:-conexaodesorte/frontend:latest}
+    container_name: conexao-frontend
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    environment:
+      - NODE_ENV=production
+      - API_BASE_URL=https://www.conexaodesorte.com.br/api
+      - NEXT_PUBLIC_API_URL=https://www.conexaodesorte.com.br/api
+    labels:
+      - traefik.enable=true
+      # Roteamento para domínio principal
+      - traefik.http.routers.frontend.rule=Host(`www.conexaodesorte.com.br`) || Host(`conexaodesorte.com.br`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
+      - traefik.http.routers.frontend.middlewares=security-headers@file,gzip-compress@file,redirect-to-www@file
+      - traefik.http.routers.frontend.priority=100
+      - traefik.http.services.frontend.loadbalancer.server.port=3000
+
+  # Backend API - Conexão de Sorte
+  backend-api:
+    image: ${BACKEND_IMAGE:-conexaodesorte/backend:latest}
+    container_name: conexao-backend
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=${REDIS_URL}
+      - PORT=8080
+    labels:
+      - traefik.enable=true
+      # Roteamento para APIs principais
+      - traefik.http.routers.backend-api.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/api`)
+      - traefik.http.routers.backend-api.entrypoints=websecure
+      - traefik.http.routers.backend-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-api.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-api@file
+      - traefik.http.routers.backend-api.priority=300
+      - traefik.http.services.backend-api.loadbalancer.server.port=8080
+
+  # Backend Teste - Ambiente de Testes
+  backend-teste:
+    image: ${BACKEND_TEST_IMAGE:-conexaodesorte/backend-test:latest}
+    container_name: conexao-backend-teste
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=${TEST_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=${TEST_REDIS_URL}
+      - PORT=8081
+    labels:
+      - traefik.enable=true
+      # Roteamento para APIs de teste
+      - traefik.http.routers.backend-teste.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)
+      - traefik.http.routers.backend-teste.entrypoints=websecure
+      - traefik.http.routers.backend-teste.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-teste.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file
+      - traefik.http.routers.backend-teste.priority=200
+      - traefik.http.services.backend-teste.loadbalancer.server.port=8081
+
+  # Database - PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: conexao-postgres
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-conexaodesorte}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  # Redis - Cache e Sessions
+  redis:
+    image: redis:7-alpine
+    container_name: conexao-redis
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+
 networks:
   conexao-network:
     external: true
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
