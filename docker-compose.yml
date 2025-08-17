@@ -66,7 +66,7 @@ services:
     labels:
       - traefik.enable=true
       # Roteamento para APIs principais
-      - traefik.http.routers.backend-api.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/api`)
+      - traefik.http.routers.backend-api.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest`)
       - traefik.http.routers.backend-api.entrypoints=websecure
       - traefik.http.routers.backend-api.tls.certresolver=letsencrypt
       - traefik.http.routers.backend-api.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-api@file
