@@ -90,3 +90,19 @@ http:
       retry:
         attempts: 3
         initialInterval: 100ms
+    
+    # Strip Prefix Middlewares para novos microserviços
+    crypto-kms-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/crypto-kms"
+    
+    monitoring-diag-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/monitoring-diag"
+    
+    scheduler-extractions-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/scheduler-extractions"
