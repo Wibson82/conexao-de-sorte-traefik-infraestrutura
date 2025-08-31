@@ -1,4 +1,8 @@
 {
   "owner": "codex",
-  "timestamp": "20250831T201420Z"
+  "timestamp": "2025-08-31T20:16:20Z",
+  "heartbeat": "2025-08-31T20:16:20Z",
+  "progress": "resultados: segurança e testes alinhados; aguardando build CI",
+  "token": "00000000-0000-4000-8000-000000000001",
+  "notes": "lock inicial criado pelo agente Codex"
 }

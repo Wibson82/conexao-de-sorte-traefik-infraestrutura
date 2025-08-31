@@ -1,0 +1,6 @@
+{
+  "java": "24",
+  "spring-boot": "3.5.5",
+  "mysql": "8.4",
+  "dependencias": {}
+}
