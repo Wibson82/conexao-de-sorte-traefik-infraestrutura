@@ -80,21 +80,21 @@ services:
       - traefik.http.routers.results-subdomain.rule=Host(`results.conexaodesorte.com.br`)
       - traefik.http.routers.results-subdomain.entrypoints=websecure
       - traefik.http.routers.results-subdomain.tls.certresolver=letsencrypt
-      - traefik.http.routers.results-subdomain.middlewares=security-headers@file,cors-api@file,cache-results@file
+      - traefik.http.routers.results-subdomain.middlewares=security-headers@file,cors-api@file,cache-results@file,rate-limit-api@file
       - traefik.http.routers.results-subdomain.priority=100
       
       # Path API
       - traefik.http.routers.results-path.rule=Host(`api.conexaodesorte.com.br`) && PathPrefix(`/results`)
       - traefik.http.routers.results-path.entrypoints=websecure
       - traefik.http.routers.results-path.tls.certresolver=letsencrypt
-      - traefik.http.routers.results-path.middlewares=results-stripprefix@file,security-headers@file,cors-api@file
+      - traefik.http.routers.results-path.middlewares=results-stripprefix@file,security-headers@file,cors-api@file,rate-limit-api@file
       - traefik.http.routers.results-path.priority=200
       
       # Legacy compatibility
       - traefik.http.routers.results-legacy.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest/resultados`)
       - traefik.http.routers.results-legacy.entrypoints=websecure
       - traefik.http.routers.results-legacy.tls.certresolver=letsencrypt
-      - traefik.http.routers.results-legacy.middlewares=results-legacy-stripprefix@file,security-headers@file,cors-api@file
+      - traefik.http.routers.results-legacy.middlewares=results-legacy-stripprefix@file,security-headers@file,cors-api@file,rate-limit-api@file
       - traefik.http.routers.results-legacy.priority=300
       
       - traefik.http.services.results.loadbalancer.server.port=8082

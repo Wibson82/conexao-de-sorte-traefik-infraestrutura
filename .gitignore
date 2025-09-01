@@ -34,4 +34,5 @@ backup-*/
 current/
 
 # GitHub Actions
-.github/workflows/*.log
+.github/workflows/*.log.env.*
+!.env.example
