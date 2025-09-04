@@ -92,6 +92,21 @@ http:
         initialInterval: 100ms
     
     # Strip Prefix Middlewares para novos microserviços
+    user-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/users"
+    
+    user-legacy-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/rest/users"
+    
+    chatbot-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/chatbot"
+    
     crypto-kms-stripprefix:
       stripPrefix:
         prefixes:
@@ -106,3 +121,77 @@ http:
       stripPrefix:
         prefixes:
           - "/scheduler-extractions"
+    
+    # Rate Limiting específicos para novos serviços
+    rate-limit:
+      rateLimit:
+        average: 60
+        period: 1m
+        burst: 120
+    
+    rate-limit-notifications:
+      rateLimit:
+        average: 30
+        period: 1m
+        burst: 60
+    
+    # Autenticação específica para serviços críticos
+    crypto-auth:
+      basicAuth:
+        users:
+          - "crypto:$2y$10$..."  # Placeholder - configurar em produção
+    
+    audit-auth:
+      basicAuth:
+        users:
+          - "audit:$2y$10$..."  # Placeholder - configurar em produção
+    
+    admin-auth:
+      basicAuth:
+        users:
+          - "admin:$2y$10$..."  # Placeholder - configurar em produção
+    
+    # Security Headers
+    security-headers:
+      headers:
+        frameDeny: true
+        sslRedirect: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        isDevelopment: false
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+        customResponseHeaders:
+          X-Frame-Options: "DENY"
+          X-Content-Type-Options: "nosniff"
+          X-XSS-Protection: "1; mode=block"
+          Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
+          Content-Security-Policy: "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'"
+    
+    # Gzip compression
+    gzip:
+      compress: {}
+    
+    # WebSocket headers para chat
+    websocket-headers:
+      headers:
+        customRequestHeaders:
+          Connection: "upgrade"
+          Upgrade: "websocket"
+    
+    # Cache headers para resultados
+    cache-results:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=300"
+          Expires: "300"
+    
+    # Redirect para www
+    www-redirect:
+      redirectRegex:
+        regex: "^https://conexaodesorte.com.br/(.*)"
+        replacement: "https://www.conexaodesorte.com.br/${1}"

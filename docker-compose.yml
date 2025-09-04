@@ -38,6 +38,10 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod,azure
       - SERVER_PORT=8081
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
+      - AZURE_KEYVAULT_ENABLED=true
     labels:
       - traefik.enable=true
       # Subdominio dedicado
@@ -63,6 +67,46 @@ services:
       
       - traefik.http.services.auth.loadbalancer.server.port=8081
       - traefik.http.services.auth.loadbalancer.healthcheck.path=/actuator/health
+
+  # 👤 Microserviço de Usuário
+  user-microservice:
+    image: ${USER_IMAGE:-ghcr.io/wibson82/conexao-de-sorte-backend-usuario:latest}
+    container_name: conexao-user-ms
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod,azure
+      - SERVER_PORT=8089
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
+      - AZURE_KEYVAULT_ENABLED=true
+    labels:
+      - traefik.enable=true
+      # Subdominio dedicado
+      - traefik.http.routers.user-subdomain.rule=Host(`users.conexaodesorte.com.br`)
+      - traefik.http.routers.user-subdomain.entrypoints=websecure
+      - traefik.http.routers.user-subdomain.tls.certresolver=letsencrypt
+      - traefik.http.routers.user-subdomain.middlewares=security-headers@file,cors-api@file,rate-limit@file
+      - traefik.http.routers.user-subdomain.priority=100
+      
+      # Path API
+      - traefik.http.routers.user-path.rule=Host(`api.conexaodesorte.com.br`) && PathPrefix(`/users`)
+      - traefik.http.routers.user-path.entrypoints=websecure
+      - traefik.http.routers.user-path.tls.certresolver=letsencrypt
+      - traefik.http.routers.user-path.middlewares=user-stripprefix@file,security-headers@file,cors-api@file
+      - traefik.http.routers.user-path.priority=200
+      
+      # Backward compatibility
+      - traefik.http.routers.user-legacy.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest/users`)
+      - traefik.http.routers.user-legacy.entrypoints=websecure
+      - traefik.http.routers.user-legacy.tls.certresolver=letsencrypt
+      - traefik.http.routers.user-legacy.middlewares=user-legacy-stripprefix@file,security-headers@file,cors-api@file
+      - traefik.http.routers.user-legacy.priority=300
+      
+      - traefik.http.services.user.loadbalancer.server.port=8089
+      - traefik.http.services.user.loadbalancer.healthcheck.path=/actuator/health
 
   # 📊 Microserviço de Resultados
   results-microservice:
@@ -109,7 +153,11 @@ services:
       - conexao-network
     environment:
       - SPRING_PROFILES_ACTIVE=prod,azure
-      - SERVER_PORT=8079
+      - SERVER_PORT=8083
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
+      - AZURE_KEYVAULT_ENABLED=true
     labels:
       - traefik.enable=true
       # Subdominio
@@ -139,6 +187,10 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod,azure
       - SERVER_PORT=8084
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
+      - AZURE_KEYVAULT_ENABLED=true
     labels:
       - traefik.enable=true
       # Subdominio
@@ -168,6 +220,10 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod,azure
       - SERVER_PORT=8085
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
+      - AZURE_KEYVAULT_ENABLED=true
     labels:
       - traefik.enable=true
       # Subdominio
@@ -283,7 +339,11 @@ services:
       - conexao-network
     environment:
       - SPRING_PROFILES_ACTIVE=prod,azure
-      - SERVER_PORT=8084
+      - SERVER_PORT=8082
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
+      - AZURE_KEYVAULT_ENABLED=true
     labels:
       - traefik.enable=true
       # Subdominio
@@ -300,7 +360,7 @@ services:
       - traefik.http.routers.crypto-kms-path.middlewares=crypto-kms-stripprefix@file,security-headers@file,crypto-auth@file,rate-limit-strict@file
       - traefik.http.routers.crypto-kms-path.priority=200
       
-      - traefik.http.services.crypto-kms.loadbalancer.server.port=8084
+      - traefik.http.services.crypto-kms.loadbalancer.server.port=8082
       - traefik.http.services.crypto-kms.loadbalancer.healthcheck.path=/actuator/health
 
   # 🔍 Microserviço de Observabilidade Diagnóstico
@@ -312,7 +372,7 @@ services:
       - conexao-network
     environment:
       - SPRING_PROFILES_ACTIVE=prod,azure
-      - SERVER_PORT=8086
+      - SERVER_PORT=8092
     labels:
       - traefik.enable=true
       # Subdominio
@@ -329,7 +389,7 @@ services:
       - traefik.http.routers.monitoring-diag-path.middlewares=monitoring-diag-stripprefix@file,security-headers@file,admin-auth@file
       - traefik.http.routers.monitoring-diag-path.priority=200
       
-      - traefik.http.services.monitoring-diag.loadbalancer.server.port=8086
+      - traefik.http.services.monitoring-diag.loadbalancer.server.port=8092
       - traefik.http.services.monitoring-diag.loadbalancer.healthcheck.path=/actuator/health
 
   # 📅 Microserviço de Scheduler Extrações
@@ -341,7 +401,7 @@ services:
       - conexao-network
     environment:
       - SPRING_PROFILES_ACTIVE=prod,azure
-      - SERVER_PORT=8088
+      - SERVER_PORT=8091
     labels:
       - traefik.enable=true
       # Subdominio
@@ -358,8 +418,41 @@ services:
       - traefik.http.routers.scheduler-extractions-path.middlewares=scheduler-extractions-stripprefix@file,security-headers@file,admin-auth@file
       - traefik.http.routers.scheduler-extractions-path.priority=200
       
-      - traefik.http.services.scheduler-extractions.loadbalancer.server.port=8088
+      - traefik.http.services.scheduler-extractions.loadbalancer.server.port=8091
       - traefik.http.services.scheduler-extractions.loadbalancer.healthcheck.path=/actuator/health
+
+  # 🤖 Chatbot
+  chatbot-microservice:
+    image: ${CHATBOT_IMAGE:-ghcr.io/wibson82/conexao-de-sorte-chatbot:latest}
+    container_name: conexao-chatbot-ms
+    restart: unless-stopped
+    networks:
+      - conexao-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod,azure
+      - SERVER_PORT=8087
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
+      - AZURE_KEYVAULT_ENABLED=true
+    labels:
+      - traefik.enable=true
+      # Subdominio dedicado
+      - traefik.http.routers.chatbot-subdomain.rule=Host(`chatbot.conexaodesorte.com.br`)
+      - traefik.http.routers.chatbot-subdomain.entrypoints=websecure
+      - traefik.http.routers.chatbot-subdomain.tls.certresolver=letsencrypt
+      - traefik.http.routers.chatbot-subdomain.middlewares=security-headers@file,cors-api@file,rate-limit@file
+      - traefik.http.routers.chatbot-subdomain.priority=100
+      
+      # Path API
+      - traefik.http.routers.chatbot-path.rule=Host(`api.conexaodesorte.com.br`) && PathPrefix(`/chatbot`)
+      - traefik.http.routers.chatbot-path.entrypoints=websecure
+      - traefik.http.routers.chatbot-path.tls.certresolver=letsencrypt
+      - traefik.http.routers.chatbot-path.middlewares=chatbot-stripprefix@file,security-headers@file,cors-api@file
+      - traefik.http.routers.chatbot-path.priority=200
+      
+      - traefik.http.services.chatbot.loadbalancer.server.port=8087
+      - traefik.http.services.chatbot.loadbalancer.healthcheck.path=/actuator/health
 
   # 🌐 Frontend Web
   frontend-web:
