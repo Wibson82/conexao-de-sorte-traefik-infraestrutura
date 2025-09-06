@@ -1,5 +1,7 @@
 # Reverse Proxy - Traefik v3.1
 
+Nota de migração: este diretório consolida e padroniza o antigo `conexao-traefik-infrastructure` sob o padrão `conexao-de-sorte-*`. Conteúdos foram copiados de forma segura e preservamos a compatibilidade.
+
 Repositório isolado com Traefik v3.1, rede Docker externa única e configurações separadas em estática e dinâmica.
 
 ## Estrutura do Projeto
