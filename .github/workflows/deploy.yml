@@ -232,13 +232,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: 🔍 Scan de secrets
-      uses: trufflesecurity/trufflehog@v3.63.2
-      with:
-        path: ./
-        base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'HEAD~1' }}
-        head: HEAD
-        extra_args: --debug --only-verified
+    - name: 🔍 Scan de secrets com gitleaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - name: 🛡️ Verificar configurações de segurança
