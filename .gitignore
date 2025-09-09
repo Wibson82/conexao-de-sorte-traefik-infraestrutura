@@ -16,6 +16,7 @@ secrets/
 
 # Sistema operacional
 .DS_Store
+*.DS_Store
 Thumbs.db
 
 # IDEs
