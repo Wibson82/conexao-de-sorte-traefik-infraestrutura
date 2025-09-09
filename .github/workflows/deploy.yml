@@ -1,4 +1,4 @@
-name: "🚀 Traefik Infrastructure - Deploy Pipeline"
+name: 🚀 Traefik Infrastructure - CI/CD Pipeline (Self-hosted Runners)
 
 on:
   push:
@@ -8,6 +8,12 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Destino do deploy'
+        required: false
+        default: 'production'
+        type: choice
+        options: [staging, production]
       force_deploy:
         description: 'Forçar deploy mesmo se validação falhar'
         required: false
@@ -18,20 +24,12 @@ on:
         required: false
         default: false
         type: boolean
-      environment:
-        description: 'Ambiente de destino'
-        required: false
-        default: 'production'
-        type: choice
-        options:
-        - production
-        - staging
 
 env:
+  SERVICE_NAME: traefik-infrastructure
+  TZ: America/Sao_Paulo
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
-  TZ: America/Sao_Paulo
-  SERVICE_NAME: traefik-infrastructure
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'production' }}
@@ -39,51 +37,86 @@ concurrency:
 
 jobs:
   validate-environment:
-    name: 🌍 Validar Ambiente
     runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
-    timeout-minutes: 10
+    timeout-minutes: 20 # Step timeouts: 10 + 10
+    name: ✅ Validate Infrastructure Environment
     outputs:
       environment-valid: ${{ steps.env-check.outputs.valid }}
       runner-ready: ${{ steps.runner-check.outputs.ready }}
     steps:
-    - name: 🔍 Verificar ambiente do runner
-      id: env-check
-      timeout-minutes: 3
-      run: |
-        echo "🔍 Verificando ambiente do runner..."
-        
-        # Verificar Docker
-        if ! command -v docker &> /dev/null; then
-          echo "❌ Docker não encontrado"
-          echo "valid=false" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-        # Verificar Docker Compose
-        if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-          echo "❌ Docker Compose não encontrado"
-          echo "valid=false" >> $GITHUB_OUTPUT
-          exit 1
-        fi
-        
-        # Verificar espaço em disco
-        AVAILABLE_SPACE=$(df / | awk 'NR==2 {print $4}')
-        if [ "$AVAILABLE_SPACE" -lt 1048576 ]; then  # 1GB em KB
-          echo "⚠️ Pouco espaço em disco disponível: ${AVAILABLE_SPACE}KB"
-        fi
-        
-        echo "✅ Ambiente válido"
-        echo "valid=true" >> $GITHUB_OUTPUT
-    
-    - name: 🏃 Verificar status do runner
-      id: runner-check
-      timeout-minutes: 2
-      run: |
-        echo "🏃 Verificando status do runner..."
-        echo "Runner: ${{ runner.name }}"
-        echo "OS: ${{ runner.os }}"
-        echo "Arch: ${{ runner.arch }}"
-        echo "ready=true" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v4
+      - name: "Guard: Verificar configurações Traefik obrigatórias"
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          echo "🔍 Verificando configurações obrigatórias do Traefik..."
+          
+          # Verificar se arquivos de configuração existem
+          REQUIRED_FILES=(
+            "traefik/traefik.yml"
+            "traefik/dynamic/middlewares.yml"
+            "traefik/dynamic/security-headers.yml"
+            "traefik/dynamic/tls.yml"
+            "docker-compose.yml"
+          )
+          
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Arquivo obrigatório não encontrado: $file" >&2
+              exit 1
+            fi
+            echo "✅ $file encontrado"
+          done
+          
+          # Verificar configurações de segurança obrigatórias
+          if ! grep -q "websecure" traefik/traefik.yml; then
+            echo "❌ HTTPS (websecure) não configurado" >&2
+            exit 1
+          fi
+          
+          if ! grep -q "letsencrypt" traefik/traefik.yml; then
+            echo "❌ Let's Encrypt não configurado" >&2
+            exit 1
+          fi
+          
+          echo "✅ Configurações obrigatórias validadas"
+      - name: "Guard: Verificar ambiente do runner"
+        id: env-check
+        timeout-minutes: 10
+        run: |
+          echo "🔍 Verificando ambiente do runner..."
+          
+          # Verificar Docker
+          if ! command -v docker &> /dev/null; then
+            echo "❌ Docker não encontrado"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Verificar Docker Compose
+          if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+            echo "❌ Docker Compose não encontrado"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Verificar espaço em disco
+          AVAILABLE_SPACE=$(df / | awk 'NR==2 {print $4}')
+          if [ "$AVAILABLE_SPACE" -lt 1048576 ]; then  # 1GB em KB
+            echo "⚠️ Pouco espaço em disco disponível: ${AVAILABLE_SPACE}KB"
+          fi
+          
+          echo "✅ Ambiente válido"
+          echo "valid=true" >> $GITHUB_OUTPUT
+      - name: 🏃 Verificar status do runner
+        id: runner-check
+        timeout-minutes: 2
+        run: |
+          echo "🏃 Verificando status do runner..."
+          echo "Runner: ${{ runner.name }}"
+          echo "OS: ${{ runner.os }}"
+          echo "Arch: ${{ runner.arch }}"
+          echo "ready=true" >> $GITHUB_OUTPUT
 
   detect-changes:
     name: 🔍 Detectar Mudanças
@@ -96,476 +129,410 @@ jobs:
       should-deploy: ${{ steps.deploy-check.outputs.should-deploy }}
       environment: ${{ steps.deploy-check.outputs.environment }}
       run-security: ${{ steps.security-check.outputs.run-security }}
-
     steps:
-    - name: 🧹 Limpar workspace anterior
-      timeout-minutes: 5
-      run: |
-        echo "🧹 Limpando workspace anterior..."
-        # Remover arquivos com permissões forçadas se existirem
-        if [ -d "$GITHUB_WORKSPACE" ]; then
-          sudo rm -rf "$GITHUB_WORKSPACE"/* 2>/dev/null || true
-          sudo rm -rf "$GITHUB_WORKSPACE"/.* 2>/dev/null || true
-        fi
-        # Garantir que o diretório existe e tem permissões corretas
-        sudo mkdir -p "$GITHUB_WORKSPACE"
-        sudo chown -R "$(whoami):$(whoami)" "$GITHUB_WORKSPACE"
-        sudo chmod -R 755 "$GITHUB_WORKSPACE"
-        echo "✅ Workspace limpo e preparado"
-        
-    - name: 📥 Checkout código
-      uses: actions/checkout@v4
-      timeout-minutes: 5
-      with:
-        fetch-depth: 0
-
-    - name: 🔍 Detectar mudanças em arquivos
-      uses: dorny/paths-filter@v3
-      id: changes
-      timeout-minutes: 5
-      with:
-        filters: |
-          config:
-            - 'traefik/**'
-            - 'docker-compose.yml'
-            - '.env.example'
-
-    - name: ✅ Verificar necessidade de deploy
-      id: deploy-check
-      timeout-minutes: 2
-      run: |
-        SHOULD_DEPLOY="false"
-        ENVIRONMENT="staging"
-        
-        # Deploy forçado via workflow_dispatch
-        if [ "${{ github.event.inputs.force_deploy }}" == "true" ]; then
-          SHOULD_DEPLOY="true"
-          ENVIRONMENT="${{ github.event.inputs.environment }}"
-          echo "🚀 Deploy forçado pelo usuário"
-        # Deploy automático em tags para produção
-        elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
-          SHOULD_DEPLOY="true"
-          ENVIRONMENT="production"
-          echo "🏷️ Deploy automático via tag"
-        # Deploy automático em push para main (padrão)
-        elif [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ]; then
-          SHOULD_DEPLOY="true"
+      - name: 🧹 Limpar workspace anterior
+        timeout-minutes: 5
+        run: |
+          echo "🧹 Limpando workspace anterior..."
+          # Remover arquivos com permissões forçadas se existirem
+          if [ -d "$GITHUB_WORKSPACE" ]; then
+            sudo rm -rf "$GITHUB_WORKSPACE"/* 2>/dev/null || true
+            sudo rm -rf "$GITHUB_WORKSPACE"/.* 2>/dev/null || true
+          fi
+          # Garantir que o diretório existe e tem permissões corretas
+          sudo mkdir -p "$GITHUB_WORKSPACE"
+          sudo chown -R "$(whoami):$(whoami)" "$GITHUB_WORKSPACE"
+          sudo chmod -R 755 "$GITHUB_WORKSPACE"
+          echo "✅ Workspace limpo e preparado"
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+        timeout-minutes: 5
+        with:
+          fetch-depth: 0
+      - name: 🔍 Detectar mudanças em arquivos
+        uses: dorny/paths-filter@v3
+        id: changes
+        timeout-minutes: 5
+        with:
+          filters: |
+            config:
+              - 'traefik/**'
+              - 'docker-compose.yml'
+              - '.env.example'
+      - name: ✅ Verificar necessidade de deploy
+        id: deploy-check
+        timeout-minutes: 2
+        run: |
+          SHOULD_DEPLOY="false"
           ENVIRONMENT="staging"
-          echo "📤 Deploy automático em push para main"
-        fi
-        
-        echo "should-deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
-        echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+          
+          # Deploy forçado via workflow_dispatch
+          if [ "${{ github.event.inputs.force_deploy }}" == "true" ]; then
+            SHOULD_DEPLOY="true"
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+            echo "🚀 Deploy forçado pelo usuário"
+          # Deploy automático em tags para produção
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            SHOULD_DEPLOY="true"
+            ENVIRONMENT="production"
+            echo "🏷️ Deploy automático via tag"
+          # Deploy automático em push para main (padrão)
+          elif [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            SHOULD_DEPLOY="true"
+            ENVIRONMENT="production"
+            echo "📤 Deploy automático em push para main"
+          fi
+          
+          echo "should-deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+      - name: 🔒 Verificar necessidade de security scan
+        id: security-check
+        timeout-minutes: 2
+        run: |
+          RUN_SECURITY="false"
+          
+          # Executar em push/PR se não foi pulado
+          if [ "${{ github.event.inputs.skip_security }}" != "true" ]; then
+            RUN_SECURITY="true"
+          fi
+          
+          echo "run-security=$RUN_SECURITY" >> $GITHUB_OUTPUT
 
-    - name: 🔒 Verificar necessidade de security scan
-      id: security-check
-      timeout-minutes: 2
-      run: |
-        RUN_SECURITY="false"
-        
-        # Executar em push/PR se não foi pulado
-        if [ "${{ github.event.inputs.skip_security }}" != "true" ]; then
-          RUN_SECURITY="true"
-        fi
-        
-        echo "run-security=$RUN_SECURITY" >> $GITHUB_OUTPUT
-
-  # 
-  # VALIDAÇÃO E CI
-  # 
   validate:
     name: ✅ Validação e Testes
     runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
     timeout-minutes: 30
     needs: [validate-environment, detect-changes]
     if: needs.validate-environment.outputs.environment-valid == 'true' && (github.event_name == 'push' || github.event_name == 'pull_request' || needs.detect-changes.outputs.config-changed == 'true')
-
     steps:
-    - name: 📥 Checkout código
-      uses: actions/checkout@v4
-      timeout-minutes: 5
-
-    - name: 🐳 Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      timeout-minutes: 5
-
-    - name: 🐍 Setup Python
-      uses: actions/setup-python@v4
-      timeout-minutes: 5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-        cache-dependency-path: '.github/requirements.txt'
-
-    - name: 📦 Instalar dependências Python
-      timeout-minutes: 5
-      run: |
-        pip install -r .github/requirements.txt
-
-    - name: 📋 Validar sintaxe YAML
-      timeout-minutes: 5
-      run: |
-        find . -name "*.yml" -o -name "*.yaml" | xargs yamllint -d relaxed || true
-        echo "✅ Validação YAML concluída (warnings ignorados)"
-
-    - name: ⚙️ Validar configurações Traefik
-      run: |
-        echo "🔧 Validando sintaxe dos arquivos de configuração Traefik..."
-        
-        # Validação rápida de sintaxe YAML
-        for file in traefik/traefik.yml traefik/dynamic/middlewares.yml traefik/dynamic/security-headers.yml traefik/dynamic/tls.yml; do
-          if [ -f "$file" ]; then
-            if python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
-              echo "✅ $file: Sintaxe YAML válida"
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+        timeout-minutes: 5
+      - name: 🐳 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        timeout-minutes: 5
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        timeout-minutes: 5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: '.github/requirements.txt'
+      - name: 📦 Instalar dependências Python
+        timeout-minutes: 5
+        run: |
+          pip install -r .github/requirements.txt
+      - name: 📋 Validar sintaxe YAML
+        timeout-minutes: 5
+        run: |
+          find . -name "*.yml" -o -name "*.yaml" | xargs yamllint -d relaxed || true
+          echo "✅ Validação YAML concluída (warnings ignorados)"
+      - name: ⚙️ Validar configurações Traefik
+        timeout-minutes: 10
+        run: |
+          echo "🔧 Validando sintaxe dos arquivos de configuração Traefik..."
+          
+          # Validação rápida de sintaxe YAML
+          for file in traefik/traefik.yml traefik/dynamic/middlewares.yml traefik/dynamic/security-headers.yml traefik/dynamic/tls.yml; do
+            if [ -f "$file" ]; then
+              if python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+                echo "✅ $file: Sintaxe YAML válida"
+              else
+                echo "❌ $file: Erro de sintaxe YAML"
+                exit 1
+              fi
             else
-              echo "❌ $file: Erro de sintaxe YAML"
-              exit 1
+              echo "⚠️ $file: Arquivo não encontrado"
             fi
-          else
-            echo "⚠️ $file: Arquivo não encontrado"
-          fi
-        done
-        
-        echo "✅ Validação de configuração Traefik concluída"
+          done
+          
+          echo "✅ Validação de configuração Traefik concluída"
+      - name: 🐳 Testar docker-compose
+        timeout-minutes: 10
+        run: |
+          docker compose config
+          docker compose config --services
 
-    - name: 🐳 Testar docker-compose
-      run: |
-        docker compose config
-        docker compose config --services
-
-    - name: 🌐 Testes de conectividade
-      run: |
-        echo "🔧 Testando conectividade básica do Traefik..."
-        
-        # Criar rede de teste
-        docker network create traefik-test || true
-        
-        # Criar configuração mínima para teste
-        mkdir -p /tmp/traefik-test
-        cat > /tmp/traefik-test/traefik.yml << 'EOF'
-        api:
-          dashboard: true
-          insecure: true
-        entryPoints:
-          web:
-            address: ":80"
-        providers:
-          file:
-            directory: /etc/traefik/dynamic
-            watch: true
-        EOF
-        
-        # Iniciar Traefik em modo de teste
-        docker run -d --name traefik-test \
-          --network traefik-test \
-          -v "/tmp/traefik-test/traefik.yml:/etc/traefik/traefik.yml:ro" \
-          traefik:v3.1
-        
-        # Aguardar Traefik inicializar
-        sleep 15
-        
-        # Verificar se o container está rodando
-        if docker ps | grep -q traefik-test; then
-          echo "✅ Traefik iniciou com sucesso"
-          echo "📊 Status do container:"
-          docker ps --filter "name=traefik-test" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-        else
-          echo "❌ Falha ao iniciar Traefik"
-          echo "📋 Logs do container:"
-          docker logs traefik-test
-          exit 1
-        fi
-        
-        # Verificar logs para erros críticos
-        echo "📋 Verificando logs do Traefik:"
-        docker logs traefik-test 2>&1 | head -20
-        
-        if docker logs traefik-test 2>&1 | grep -i "error\|fatal\|panic" | grep -v "level=error.*acme"; then
-          echo "⚠️ Avisos encontrados nos logs (podem ser normais para ambiente de teste)"
-        else
-          echo "✅ Nenhum erro crítico encontrado nos logs"
-        fi
-        
-        # Cleanup
-        docker stop traefik-test || true
-        docker rm traefik-test || true
-        docker network rm traefik-test || true
-        rm -rf /tmp/traefik-test
-        
-        echo "✅ Teste de conectividade concluído"
-
-  # 
-  # VERIFICAÇÕES DE SEGURANÇA
-  # 
   security:
     name: 🔒 Análise de Segurança
     runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
     timeout-minutes: 20
     needs: [validate-environment, detect-changes]
     if: needs.validate-environment.outputs.environment-valid == 'true' && needs.detect-changes.outputs.run-security == 'true' && success()
-
     steps:
-    - name: 📥 Checkout código
-      uses: actions/checkout@v4
-      timeout-minutes: 5
-      with:
-        fetch-depth: 0
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+        timeout-minutes: 5
+        with:
+          fetch-depth: 0
+      - name: 🔍 Scan de secrets com gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        timeout-minutes: 10
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      - name: 🛡️ Verificar configurações de segurança
+        timeout-minutes: 5
+        run: |
+          echo "🔒 Verificando configurações de segurança..."
+          SCORE=0
+          TOTAL=6
+          
+          # HTTPS obrigatório
+          if grep -q "websecure" traefik/traefik.yml; then
+            echo "✅ HTTPS configurado"
+            SCORE=$((SCORE + 1))
+          else
+            echo "❌ HTTPS não configurado"
+          fi
+          
+          # Let's Encrypt
+          if grep -q "letsencrypt" traefik/traefik.yml; then
+            echo "✅ Let's Encrypt configurado"
+            SCORE=$((SCORE + 1))
+          else
+            echo "❌ Let's Encrypt não configurado"
+          fi
+          
+          # Security headers
+          if grep -q "security-headers" traefik/dynamic/security-headers.yml; then
+            echo "✅ Security headers configurados"
+            SCORE=$((SCORE + 1))
+          else
+            echo "❌ Security headers não configurados"
+          fi
+          
+          # Rate limiting
+          if grep -q "rate-limit" traefik/dynamic/middlewares.yml; then
+            echo "✅ Rate limiting configurado"
+            SCORE=$((SCORE + 1))
+          else
+            echo "❌ Rate limiting não configurado"
+          fi
+          
+          # TLS versão mínima
+          if grep -q "VersionTLS12" traefik/dynamic/tls.yml; then
+            echo "✅ TLS versão mínima configurada"
+            SCORE=$((SCORE + 1))
+          else
+            echo "❌ TLS versão mínima não configurada"
+          fi
+          
+          # Logs de acesso
+          if grep -q "accessLog" traefik/traefik.yml; then
+            echo "✅ Logs de acesso habilitados"
+            SCORE=$((SCORE + 1))
+          else
+            echo "❌ Logs de acesso não habilitados"
+          fi
+          
+          echo ""
+          echo "📊 Score de Segurança: $SCORE/$TOTAL ($(( SCORE * 100 / TOTAL ))%)"
+          
+          if [ $SCORE -lt 4 ]; then
+            echo "⚠️ Score de segurança baixo. Revisar configurações."
+            exit 1
+          fi
 
-    - name: 🔍 Scan de secrets com gitleaks
-      uses: gitleaks/gitleaks-action@v2
-      timeout-minutes: 10
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      continue-on-error: true
-
-    - name: 🛡️ Verificar configurações de segurança
-      timeout-minutes: 5
-      run: |
-        echo "🔒 Verificando configurações de segurança..."
-        SCORE=0
-        TOTAL=6
-        
-        # HTTPS obrigatório
-        if grep -q "websecure" traefik/traefik.yml; then
-          echo "✅ HTTPS configurado"
-          SCORE=$((SCORE + 1))
-        else
-          echo "❌ HTTPS não configurado"
-        fi
-        
-        # Let's Encrypt
-        if grep -q "letsencrypt" traefik/traefik.yml; then
-          echo "✅ Let's Encrypt configurado"
-          SCORE=$((SCORE + 1))
-        else
-          echo "❌ Let's Encrypt não configurado"
-        fi
-        
-        # Security headers
-        if grep -q "security-headers" traefik/dynamic/security-headers.yml; then
-          echo "✅ Security headers configurados"
-          SCORE=$((SCORE + 1))
-        else
-          echo "❌ Security headers não configurados"
-        fi
-        
-        # Rate limiting
-        if grep -q "rate-limit" traefik/dynamic/middlewares.yml; then
-          echo "✅ Rate limiting configurado"
-          SCORE=$((SCORE + 1))
-        else
-          echo "❌ Rate limiting não configurado"
-        fi
-        
-        # TLS versão mínima
-        if grep -q "VersionTLS12" traefik/dynamic/tls.yml; then
-          echo "✅ TLS versão mínima configurada"
-          SCORE=$((SCORE + 1))
-        else
-          echo "❌ TLS versão mínima não configurada"
-        fi
-        
-        # Logs de acesso
-        if grep -q "accessLog" traefik/traefik.yml; then
-          echo "✅ Logs de acesso habilitados"
-          SCORE=$((SCORE + 1))
-        else
-          echo "❌ Logs de acesso não habilitados"
-        fi
-        
-        echo ""
-        echo "📊 Score de Segurança: $SCORE/$TOTAL ($(( SCORE * 100 / TOTAL ))%)"
-        
-        if [ $SCORE -lt 4 ]; then
-          echo "⚠️ Score de segurança baixo. Revisar configurações."
-          exit 1
-        fi
-
-  # 
-  # DEPLOY
-  # 
-  deploy:
-    name: 🚀 Deploy Traefik Infrastructure
+  deploy-selfhosted:
     runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
-    timeout-minutes: 60
+    timeout-minutes: 100 # Step timeouts: 10 + 10 + 10 + 10 + 10 + 30 + 10 + 10
+    name: 🚀 Deploy Traefik Infrastructure (Self-hosted)
     needs: [validate-environment, detect-changes, validate, security]
     if: needs.validate-environment.outputs.environment-valid == 'true' && needs.detect-changes.outputs.should-deploy == 'true' && success()
     permissions:
       id-token: write
       contents: read
     steps:
-    - name: 🧹 Limpar workspace anterior
-      timeout-minutes: 5
-      run: |
-        echo "🧹 Limpando workspace anterior..."
-        # Remover arquivos com permissões forçadas se existirem
-        if [ -d "$GITHUB_WORKSPACE" ]; then
-          sudo rm -rf "$GITHUB_WORKSPACE"/* 2>/dev/null || true
-          sudo rm -rf "$GITHUB_WORKSPACE"/.* 2>/dev/null || true
-        fi
-        # Garantir que o diretório existe e tem permissões corretas
-        sudo mkdir -p "$GITHUB_WORKSPACE"
-        sudo chown -R "$(whoami):$(whoami)" "$GITHUB_WORKSPACE"
-        sudo chmod -R 755 "$GITHUB_WORKSPACE"
-        echo "✅ Workspace limpo e preparado"
-        
-    - name: 📥 Checkout código
-      uses: actions/checkout@v4
-      timeout-minutes: 5
-      
-    - name: 🔍 Verificar ambiente do self-hosted runner
-      timeout-minutes: 10
-      run: |
-        echo "🔍 Verificando ambiente do self-hosted runner..."
-        echo "🖥️ Runner: $(hostname)"
-        echo "📅 Data: $(date)"
-        echo "👤 Usuário: $(whoami)"
-        echo "📁 Diretório: $(pwd)"
-        echo "💾 Espaço disponível:"
-        df -h
-        echo "🐳 Docker version:"
-        docker --version
-        echo "🐙 Docker Compose version:"
-        docker compose version || docker-compose --version
-        
-    - name: 🔐 Azure Login (OIDC) no self-hosted runner
-      timeout-minutes: 10
-      uses: azure/login@v2
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: 🔑 Fetch Azure Key Vault secrets
-      id: kv
-      timeout-minutes: 10
-      shell: bash
-      run: |
-        set -euo pipefail
-        VAULT_ENDPOINT="${{ secrets.AZURE_KEYVAULT_ENDPOINT }}"
-        if [[ "$VAULT_ENDPOINT" =~ https://([^.]+)\.vault\.azure\.net ]]; then
-          VAULT="${BASH_REMATCH[1]}"
-        else
-          echo "ERROR: Invalid AZURE_KEYVAULT_ENDPOINT format: $VAULT_ENDPOINT" >&2
-          exit 1
-        fi
-        
-        echo "Loading secrets from Azure Key Vault: $VAULT" >&2
-        get() { 
-          echo "Fetching secret: $1" >&2
-          SECRET_VALUE=$(az keyvault secret show --vault-name "$VAULT" --name "$1" --query value -o tsv 2>/dev/null)
-          if [ $? -ne 0 ] || [ -z "$SECRET_VALUE" ]; then
-            echo "ERROR: Secret $1 not found in Azure Key Vault $VAULT" >&2
+      - name: 🧹 Limpar workspace anterior
+        timeout-minutes: 10
+        run: |
+          echo "🧹 Limpando workspace anterior..."
+          # Remover arquivos com permissões forçadas se existirem
+          if [ -d "$GITHUB_WORKSPACE" ]; then
+            sudo rm -rf "$GITHUB_WORKSPACE"/* 2>/dev/null || true
+            sudo rm -rf "$GITHUB_WORKSPACE"/.* 2>/dev/null || true
+          fi
+          # Garantir que o diretório existe e tem permissões corretas
+          sudo mkdir -p "$GITHUB_WORKSPACE"
+          sudo chown -R "$(whoami):$(whoami)" "$GITHUB_WORKSPACE"
+          sudo chmod -R 755 "$GITHUB_WORKSPACE"
+          echo "✅ Workspace limpo e preparado"
+      - uses: actions/checkout@v4
+      - name: Verificar ambiente do self-hosted runner
+        timeout-minutes: 10
+        run: |
+          echo "🔍 Verificando ambiente do self-hosted runner..."
+          echo "🖥️ Runner: $(hostname)"
+          echo "📅 Data: $(date)"
+          echo "👤 Usuário: $(whoami)"
+          echo "📁 Diretório: $(pwd)"
+          echo "💾 Espaço disponível:"
+          df -h
+          echo "🐳 Docker version:"
+          docker --version
+          echo "🐙 Docker Compose version:"
+          docker compose version || docker-compose --version
+      - name: Azure Login (OIDC) no self-hosted runner
+        timeout-minutes: 10
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Fetch Azure Key Vault secrets
+        id: kv
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euo pipefail
+          VAULT_ENDPOINT="${{ secrets.AZURE_KEYVAULT_ENDPOINT }}"
+          if [[ "$VAULT_ENDPOINT" =~ https://([^.]+)\.vault\.azure\.net ]]; then
+            VAULT="${BASH_REMATCH[1]}"
+          else
+            echo "ERROR: Invalid AZURE_KEYVAULT_ENDPOINT format: $VAULT_ENDPOINT" >&2
             exit 1
           fi
-          echo "$SECRET_VALUE"
-        }
-        
-        # Traefik infrastructure secrets
-        echo "TRAEFIK_DASHBOARD_USER=$(get conexao-de-sorte-traefik-dashboard-user)" >> $GITHUB_ENV
-        echo "TRAEFIK_DASHBOARD_PASSWORD=$(get conexao-de-sorte-traefik-dashboard-password)" >> $GITHUB_ENV
-        echo "LETSENCRYPT_EMAIL=$(get conexao-de-sorte-letsencrypt-email)" >> $GITHUB_ENV
-        echo "CLOUDFLARE_API_TOKEN=$(get conexao-de-sorte-cloudflare-api-token)" >> $GITHUB_ENV
-        echo "DOMAIN_NAME=$(get conexao-de-sorte-domain-name)" >> $GITHUB_ENV
-        
-        echo "✅ Azure Key Vault secrets loaded successfully" >&2
-        
-    - name: 🧹 Limpar containers antigos do Traefik
-      timeout-minutes: 10
-      run: |
-        set -euo pipefail
-        echo "🧹 Limpando containers antigos do Traefik..."
-        
-        # Parar e remover container Traefik existente
-        if docker ps -a --format '{{.Names}}' | grep -q "^traefik$"; then
-          echo "🛑 Parando container: traefik"
-          docker stop traefik || true
-          echo "🗑️ Removendo container: traefik"
-          docker rm traefik || true
-        else
-          echo "✅ Nenhum container traefik encontrado"
-        fi
-        
-        # Limpar imagens antigas do Traefik (manter apenas as 2 mais recentes)
-        docker images --format "{{.Repository}}:{{.Tag}}" | grep "^traefik:" | tail -n +3 | xargs -r docker rmi || true
-        echo "✅ Limpeza de containers concluída"
-        
-    - name: 🌐 Criar rede Docker
-      timeout-minutes: 5
-      run: |
-        echo "🌐 Criando rede conexao-network..."
-        docker network create conexao-network 2>/dev/null || echo "✅ Rede conexao-network já existe"
-        
-    - name: 📝 Preparar configurações do Traefik
-      timeout-minutes: 5
-      run: |
-        echo "📝 Preparando configurações do Traefik..."
-        
-        # Criar diretório de certificados se não existir
-        mkdir -p ./traefik/certs
-        
-        # Definir permissões corretas
-        chmod 600 ./traefik/traefik.yml
-        chmod -R 644 ./traefik/dynamic/
-        
-        echo "✅ Configurações preparadas"
-        
-    - name: 🚀 Deploy Traefik via Docker Compose
-      timeout-minutes: 20
-      run: |
-        set -euo pipefail
-        export TZ=America/Sao_Paulo
-        
-        echo "🚀 Iniciando deploy do Traefik..."
-        
-        # Exportar variáveis de ambiente para o Docker Compose
-        export TRAEFIK_DASHBOARD_USER="${{ env.TRAEFIK_DASHBOARD_USER }}"
-        export TRAEFIK_DASHBOARD_PASSWORD="${{ env.TRAEFIK_DASHBOARD_PASSWORD }}"
-        export LETSENCRYPT_EMAIL="${{ env.LETSENCRYPT_EMAIL }}"
-        export CLOUDFLARE_API_TOKEN="${{ env.CLOUDFLARE_API_TOKEN }}"
-        export DOMAIN_NAME="${{ env.DOMAIN_NAME }}"
-        
-        # Deploy usando Docker Compose
-        docker compose up -d --remove-orphans
-        
-        echo "✅ Traefik deployado com sucesso"
-        
-    - name: ⏳ Aguardar Traefik ficar pronto
-      timeout-minutes: 10
-      run: |
-        echo "⏳ Aguardando Traefik ficar pronto..."
-        TIMEOUT=180
-        ELAPSED=0
-        while [ $ELAPSED -lt $TIMEOUT ]; do
-          if docker exec traefik wget -q --spider http://localhost:8080/ping 2>/dev/null; then
-            echo "✅ Traefik está pronto e saudável!"
-            break
+          
+          echo "Loading secrets from Azure Key Vault: $VAULT" >&2
+          get() { 
+            echo "Fetching secret: $1" >&2
+            SECRET_VALUE=$(az keyvault secret show --vault-name "$VAULT" --name "$1" --query value -o tsv 2>/dev/null)
+            if [ $? -ne 0 ] || [ -z "$SECRET_VALUE" ]; then
+              echo "ERROR: Secret $1 not found in Azure Key Vault $VAULT" >&2
+              exit 1
+            fi
+            echo "$SECRET_VALUE"
+          }
+          
+          # Traefik infrastructure secrets
+          echo "TRAEFIK_DASHBOARD_USER=$(get conexao-de-sorte-traefik-dashboard-user)" >> $GITHUB_ENV
+          echo "TRAEFIK_DASHBOARD_PASSWORD=$(get conexao-de-sorte-traefik-dashboard-password)" >> $GITHUB_ENV
+          echo "LETSENCRYPT_EMAIL=$(get conexao-de-sorte-letsencrypt-email)" >> $GITHUB_ENV
+          echo "CLOUDFLARE_API_TOKEN=$(get conexao-de-sorte-cloudflare-api-token)" >> $GITHUB_ENV
+          echo "DOMAIN_NAME=$(get conexao-de-sorte-domain-name)" >> $GITHUB_ENV
+          
+          echo "✅ Azure Key Vault secrets loaded successfully" >&2
+      - name: 🧹 Limpar containers antigos do Traefik
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          echo "🧹 Limpando containers antigos do Traefik..."
+          
+          # Parar e remover container Traefik existente
+          if docker ps -a --format '{{.Names}}' | grep -q "^traefik$"; then
+            echo "🛑 Parando container: traefik"
+            docker stop traefik || true
+            echo "🗑️ Removendo container: traefik"
+            docker rm traefik || true
+          else
+            echo "✅ Nenhum container traefik encontrado"
           fi
-          echo "⏳ Aguardando Traefik ficar pronto... ($ELAPSED/$TIMEOUT segundos)"
-          sleep 10
-          ELAPSED=$((ELAPSED + 10))
-        done
-        
-        if [ $ELAPSED -ge $TIMEOUT ]; then
-          echo "❌ Traefik falhou em ficar pronto em $TIMEOUT segundos"
-          echo "📋 Logs do container:"
-          docker logs traefik --tail 50
-          exit 1
-        fi
-        
-        echo "📊 Status final do container:"
-        docker ps --filter name=traefik --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
-        
-        echo "🎉 Deploy do Traefik concluído com sucesso - Serviço está saudável!"
+          
+          # Limpar imagens antigas do Traefik (manter apenas as 2 mais recentes)
+          docker images --format "{{.Repository}}:{{.Tag}}" | grep "^traefik:" | tail -n +3 | xargs -r docker rmi || true
+          echo "✅ Limpeza de containers concluída"
+      - name: 🌐 Criar rede Docker
+        timeout-minutes: 10
+        run: |
+          echo "🌐 Criando rede conexao-network..."
+          docker network create conexao-network 2>/dev/null || echo "✅ Rede conexao-network já existe"
+      - name: 📝 Preparar configurações do Traefik
+        timeout-minutes: 10
+        run: |
+          echo "📝 Preparando configurações do Traefik..."
+          
+          # Criar diretório de certificados se não existir
+          mkdir -p ./traefik/certs
+          
+          # Definir permissões corretas
+          chmod 600 ./traefik/traefik.yml
+          chmod -R 644 ./traefik/dynamic/
+          
+          echo "✅ Configurações preparadas"
+      - name: 🚀 Deploy Traefik via Docker Compose
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          export TZ=America/Sao_Paulo
+          
+          echo "🚀 Iniciando deploy do Traefik..."
+          
+          # Exportar variáveis de ambiente para o Docker Compose
+          export TRAEFIK_DASHBOARD_USER="${{ env.TRAEFIK_DASHBOARD_USER }}"
+          export TRAEFIK_DASHBOARD_PASSWORD="${{ env.TRAEFIK_DASHBOARD_PASSWORD }}"
+          export LETSENCRYPT_EMAIL="${{ env.LETSENCRYPT_EMAIL }}"
+          export CLOUDFLARE_API_TOKEN="${{ env.CLOUDFLARE_API_TOKEN }}"
+          export DOMAIN_NAME="${{ env.DOMAIN_NAME }}"
+          
+          # Deploy usando Docker Compose
+          docker compose up -d --remove-orphans
+          
+          echo "✅ Traefik deployado com sucesso"
+      - name: ⏳ Aguardar Traefik ficar pronto
+        timeout-minutes: 10
+        run: |
+          echo "⏳ Aguardando Traefik ficar pronto..."
+          TIMEOUT=180
+          ELAPSED=0
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            if docker exec traefik wget -q --spider http://localhost:8080/ping 2>/dev/null; then
+              echo "✅ Traefik está pronto e saudável!"
+              break
+            fi
+            echo "⏳ Aguardando Traefik ficar pronto... ($ELAPSED/$TIMEOUT segundos)"
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+          
+          if [ $ELAPSED -ge $TIMEOUT ]; then
+            echo "❌ Traefik falhou em ficar pronto em $TIMEOUT segundos"
+            echo "📋 Logs do container:"
+            docker logs traefik --tail 50
+            exit 1
+          fi
+          
+          echo "📊 Status final do container:"
+          docker ps --filter name=traefik --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+          
+          echo "🎉 Deploy do Traefik concluído com sucesso - Serviço está saudável!"
+      - name: 🎉 Notificação de sucesso local
+        timeout-minutes: 10
+        run: |
+          echo "🎉 Deploy do Traefik realizado com sucesso via OIDC!"
+          echo "🔐 Método: Azure OIDC + Key Vault (sem SSH)"
+          echo "🏃 Runner: Self-hosted $(hostname)"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Autor: ${{ github.actor }}"
+          echo "📅 Data: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "🌐 Traefik Dashboard: https://traefik.${{ env.DOMAIN_NAME }}"
+          echo "✅ Deploy seguro concluído sem dependências SSH"
 
-    - name: 🎉 Notificação de sucesso
-      timeout-minutes: 2
-      run: |
-        echo "🎉 Deploy do Traefik realizado com sucesso via OIDC!"
-        echo "🔐 Método: Azure OIDC + Key Vault (sem SSH)"
-        echo "🏃 Runner: Self-hosted $(hostname)"
-        echo "📝 Commit: ${{ github.sha }}"
-        echo "👤 Autor: ${{ github.actor }}"
-        echo "📅 Data: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-        echo "🌐 Traefik Dashboard: https://traefik.${{ env.DOMAIN_NAME }}"
-        echo "✅ Deploy seguro concluído sem dependências SSH"
+  notify:
+    runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
+    timeout-minutes: 5
+    name: 📢 Notification
+    if: always()
+    needs: [validate, security, deploy-selfhosted]
+    steps:
+      - name: 📢 Send Slack notification
+        if: always()
+        timeout-minutes: 10
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          DEPLOY_RESULT="${{ needs.deploy-selfhosted.result }}"
+          if [ "$DEPLOY_RESULT" = "success" ]; then
+            STATUS="🚀 SUCCESS (Self-hosted)"
+            COLOR="good"
+          elif [ "$DEPLOY_RESULT" = "skipped" ]; then
+            STATUS="⏭️ SKIPPED"
+            COLOR="warning"
+          else
+            STATUS="❌ FAILED"
+            COLOR="danger"
+          fi
+          if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+            --data "{'text':'$STATUS: Traefik Infrastructure Self-hosted Deploy','attachments':[{'color':'$COLOR','fields':[{'title':'Branch','value':'${{ github.ref_name }}','short':true},{'title':'Commit','value':'${{ github.sha }}','short':true},{'title':'Deploy Method','value':'Self-hosted Runner (No SSH)','short':true}]}]}" \
+            $SLACK_WEBHOOK_URL || echo "Slack notification failed or webhook not configured"
