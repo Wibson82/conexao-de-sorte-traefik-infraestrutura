@@ -507,8 +507,7 @@ create_monitoring_compose() {
     cat > "$PROJECT_DIR/docker-compose.monitoring.yml" << EOF
 # ===== MONITORING STACK =====
 # Prometheus, Grafana, AlertManager and exporters
-
-version: '3.8'
+# Docker Compose version removed (obsolete in newer versions)
 
 networks:
   conexao-network:

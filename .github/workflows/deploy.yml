@@ -268,7 +268,7 @@ jobs:
           mkdir -p ./traefik/certs
           
           cat <<EOF | docker stack deploy --with-registry-auth -c - $STACK
-          version: "3.9"
+          # Docker Stack deploy - version removed (obsolete in newer versions)
           services:
             traefik:
               image: traefik:v3.0

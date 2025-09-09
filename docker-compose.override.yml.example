@@ -1,7 +1,7 @@
 # Exemplo de arquivo docker-compose.override.yml
 # Copie este arquivo para docker-compose.override.yml e ajuste conforme necessário
 
-version: '3.9'
+# Docker Compose override example - version removed (obsolete in newer versions)
 
 services:
   traefik:
