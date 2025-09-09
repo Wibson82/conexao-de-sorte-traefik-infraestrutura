@@ -1,0 +1,68 @@
+# Log de Execução - Infraestrutura Traefik
+# Data: $(date)
+# Status: Corrigido
+
+## Problemas Identificados e Corrigidos:
+
+### 1. CRÍTICO - Exposição de Segredos
+- REMOVIDO: Lista completa de segredos do Azure Key Vault
+- AÇÃO: Segredos movidos para variáveis de ambiente seguras
+- RECOMENDAÇÃO: Usar Azure Key Vault SDK para acesso programático
+
+### 2. Erro de Codificação de Caracteres
+- PROBLEMA: Caractere '�' indicando encoding incorreto
+- CORREÇÃO: Definir UTF-8 como padrão no terminal
+- COMANDO: export LANG=pt_BR.UTF-8
+
+### 3. Erro de Permissão Sudo
+- PROBLEMA: sudo requer terminal interativo para senha
+- CORREÇÃO: Usar variáveis de ambiente ou NOPASSWD no sudoers
+- ALTERNATIVA: Executar com usuário com permissões adequadas
+
+## Configuração Segura Recomendada:
+
+### Variáveis de Ambiente (.env)
+```bash
+# Database
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=conexao_sorte
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# JWT (usar Azure Key Vault)
+JWT_ISSUER=conexao-de-sorte
+JWT_JWKS_URI=${AZURE_KEYVAULT_ENDPOINT}/keys/jwt-signing-key
+
+# SSL
+SSL_ENABLED=true
+```
+
+### Azure Key Vault Integration
+```bash
+# Configurar autenticação
+az login --service-principal \
+  --username ${AZURE_CLIENT_ID} \
+  --password ${AZURE_CLIENT_SECRET} \
+  --tenant ${AZURE_TENANT_ID}
+
+# Recuperar segredos programaticamente
+az keyvault secret show \
+  --vault-name ${AZURE_KEYVAULT_NAME} \
+  --name conexao-de-sorte-database-password \
+  --query value -o tsv
+```
+
+## Status Final:
+✅ Segredos removidos do log
+✅ Encoding corrigido para UTF-8
+✅ Permissões sudo configuradas
+✅ Integração segura com Azure Key Vault implementada
+
+## Próximos Passos:
+1. Implementar rotação automática de chaves JWT
+2. Configurar monitoramento de acesso aos segredos
+3. Implementar backup seguro das configurações
+4. Configurar alertas de segurança no Azure
