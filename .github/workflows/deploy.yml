@@ -44,6 +44,20 @@ jobs:
       environment-valid: ${{ steps.env-check.outputs.valid }}
       runner-ready: ${{ steps.runner-check.outputs.ready }}
     steps:
+      - name: 🧹 Forçar limpeza de workspace (fix permissões)
+        timeout-minutes: 5
+        run: |
+          echo "🧹 Forçando limpeza completa do workspace..."
+          # Forçar remoção com sudo para resolver problemas de permissão
+          if [ -d "$GITHUB_WORKSPACE" ]; then
+            sudo rm -rf "$GITHUB_WORKSPACE"/* 2>/dev/null || true
+            sudo rm -rf "$GITHUB_WORKSPACE"/.* 2>/dev/null || true
+          fi
+          # Garantir que o diretório existe e tem permissões corretas
+          sudo mkdir -p "$GITHUB_WORKSPACE"
+          sudo chown -R "$(whoami):$(whoami)" "$GITHUB_WORKSPACE"
+          sudo chmod -R 755 "$GITHUB_WORKSPACE"
+          echo "✅ Workspace limpo com permissões corrigidas"
       - uses: actions/checkout@v4
       - name: "Guard: Verificar configurações Traefik obrigatórias"
         timeout-minutes: 10
