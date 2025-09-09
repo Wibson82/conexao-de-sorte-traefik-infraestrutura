@@ -38,7 +38,7 @@ jobs:
   # 
   detect-changes:
     name: 🔍 Detectar Mudanças
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, hostinger, ubuntu]
     outputs:
       config-changed: ${{ steps.changes.outputs.config }}
       should-deploy: ${{ steps.deploy-check.outputs.should-deploy }}
@@ -104,7 +104,7 @@ jobs:
   # 
   validate:
     name: ✅ Validação e Testes
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, hostinger, ubuntu]
     needs: detect-changes
     if: github.event_name == 'push' || github.event_name == 'pull_request' || needs.detect-changes.outputs.config-changed == 'true'
 
@@ -212,7 +212,7 @@ jobs:
   # 
   security:
     name: 🔒 Verificações de Segurança
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, hostinger, ubuntu]
     needs: [detect-changes, validate]
     if: needs.detect-changes.outputs.run-security == 'true' && success()
 
@@ -297,7 +297,7 @@ jobs:
   # 
   deploy:
     name: 🚀 Deploy ${{ needs.detect-changes.outputs.environment }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, hostinger, ubuntu]
     needs: [detect-changes, validate, security]
     if: needs.detect-changes.outputs.should-deploy == 'true' && success()
     environment: ${{ needs.detect-changes.outputs.environment }}

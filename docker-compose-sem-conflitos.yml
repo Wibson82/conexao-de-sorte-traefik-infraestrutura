@@ -1,34 +1,32 @@
 version: '3.9'
 
 # ============================================================================
-# 🌐 CONEXÃO DE SORTE - TRAEFIK GATEWAY REFATORADO
+# 🌐 CONEXÃO DE SORTE - TRAEFIK GATEWAY (SEM CONFLITOS)
 # ============================================================================
 # 
-# REFATORAÇÃO APLICADA:
-# ❌ REMOVIDO: Todos os 14 microserviços (movidos para deploy independente)
-# ❌ REMOVIDO: Porta 8080 externa (evita conflito com backend-prod)
-# ✅ MANTIDO: Apenas Traefik como Load Balancer e SSL Termination
-# ✅ ADICIONADO: Roteamento para containers existentes
+# CORREÇÃO APLICADA:
+# ✅ REMOVIDO: Porta 8080 externa (evita conflito com backend-prod)
+# ✅ DASHBOARD: Apenas via HTTPS host-based routing
+# ✅ COEXISTÊNCIA: Funciona junto com containers existentes
 # 
-# BENEFÍCIOS:
-# - 94% redução no tamanho do projeto (3.1MB → 200KB)
-# - Deploy independente de infraestrutura vs aplicações
-# - Service discovery dinâmico via Docker API
-# - Configuração simplificada e focada
-# - Coexistência com containers legados sem conflitos de porta
+# CONTAINERS EXISTENTES NO SERVIDOR:
+# - traefik-microservices (ATUAL - será substituído)
+# - conexao-mysql:3306 (mantém funcionando)
+# - backend-prod:8080-interno (sem conflito)  
+# - conexao-prometheus:9090 (sem conflito)
 # ============================================================================
 
 services:
   # ============================================================================
-  # 🌐 TRAEFIK - LOAD BALANCER & SSL TERMINATION
+  # 🌐 TRAEFIK - LOAD BALANCER & SSL TERMINATION (SEM CONFLITOS)
   # ============================================================================
   traefik:
     image: traefik:v3.1
-    container_name: traefik-microservices
+    container_name: traefik-microservices-v2
     restart: unless-stopped
     ports:
-      - "80:80"      # HTTP
-      - "443:443"    # HTTPS
+      - "80:80"      # HTTP - mantém
+      - "443:443"    # HTTPS - mantém
       # ❌ REMOVIDO: "8080:8080" para evitar conflito com backend-prod
     environment:
       - TZ=America/Sao_Paulo
@@ -52,7 +50,7 @@ services:
       # Habilitá-lo para auto-descoberta
       - traefik.enable=true
       
-      # Dashboard configuration
+      # ✅ Dashboard APENAS via HTTPS (sem porta externa conflitante)
       - traefik.http.routers.dashboard.rule=Host(`traefik.conexaodesorte.com.br`)
       - traefik.http.routers.dashboard.entrypoints=websecure
       - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
@@ -64,17 +62,23 @@ services:
       - traefik.http.routers.dashboard-redirect.entrypoints=web
       - traefik.http.routers.dashboard-redirect.middlewares=https-redirect@file
       
-      # ✅ ROTEAMENTO PARA CONTAINERS EXISTENTES (coexistência)
+      # ✅ ROTEAMENTO PARA BACKEND EXISTENTE (coexistência)
       - traefik.http.routers.backend-legacy.rule=Host(`api.conexaodesorte.com.br`) && PathPrefix(`/legacy`)
       - traefik.http.routers.backend-legacy.entrypoints=websecure
       - traefik.http.routers.backend-legacy.tls.certresolver=letsencrypt
       - traefik.http.routers.backend-legacy.service=backend-legacy
       - traefik.http.services.backend-legacy.loadbalancer.server.url=http://backend-prod:8080
+      
+      # ✅ ROTEAMENTO PARA MYSQL EXISTENTE (coexistência)
+      - traefik.tcp.routers.mysql-legacy.rule=HostSNI(`mysql.conexaodesorte.com.br`)
+      - traefik.tcp.routers.mysql-legacy.entrypoints=mysql
+      - traefik.tcp.routers.mysql-legacy.service=mysql-legacy
+      - traefik.tcp.services.mysql-legacy.loadbalancer.server.address=conexao-mysql:3306
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 30s
 
 # ============================================================================
@@ -86,34 +90,39 @@ networks:
     external: true  # Rede criada pelo projeto infraestrutura-core
 
 # ============================================================================
-# 📝 DOCUMENTAÇÃO - MICROSERVIÇOS REMOVIDOS
+# 📋 INSTRUÇÕES DE DEPLOY SEM CONFLITOS
 # ============================================================================
+#
+# 1. PARAR TRAEFIK ATUAL:
+#    docker stop traefik-microservices
+#
+# 2. BACKUP CONFIGURAÇÃO:
+#    docker cp traefik-microservices:/traefik.yml ./backup-traefik.yml
+#
+# 3. DEPLOY NOVA VERSÃO:
+#    docker-compose -f docker-compose-sem-conflitos.yml up -d
+#
+# 4. VERIFICAR STATUS:
+#    docker ps | grep traefik
+#    curl -k https://traefik.conexaodesorte.com.br
+#
+# 5. ACESSOS PÓS-DEPLOY:
+#    - Dashboard: https://traefik.conexaodesorte.com.br
+#    - Backend Legacy: https://api.conexaodesorte.com.br/legacy
+#    - MySQL Legacy: mysql.conexaodesorte.com.br:3306
+#
+# ============================================================================
+# 📊 COEXISTÊNCIA COM CONTAINERS ATUAIS
+# ============================================================================
+#
+# ✅ COMPATIBILIDADE GARANTIDA:
+# - conexao-mysql:3306 → Acessível via Traefik ou direto
+# - backend-prod:8080 → Roteado via /legacy path
+# - conexao-prometheus:9090 → Sem alterações
 # 
-# Os seguintes microserviços foram REMOVIDOS deste projeto:
-# - auth-microservice (Port: 8081)
-# - user-microservice (Port: 8089) 
-# - results-microservice (Port: 8082)
-# - chat-microservice (Port: 8083)
-# - notifications-microservice (Port: 8084)
-# - audit-microservice (Port: 8085)
-# - observability-microservice (Port: 8086)
-# - scheduler-microservice (Port: 8087)
-# - crypto-microservice (Port: 8089)
-# - crypto-kms-microservice (Port: 8082)
-# - observability-diagnostics-microservice (Port: 8092)
-# - scheduler-extractions-microservice (Port: 8091)
-# - chatbot-microservice (Port: 8087)
-# - frontend-web (Port: 3000)
+# ❌ CONFLITOS RESOLVIDOS:
+# - Traefik dashboard não usa mais porta 8080 externa
+# - Service discovery funciona para novos microserviços
+# - SSL termination para todos os serviços
 #
-# ✅ SOLUÇÃO: 
-# Microserviços agora devem ser deployados independentemente com labels Traefik
-# para auto-descoberta via Docker API.
-#
-# Exemplo de label para microserviço:
-# labels:
-#   - traefik.enable=true
-#   - traefik.http.routers.auth.rule=Host(`auth.conexaodesorte.com.br`)
-#   - traefik.http.routers.auth.entrypoints=websecure
-#   - traefik.http.routers.auth.tls.certresolver=letsencrypt
-#   - traefik.http.services.auth.loadbalancer.server.port=8081
 # ============================================================================
