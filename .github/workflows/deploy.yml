@@ -319,6 +319,27 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: false
+      
+      - name: 🧹 Resolver conflitos de permissão
+        timeout-minutes: 5
+        run: |
+          echo "🧹 Resolvendo possíveis conflitos de permissão..."
+          # Ajustar permissões de arquivos problemáticos conhecidos
+          if [ -f "./traefik/dynamic/middlewares.yml" ]; then
+            chmod 644 ./traefik/dynamic/middlewares.yml || true
+            echo "✅ Permissões ajustadas para middlewares.yml"
+          fi
+          # Ajustar permissões de todo o diretório traefik
+          if [ -d "./traefik" ]; then
+            find ./traefik -type f -exec chmod 644 {} \; 2>/dev/null || true
+            find ./traefik -type d -exec chmod 755 {} \; 2>/dev/null || true
+            echo "✅ Permissões ajustadas para diretório traefik"
+          fi
+          echo "✅ Conflitos de permissão resolvidos"
+      
       - name: Verificar ambiente do self-hosted runner
         timeout-minutes: 10
         run: |
@@ -409,14 +430,7 @@ jobs:
           
           # Verificar estrutura de diretórios
           echo "📁 Estrutura de diretórios Traefik:"
-          find ./traefik -type f -name "*.yml" | head -10
-          
-          # Definir permissões corretas de forma mais segura
-          if [ -d "./traefik" ]; then
-            echo "🔧 Ajustando permissões dos arquivos Traefik..."
-            find ./traefik -type f -name "*.yml" -exec chmod 644 {} \; 2>/dev/null || true
-            find ./traefik -type d -exec chmod 755 {} \; 2>/dev/null || true
-          fi
+          find ./traefik -type f -name "*.yml" | head -10 || echo "Nenhum arquivo YAML encontrado"
           
           # Verificar arquivos críticos
           if [ -f "./traefik/traefik.yml" ]; then
