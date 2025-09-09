@@ -31,14 +31,66 @@ env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
   TZ: America/Sao_Paulo
+  SERVICE_NAME: traefik-infrastructure
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'production' }}
+  cancel-in-progress: false
 
 jobs:
-  # 
-  # DETECÇÃO DE MUDANÇAS
-  # 
+  validate-environment:
+    name: 🌍 Validar Ambiente
+    runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
+    timeout-minutes: 10
+    outputs:
+      environment-valid: ${{ steps.env-check.outputs.valid }}
+      runner-ready: ${{ steps.runner-check.outputs.ready }}
+    steps:
+    - name: 🔍 Verificar ambiente do runner
+      id: env-check
+      timeout-minutes: 3
+      run: |
+        echo "🔍 Verificando ambiente do runner..."
+        
+        # Verificar Docker
+        if ! command -v docker &> /dev/null; then
+          echo "❌ Docker não encontrado"
+          echo "valid=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        # Verificar Docker Compose
+        if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+          echo "❌ Docker Compose não encontrado"
+          echo "valid=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        # Verificar espaço em disco
+        AVAILABLE_SPACE=$(df / | awk 'NR==2 {print $4}')
+        if [ "$AVAILABLE_SPACE" -lt 1048576 ]; then  # 1GB em KB
+          echo "⚠️ Pouco espaço em disco disponível: ${AVAILABLE_SPACE}KB"
+        fi
+        
+        echo "✅ Ambiente válido"
+        echo "valid=true" >> $GITHUB_OUTPUT
+    
+    - name: 🏃 Verificar status do runner
+      id: runner-check
+      timeout-minutes: 2
+      run: |
+        echo "🏃 Verificando status do runner..."
+        echo "Runner: ${{ runner.name }}"
+        echo "OS: ${{ runner.os }}"
+        echo "Arch: ${{ runner.arch }}"
+        echo "ready=true" >> $GITHUB_OUTPUT
+
   detect-changes:
     name: 🔍 Detectar Mudanças
     runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
+    timeout-minutes: 15
+    needs: validate-environment
+    if: needs.validate-environment.outputs.environment-valid == 'true'
     outputs:
       config-changed: ${{ steps.changes.outputs.config }}
       should-deploy: ${{ steps.deploy-check.outputs.should-deploy }}
@@ -48,12 +100,14 @@ jobs:
     steps:
     - name: 📥 Checkout código
       uses: actions/checkout@v4
+      timeout-minutes: 5
       with:
         fetch-depth: 0
 
     - name: 🔍 Detectar mudanças em arquivos
       uses: dorny/paths-filter@v3
       id: changes
+      timeout-minutes: 5
       with:
         filters: |
           config:
@@ -63,6 +117,7 @@ jobs:
 
     - name: ✅ Verificar necessidade de deploy
       id: deploy-check
+      timeout-minutes: 2
       run: |
         SHOULD_DEPLOY="false"
         ENVIRONMENT="staging"
@@ -89,6 +144,7 @@ jobs:
 
     - name: 🔒 Verificar necessidade de security scan
       id: security-check
+      timeout-minutes: 2
       run: |
         RUN_SECURITY="false"
         
@@ -105,28 +161,34 @@ jobs:
   validate:
     name: ✅ Validação e Testes
     runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
-    needs: detect-changes
-    if: github.event_name == 'push' || github.event_name == 'pull_request' || needs.detect-changes.outputs.config-changed == 'true'
+    timeout-minutes: 30
+    needs: [validate-environment, detect-changes]
+    if: needs.validate-environment.outputs.environment-valid == 'true' && (github.event_name == 'push' || github.event_name == 'pull_request' || needs.detect-changes.outputs.config-changed == 'true')
 
     steps:
     - name: 📥 Checkout código
       uses: actions/checkout@v4
+      timeout-minutes: 5
 
     - name: 🐳 Setup Docker Buildx
       uses: docker/setup-buildx-action@v3
+      timeout-minutes: 5
 
     - name: 🐍 Setup Python
       uses: actions/setup-python@v4
+      timeout-minutes: 5
       with:
         python-version: '3.11'
         cache: 'pip'
         cache-dependency-path: '.github/requirements.txt'
 
     - name: 📦 Instalar dependências Python
+      timeout-minutes: 5
       run: |
         pip install -r .github/requirements.txt
 
     - name: 📋 Validar sintaxe YAML
+      timeout-minutes: 5
       run: |
         find . -name "*.yml" -o -name "*.yaml" | xargs yamllint -d relaxed || true
         echo "✅ Validação YAML concluída (warnings ignorados)"
@@ -221,24 +283,28 @@ jobs:
   # VERIFICAÇÕES DE SEGURANÇA
   # 
   security:
-    name: 🔒 Verificações de Segurança
+    name: 🔒 Análise de Segurança
     runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
-    needs: [detect-changes, validate]
-    if: needs.detect-changes.outputs.run-security == 'true' && success()
+    timeout-minutes: 20
+    needs: [validate-environment, detect-changes]
+    if: needs.validate-environment.outputs.environment-valid == 'true' && needs.detect-changes.outputs.run-security == 'true' && success()
 
     steps:
     - name: 📥 Checkout código
       uses: actions/checkout@v4
+      timeout-minutes: 5
       with:
         fetch-depth: 0
 
     - name: 🔍 Scan de secrets com gitleaks
       uses: gitleaks/gitleaks-action@v2
+      timeout-minutes: 10
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       continue-on-error: true
 
     - name: 🛡️ Verificar configurações de segurança
+      timeout-minutes: 5
       run: |
         echo "🔒 Verificando configurações de segurança..."
         SCORE=0
