@@ -130,20 +130,6 @@ jobs:
       environment: ${{ steps.deploy-check.outputs.environment }}
       run-security: ${{ steps.security-check.outputs.run-security }}
     steps:
-      - name: 🧹 Limpar workspace anterior
-        timeout-minutes: 5
-        run: |
-          echo "🧹 Limpando workspace anterior..."
-          # Remover arquivos com permissões forçadas se existirem
-          if [ -d "$GITHUB_WORKSPACE" ]; then
-            sudo rm -rf "$GITHUB_WORKSPACE"/* 2>/dev/null || true
-            sudo rm -rf "$GITHUB_WORKSPACE"/.* 2>/dev/null || true
-          fi
-          # Garantir que o diretório existe e tem permissões corretas
-          sudo mkdir -p "$GITHUB_WORKSPACE"
-          sudo chown -R "$(whoami):$(whoami)" "$GITHUB_WORKSPACE"
-          sudo chmod -R 755 "$GITHUB_WORKSPACE"
-          echo "✅ Workspace limpo e preparado"
       - name: 📥 Checkout código
         uses: actions/checkout@v4
         timeout-minutes: 5
