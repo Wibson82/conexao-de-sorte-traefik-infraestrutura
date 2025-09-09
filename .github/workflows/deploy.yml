@@ -370,135 +370,172 @@ jobs:
   # DEPLOY
   # 
   deploy:
-    name: 🚀 Deploy ${{ needs.detect-changes.outputs.environment }}
+    name: 🚀 Deploy Traefik Infrastructure
     runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
-    needs: [detect-changes, validate, security]
-    if: needs.detect-changes.outputs.should-deploy == 'true' && success()
-    environment: ${{ needs.detect-changes.outputs.environment }}
-
+    timeout-minutes: 60
+    needs: [validate-environment, detect-changes, validate, security]
+    if: needs.validate-environment.outputs.environment-valid == 'true' && needs.detect-changes.outputs.should-deploy == 'true' && success()
+    permissions:
+      id-token: write
+      contents: read
     steps:
     - name: 📥 Checkout código
       uses: actions/checkout@v4
-
-    - name: ⚙️ Configurar ambiente
+      timeout-minutes: 5
+      
+    - name: 🔍 Verificar ambiente do self-hosted runner
+      timeout-minutes: 10
       run: |
-        # Configurações básicas
-        echo "DOMAIN=conexaodesorte.com.br" >> .env
-        echo "ACME_EMAIL=facilitaservicos.dev@gmail.com" >> .env
-        echo "VERSION=latest" >> .env
+        echo "🔍 Verificando ambiente do self-hosted runner..."
+        echo "🖥️ Runner: $(hostname)"
+        echo "📅 Data: $(date)"
+        echo "👤 Usuário: $(whoami)"
+        echo "📁 Diretório: $(pwd)"
+        echo "💾 Espaço disponível:"
+        df -h
+        echo "🐳 Docker version:"
+        docker --version
+        echo "🐙 Docker Compose version:"
+        docker compose version || docker-compose --version
         
-        if [ "${{ needs.detect-changes.outputs.environment }}" == "production" ]; then
-          echo "ENVIRONMENT=production" >> .env
-          echo "LOG_LEVEL=INFO" >> .env
-          echo "TRAEFIK_LOG_LEVEL=INFO" >> .env
+    - name: 🔐 Azure Login (OIDC) no self-hosted runner
+      timeout-minutes: 10
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: 🔑 Fetch Azure Key Vault secrets
+      id: kv
+      timeout-minutes: 10
+      shell: bash
+      run: |
+        set -euo pipefail
+        VAULT_ENDPOINT="${{ secrets.AZURE_KEYVAULT_ENDPOINT }}"
+        if [[ "$VAULT_ENDPOINT" =~ https://([^.]+)\.vault\.azure\.net ]]; then
+          VAULT="${BASH_REMATCH[1]}"
         else
-          echo "ENVIRONMENT=staging" >> .env
-          echo "LOG_LEVEL=DEBUG" >> .env
-          echo "TRAEFIK_LOG_LEVEL=DEBUG" >> .env
-        fi
-        
-        echo "DEPLOY_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
-        echo "DEPLOY_COMMIT=${{ github.sha }}" >> .env
-
-    - name: 🔌 Teste de Conectividade SSH
-      run: |
-        # Validar secrets obrigatórios
-        if [ -z "${{ secrets.SSH_HOST }}" ]; then
-          echo "❌ Erro: SSH_HOST não configurado"
+          echo "ERROR: Invalid AZURE_KEYVAULT_ENDPOINT format: $VAULT_ENDPOINT" >&2
           exit 1
         fi
         
-        if [ -z "${{ secrets.SSH_USER }}" ]; then
-          echo "❌ Erro: SSH_USER não configurado"
-          exit 1
-        fi
-        
-        # Executar teste de conectividade SSH
-        echo "🔧 Executando teste de conectividade SSH..."
-        GITHUB_ACTIONS=true ./scripts/test-ssh-connectivity.sh "${{ secrets.SSH_HOST }}" "${{ secrets.SSH_USER }}"
-
-    - name: 🔑 Setup SSH
-      run: |
-        # Validar chave SSH
-        if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
-          echo "❌ Erro: VPS_SSH_KEY não configurado"
-          exit 1
-        fi
-        
-        echo "✅ Secrets SSH validados"
-        
-        # Configurar SSH
-        mkdir -p ~/.ssh
-        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        
-        # Adicionar host às known_hosts
-        echo "🔧 Adicionando ${{ secrets.SSH_HOST }} às known_hosts..."
-        ssh-keyscan -T 10 -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
-        
-        echo "✅ SSH configurado com sucesso"
-
-    - name: 📦 Preparar e enviar arquivos
-      run: |
-        # Criar diretório no servidor se não existir
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/traefik-deploy"
-        
-        # Preparar e enviar arquivos
-        tar -czf deploy-package.tar.gz traefik/ docker-compose.yml .env
-        scp deploy-package.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/traefik-deploy/
-
-    - name: 🚀 Deploy via SSH
-      run: |
-        ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          # Capturar informações do servidor
-          echo "🖥️  Conectado ao servidor: $(hostname)"
-          echo "🌐 IP do servidor: $(hostname -I | awk '{print $1}')"
-          echo "📅 Data/hora do servidor: $(date)"
-          echo "👤 Usuário conectado: $(whoami)"
-          echo ""
-          
-          cd ~/traefik-deploy
-          echo "🚀 Iniciando deploy para ${{ needs.detect-changes.outputs.environment }}"
-          
-          # Extrair e preparar
-          tar -xzf deploy-package.tar.gz
-          if [ -d "current" ]; then
-            mv current backup-$(date +%Y%m%d_%H%M%S)
-          fi
-          mkdir -p current
-          mv traefik docker-compose.yml .env current/
-          cd current
-          
-          # Parar containers Traefik existentes para evitar conflito de porta
-          echo "⏹️ Parando containers Traefik existentes..."
-          docker stop $(docker ps -q --filter "name=traefik") 2>/dev/null || echo "Nenhum container Traefik rodando"
-          docker rm $(docker ps -aq --filter "name=traefik") 2>/dev/null || echo "Nenhum container Traefik para remover"
-          
-          # Deploy
-          echo "🚀 Iniciando novo deploy..."
-          docker compose config
-          docker compose pull
-          docker compose up -d --force-recreate traefik
-          
-          # Verificar se o deploy foi bem-sucedido
-          sleep 10
-          if docker ps | grep -q traefik; then
-            echo "✅ Deploy concluído com sucesso!"
-            echo "📊 Status dos containers:"
-            docker compose ps
-          else
-            echo "❌ Falha no deploy!"
-            echo "📋 Logs do Traefik:"
-            docker compose logs traefik
+        echo "Loading secrets from Azure Key Vault: $VAULT" >&2
+        get() { 
+          echo "Fetching secret: $1" >&2
+          SECRET_VALUE=$(az keyvault secret show --vault-name "$VAULT" --name "$1" --query value -o tsv 2>/dev/null)
+          if [ $? -ne 0 ] || [ -z "$SECRET_VALUE" ]; then
+            echo "ERROR: Secret $1 not found in Azure Key Vault $VAULT" >&2
             exit 1
           fi
-        EOF
+          echo "$SECRET_VALUE"
+        }
+        
+        # Traefik infrastructure secrets
+        echo "TRAEFIK_DASHBOARD_USER=$(get conexao-de-sorte-traefik-dashboard-user)" >> $GITHUB_ENV
+        echo "TRAEFIK_DASHBOARD_PASSWORD=$(get conexao-de-sorte-traefik-dashboard-password)" >> $GITHUB_ENV
+        echo "LETSENCRYPT_EMAIL=$(get conexao-de-sorte-letsencrypt-email)" >> $GITHUB_ENV
+        echo "CLOUDFLARE_API_TOKEN=$(get conexao-de-sorte-cloudflare-api-token)" >> $GITHUB_ENV
+        echo "DOMAIN_NAME=$(get conexao-de-sorte-domain-name)" >> $GITHUB_ENV
+        
+        echo "✅ Azure Key Vault secrets loaded successfully" >&2
+        
+    - name: 🧹 Limpar containers antigos do Traefik
+      timeout-minutes: 10
+      run: |
+        set -euo pipefail
+        echo "🧹 Limpando containers antigos do Traefik..."
+        
+        # Parar e remover container Traefik existente
+        if docker ps -a --format '{{.Names}}' | grep -q "^traefik$"; then
+          echo "🛑 Parando container: traefik"
+          docker stop traefik || true
+          echo "🗑️ Removendo container: traefik"
+          docker rm traefik || true
+        else
+          echo "✅ Nenhum container traefik encontrado"
+        fi
+        
+        # Limpar imagens antigas do Traefik (manter apenas as 2 mais recentes)
+        docker images --format "{{.Repository}}:{{.Tag}}" | grep "^traefik:" | tail -n +3 | xargs -r docker rmi || true
+        echo "✅ Limpeza de containers concluída"
+        
+    - name: 🌐 Criar rede Docker
+      timeout-minutes: 5
+      run: |
+        echo "🌐 Criando rede conexao-network..."
+        docker network create conexao-network 2>/dev/null || echo "✅ Rede conexao-network já existe"
+        
+    - name: 📝 Preparar configurações do Traefik
+      timeout-minutes: 5
+      run: |
+        echo "📝 Preparando configurações do Traefik..."
+        
+        # Criar diretório de certificados se não existir
+        mkdir -p ./traefik/certs
+        
+        # Definir permissões corretas
+        chmod 600 ./traefik/traefik.yml
+        chmod -R 644 ./traefik/dynamic/
+        
+        echo "✅ Configurações preparadas"
+        
+    - name: 🚀 Deploy Traefik via Docker Compose
+      timeout-minutes: 20
+      run: |
+        set -euo pipefail
+        export TZ=America/Sao_Paulo
+        
+        echo "🚀 Iniciando deploy do Traefik..."
+        
+        # Exportar variáveis de ambiente para o Docker Compose
+        export TRAEFIK_DASHBOARD_USER="${{ env.TRAEFIK_DASHBOARD_USER }}"
+        export TRAEFIK_DASHBOARD_PASSWORD="${{ env.TRAEFIK_DASHBOARD_PASSWORD }}"
+        export LETSENCRYPT_EMAIL="${{ env.LETSENCRYPT_EMAIL }}"
+        export CLOUDFLARE_API_TOKEN="${{ env.CLOUDFLARE_API_TOKEN }}"
+        export DOMAIN_NAME="${{ env.DOMAIN_NAME }}"
+        
+        # Deploy usando Docker Compose
+        docker compose up -d --remove-orphans
+        
+        echo "✅ Traefik deployado com sucesso"
+        
+    - name: ⏳ Aguardar Traefik ficar pronto
+      timeout-minutes: 10
+      run: |
+        echo "⏳ Aguardando Traefik ficar pronto..."
+        TIMEOUT=180
+        ELAPSED=0
+        while [ $ELAPSED -lt $TIMEOUT ]; do
+          if docker exec traefik wget -q --spider http://localhost:8080/ping 2>/dev/null; then
+            echo "✅ Traefik está pronto e saudável!"
+            break
+          fi
+          echo "⏳ Aguardando Traefik ficar pronto... ($ELAPSED/$TIMEOUT segundos)"
+          sleep 10
+          ELAPSED=$((ELAPSED + 10))
+        done
+        
+        if [ $ELAPSED -ge $TIMEOUT ]; then
+          echo "❌ Traefik falhou em ficar pronto em $TIMEOUT segundos"
+          echo "📋 Logs do container:"
+          docker logs traefik --tail 50
+          exit 1
+        fi
+        
+        echo "📊 Status final do container:"
+        docker ps --filter name=traefik --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+        
+        echo "🎉 Deploy do Traefik concluído com sucesso - Serviço está saudável!"
 
     - name: 🎉 Notificação de sucesso
-      if: success()
+      timeout-minutes: 2
       run: |
-        echo "🎉 Deploy realizado com sucesso!"
-        echo "🌐 Ambiente: ${{ needs.detect-changes.outputs.environment }}"
+        echo "🎉 Deploy do Traefik realizado com sucesso via OIDC!"
+        echo "🔐 Método: Azure OIDC + Key Vault (sem SSH)"
+        echo "🏃 Runner: Self-hosted $(hostname)"
         echo "📝 Commit: ${{ github.sha }}"
         echo "👤 Autor: ${{ github.actor }}"
         echo "📅 Data: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "🌐 Traefik Dashboard: https://traefik.${{ env.DOMAIN_NAME }}"
+        echo "✅ Deploy seguro concluído sem dependências SSH"
