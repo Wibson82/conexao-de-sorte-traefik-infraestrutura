@@ -1,0 +1,67 @@
+# Arquivos de sistema
+.DS_Store
+.git
+.github
+.gitignore
+.gitattributes
+
+# Arquivos de desenvolvimento
+*.md
+LICENSE
+Makefile
+Dockerfile*
+docker-compose*.yml
+docker-compose*.yaml
+
+# Diretórios de desenvolvimento
+.vscode/
+.idea/
+.env*
+*.env
+
+# Diretórios de logs e dados temporários
+logs/
+tmp/
+temp/
+
+# Certificados e segredos
+*.pem
+*.key
+*.crt
+*.csr
+*.srl
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+secrets/
+
+# Arquivos de backup
+*.bak
+*.backup
+*.old
+*.swp
+*~
+
+# Arquivos específicos do projeto
+README*
+CHANGELOG*
+LICENSE*
+
+# Diretórios de certificados Let's Encrypt
+letsencrypt/
+acme.json
+
+# Arquivos de teste
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Outros arquivos desnecessários para a imagem
+*.log
+*.sql
+*.sqlite
+*.sqlite3
+*.db

@@ -386,15 +386,14 @@ jobs:
             echo "$SECRET_VALUE"
           }
           
-          # Traefik infrastructure secrets (usando secrets disponíveis)
-          # Nota: Secrets específicos do Traefik não estão disponíveis no Key Vault
-          # Usando valores padrão ou variáveis de ambiente do runner
+          # Traefik infrastructure secrets do Azure Key Vault
+          # Recuperando secrets de forma segura
           
-          echo "TRAEFIK_DASHBOARD_USER=admin" >> $GITHUB_ENV
-          echo "TRAEFIK_DASHBOARD_PASSWORD=admin123" >> $GITHUB_ENV  
-          echo "LETSENCRYPT_EMAIL=admin@conexaodesorte.com.br" >> $GITHUB_ENV
-          echo "CLOUDFLARE_API_TOKEN=" >> $GITHUB_ENV  # Opcional para DNS challenge
-          echo "DOMAIN_NAME=conexaodesorte.com.br" >> $GITHUB_ENV
+          echo "TRAEFIK_DASHBOARD_USER=$(get "traefik-dashboard-user")" >> $GITHUB_ENV
+          echo "TRAEFIK_DASHBOARD_PASSWORD=$(get "traefik-dashboard-password")" >> $GITHUB_ENV  
+          echo "LETSENCRYPT_EMAIL=$(get "letsencrypt-email")" >> $GITHUB_ENV
+          echo "CLOUDFLARE_API_TOKEN=$(get "cloudflare-api-token" || echo "")" >> $GITHUB_ENV  # Opcional para DNS challenge
+          echo "DOMAIN_NAME=$(get "domain-name")" >> $GITHUB_ENV
           
           echo "✅ Azure Key Vault secrets loaded successfully" >&2
       - name: 🧹 Limpar containers antigos do Traefik
@@ -461,15 +460,33 @@ jobs:
           
           echo "🚀 Iniciando deploy do Traefik..."
           
-          # Exportar variáveis de ambiente para o Docker Compose
-          export TRAEFIK_DASHBOARD_USER="${{ env.TRAEFIK_DASHBOARD_USER }}"
-          export TRAEFIK_DASHBOARD_PASSWORD="${{ env.TRAEFIK_DASHBOARD_PASSWORD }}"
-          export LETSENCRYPT_EMAIL="${{ env.LETSENCRYPT_EMAIL }}"
-          export CLOUDFLARE_API_TOKEN="${{ env.CLOUDFLARE_API_TOKEN }}"
-          export DOMAIN_NAME="${{ env.DOMAIN_NAME }}"
+          # Criar diretório de secrets se não existir
+          # Criar diretório de secrets
+          mkdir -p ./secrets
           
-          # Deploy usando Docker Compose
+          # Armazenar secrets em arquivos para uso com Docker secrets
+          echo "$(get "traefik-dashboard-user")" > ./secrets/traefik_dashboard_user.txt
+          echo "$(get "traefik-dashboard-password")" > ./secrets/traefik_dashboard_password.txt
+          echo "$(get "letsencrypt-email")" > ./secrets/letsencrypt_email.txt
+          
+          # Configurar permissões corretas para arquivos de secrets
+          chmod 600 ./secrets/*.txt
+          
+          # Criar arquivo .env para variáveis não sensíveis
+          cat > .env << EOF
+          TZ=America/Sao_Paulo
+          DOMAIN_NAME=$(get "domain-name")
+          EOF
+          
+          # Deploy usando Docker Compose com BuildKit
+          export DOCKER_BUILDKIT=1
+          export COMPOSE_DOCKER_CLI_BUILD=1
+          
+          # Usar --secret para passar segredos de forma segura
           docker compose up -d --remove-orphans
+          
+          # Limpar secrets após deploy
+          rm -f ./secrets/*.txt
           
           echo "✅ Traefik deployado com sucesso"
       - name: ⏳ Aguardar Traefik ficar pronto
