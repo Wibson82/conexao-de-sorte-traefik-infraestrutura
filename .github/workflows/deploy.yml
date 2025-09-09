@@ -45,6 +45,9 @@ jobs:
       runner-ready: ${{ steps.runner-check.outputs.ready }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 0
       - name: "Guard: Verificar configurações Traefik obrigatórias"
         timeout-minutes: 10
         run: |
