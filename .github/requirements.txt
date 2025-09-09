@@ -1,0 +1,2 @@
+# Dependências Python para o pipeline CI/CD
+yamllint==1.35.1

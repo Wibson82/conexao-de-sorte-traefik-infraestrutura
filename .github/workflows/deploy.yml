@@ -115,10 +115,20 @@ jobs:
     - name: 🐳 Setup Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: '.github/requirements.txt'
+
+    - name: 📦 Instalar dependências Python
+      run: |
+        pip install -r .github/requirements.txt
+
     - name: 📋 Validar sintaxe YAML
       run: |
-        python3 -m pip install yamllint
-        find . -name "*.yml" -o -name "*.yaml" | xargs python3 -m yamllint -d relaxed || true
+        find . -name "*.yml" -o -name "*.yaml" | xargs yamllint -d relaxed || true
         echo "✅ Validação YAML concluída (warnings ignorados)"
 
     - name: ⚙️ Validar configurações Traefik
