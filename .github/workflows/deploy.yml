@@ -224,34 +224,29 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - name: Preparar ambiente e corrigir permissões
+      - name: Limpar workspace completamente
         run: |
-          # Garantir que o usuário do runner tenha permissões no diretório de trabalho
+          echo "🧹 Limpando workspace completamente..."
+          # Parar todos os processos que podem estar usando arquivos
+          sudo pkill -f "traefik" || true
+          sudo pkill -f "docker" || true
+          sleep 2
+          
+          # Remover diretório de trabalho se existir
           if [ -d "$GITHUB_WORKSPACE" ]; then
-            echo "🔧 Corrigindo permissões do diretório de trabalho..."
-            sudo chown -R $(whoami):$(id -gn) "$GITHUB_WORKSPACE" || true
-            sudo chmod -R u+rwX "$GITHUB_WORKSPACE" || true
+            echo "🗑️  Removendo workspace antigo: $GITHUB_WORKSPACE"
+            sudo rm -rf "$GITHUB_WORKSPACE" || true
           fi
           
-          # Verificar se o diretório traefik/dynamic existe e limpar arquivos problemáticos
-          DYNAMIC_DIR="$GITHUB_WORKSPACE/traefik/dynamic"
-          if [ -d "$DYNAMIC_DIR" ]; then
-            echo "🔧 Corrigindo permissões do diretório traefik/dynamic..."
-            sudo chown -R $(whoami):$(id -gn) "$DYNAMIC_DIR" || true
-            sudo chmod -R 777 "$DYNAMIC_DIR" || true
-            
-            # Remover arquivos que podem causar problemas de permissão
-            echo "🗑️ Removendo arquivos YAML que podem causar problemas de permissão..."
-            sudo rm -f "$DYNAMIC_DIR/security-headers.yml" "$DYNAMIC_DIR/middlewares.yml" "$DYNAMIC_DIR/tls.yml" || true
-          fi
-          
-          # Verificar se há processos bloqueando arquivos
-          echo "🔍 Verificando processos que podem estar bloqueando arquivos..."
-          sudo lsof +D "$GITHUB_WORKSPACE" 2>/dev/null || true
+          # Criar novo diretório limpo
+          sudo mkdir -p "$GITHUB_WORKSPACE" || true
+          sudo chown -R $(whoami):$(id -gn) "$GITHUB_WORKSPACE" || true
+          sudo chmod -R 755 "$GITHUB_WORKSPACE" || true
           
       - uses: actions/checkout@v4
         with:
-          clean: false # Evitar limpeza agressiva que pode falhar por permissões
+          clean: true
+          fetch-depth: 1
 
       - name: Download configurações
         uses: actions/download-artifact@v4
