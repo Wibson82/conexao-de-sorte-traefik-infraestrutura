@@ -1,2 +1,0 @@
-Execute o commit e o push descrevendo tudo o que foi feito.# Dependências Python para o pipeline CI/CD
-yamllint==1.35.1
