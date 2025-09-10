@@ -224,7 +224,26 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - name: Corrigir permissões do diretório de trabalho
+        run: |
+          # Garantir que o usuário do runner tenha permissões no diretório de trabalho
+          if [ -d "$GITHUB_WORKSPACE" ]; then
+            echo "🔧 Corrigindo permissões do diretório de trabalho..."
+            sudo chown -R $(whoami):$(id -gn) "$GITHUB_WORKSPACE" || true
+            sudo chmod -R u+rwX "$GITHUB_WORKSPACE" || true
+            
+            # Verificar especificamente o diretório traefik/dynamic
+            DYNAMIC_DIR="$GITHUB_WORKSPACE/traefik/dynamic"
+            if [ -d "$DYNAMIC_DIR" ]; then
+              echo "🔧 Corrigindo permissões do diretório traefik/dynamic..."
+              sudo chown -R $(whoami):$(id -gn) "$DYNAMIC_DIR" || true
+              sudo chmod -R 755 "$DYNAMIC_DIR" || true
+            fi
+          fi
+          
       - uses: actions/checkout@v4
+        with:
+          clean: false # Evitar limpeza agressiva que pode falhar por permissões
 
       - name: Download configurações
         uses: actions/download-artifact@v4
