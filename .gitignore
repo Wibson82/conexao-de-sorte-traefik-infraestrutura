@@ -38,3 +38,4 @@ current/
 # GitHub Actions
 .github/workflows/*.log.env.*
 !.env.example
+.DS_Store
