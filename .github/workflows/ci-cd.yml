@@ -394,7 +394,6 @@ jobs:
                 - "--providers.swarm.network=conexao-network-swarm"
                 - "--providers.swarm.exposedbydefault=false"
                 - "--providers.docker=true"
-                - "--providers.docker.network=conexao-network"
                 - "--providers.docker.exposedbydefault=false"
                 - "--providers.docker.watch=true"
                 - "--providers.file.directory=/etc/traefik/dynamic"
@@ -413,7 +412,6 @@ jobs:
                 - "8080:8080"
               networks:
                 - conexao-network-swarm
-                - conexao-network
               secrets:
                 - traefik_dashboard_user
                 - traefik_dashboard_password
@@ -446,8 +444,6 @@ jobs:
                   
           networks:
             conexao-network-swarm:
-              external: true
-            conexao-network:
               external: true
               
           secrets:
@@ -514,6 +510,43 @@ jobs:
           
           echo "🎉 Traefik Infrastructure deployment completed successfully!"
           echo "🌐 Dashboard: https://traefik.conexaodesorte.com.br"
+
+      - name: Conectar Traefik à rede legado
+        run: |
+          echo "🔗 Conectando Traefik à rede legado para suporte híbrido..."
+          
+          # Aguardar Traefik estar completamente pronto
+          sleep 10
+          
+          # Obter container ID do Traefik (via Docker Swarm)
+          TRAEFIK_CONTAINER=""
+          for i in {1..30}; do
+            TRAEFIK_CONTAINER=$(docker ps --format "{{.Names}}" --filter "label=com.docker.swarm.service.name=conexao-traefik_traefik" | head -1 || echo "")
+            if [ -n "$TRAEFIK_CONTAINER" ]; then
+              break
+            fi
+            echo "⏳ Aguardando container Traefik... ($i/30)"
+            sleep 2
+          done
+          
+          if [ -z "$TRAEFIK_CONTAINER" ]; then
+            echo "❌ Container Traefik não encontrado após 60 segundos"
+            exit 1
+          fi
+          
+          echo "📡 Container Traefik encontrado: $TRAEFIK_CONTAINER"
+          
+          # Conectar Traefik à rede legado (conexao-network) 
+          echo "🌐 Conectando Traefik à rede legado conexao-network..."
+          if docker network connect conexao-network "$TRAEFIK_CONTAINER" 2>/dev/null; then
+            echo "✅ Traefik conectado à rede legado com sucesso!"
+          else
+            echo "⚠️ Traefik já estava conectado à rede legado ou erro ocorreu"
+          fi
+          
+          # Verificar conectividade
+          echo "🔍 Verificando redes do Traefik..."
+          docker inspect "$TRAEFIK_CONTAINER" | jq -r '.[0].NetworkSettings.Networks | keys[]' | sort
 
       - name: Configurar roteamento para containers existentes
         run: |
