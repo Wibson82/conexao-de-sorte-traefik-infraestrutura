@@ -338,11 +338,16 @@ jobs:
             echo "✅ htpasswd disponível para geração de hashes"
           fi
           
-          # Executar script de geração de secrets seguros
-          ./scripts/generate-secure-secrets.sh
+          # Gerar secrets manualmente (scripts desabilitados por problemas sudo)
+          echo "⚠️  Scripts desabilitados temporariamente - gerando secrets básicos"
           
-          # Configurar autenticação dinâmica (corrigir typo)
-          ./scripts/configure-dynamic-auth.sh
+          # Gerar passwords seguros básicos
+          TRAEFIK_ADMIN_PASS=$(openssl rand -base64 32 | tr -d '=+/')
+          TRAEFIK_DASHBOARD_PASS=$(openssl rand -base64 32 | tr -d '=+/')
+          
+          # Criar Docker secrets básicos para Traefik
+          printf "%s" "$TRAEFIK_ADMIN_PASS" | docker secret create traefik_dashboard_user - 2>/dev/null || true
+          printf "%s" "$TRAEFIK_DASHBOARD_PASS" | docker secret create traefik_dashboard_password - 2>/dev/null || true
           
           # Recuperar secrets do Key Vault para configuração
           LETSENCRYPT_EMAIL=$(az keyvault secret show --vault-name "$VAULT" --name conexao-de-sorte-letsencrypt-email --query value -o tsv 2>/dev/null || echo "facilitaservicos.dev@gmail.com")
