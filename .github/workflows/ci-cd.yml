@@ -331,9 +331,12 @@ jobs:
           
           echo "🔐 Configurando secrets seguros do Traefik com Azure Key Vault: $VAULT"
           
-          # Instalar dependências
-          sudo apt-get update -qq
-          sudo apt-get install -y apache2-utils
+          # Verificar se apache2-utils está disponível
+          if ! command -v htpasswd >/dev/null 2>&1; then
+            echo "⚠️  htpasswd não disponível, secrets serão gerados sem bcrypt"
+          else
+            echo "✅ htpasswd disponível para geração de hashes"
+          fi
           
           # Executar script de geração de secrets seguros
           ./scripts/generate-secure-secrets.sh
