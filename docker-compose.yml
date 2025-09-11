@@ -34,7 +34,7 @@ services:
       - TZ=${TZ:-America/Sao_Paulo}
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-seu-email@exemplo.com.br}
     networks:
-      - conexao-network
+      - conexao-network-swarm
     volumes:
       # Docker socket para service discovery automático
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -65,11 +65,60 @@ services:
       - traefik.http.routers.dashboard-redirect.middlewares=https-redirect@file
       
       # ✅ ROTEAMENTO PARA CONTAINERS EXISTENTES (coexistência)
+      
+      # Backend Legacy - Rota principal API
+      - traefik.http.routers.backend-api.rule=Host(`api.conexaodesorte.com.br`)
+      - traefik.http.routers.backend-api.entrypoints=websecure
+      - traefik.http.routers.backend-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-api.middlewares=cors-api@file,rate-limit-api@file,security-headers@file
+      - traefik.http.routers.backend-api.service=backend-legacy
+      - traefik.http.services.backend-legacy.loadbalancer.server.url=http://backend-prod:8080
+      
+      # Backend Legacy - Rota de fallback /legacy
       - traefik.http.routers.backend-legacy.rule=Host(`api.conexaodesorte.com.br`) && PathPrefix(`/legacy`)
       - traefik.http.routers.backend-legacy.entrypoints=websecure
       - traefik.http.routers.backend-legacy.tls.certresolver=letsencrypt
       - traefik.http.routers.backend-legacy.service=backend-legacy
-      - traefik.http.services.backend-legacy.loadbalancer.server.url=http://backend-prod:8080
+      
+      # Frontend - Roteamento principal
+      - traefik.http.routers.frontend.rule=Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
+      - traefik.http.routers.frontend.middlewares=security-headers@file,gzip@file
+      - traefik.http.routers.frontend.service=frontend
+      - traefik.http.services.frontend.loadbalancer.server.url=http://conexao-frontend:3000
+      
+      # Observabilidade - Zipkin
+      - traefik.http.routers.zipkin.rule=Host(`zipkin.conexaodesorte.com.br`)
+      - traefik.http.routers.zipkin.entrypoints=websecure
+      - traefik.http.routers.zipkin.tls.certresolver=letsencrypt
+      - traefik.http.routers.zipkin.middlewares=admin-auth@file,security-headers@file
+      - traefik.http.routers.zipkin.service=zipkin
+      - traefik.http.services.zipkin.loadbalancer.server.url=http://conexao-zipkin:9411
+      
+      # Observabilidade - Jaeger
+      - traefik.http.routers.jaeger.rule=Host(`jaeger.conexaodesorte.com.br`)
+      - traefik.http.routers.jaeger.entrypoints=websecure
+      - traefik.http.routers.jaeger.tls.certresolver=letsencrypt
+      - traefik.http.routers.jaeger.middlewares=admin-auth@file,security-headers@file
+      - traefik.http.routers.jaeger.service=jaeger
+      - traefik.http.services.jaeger.loadbalancer.server.url=http://conexao-jaeger:16686
+      
+      # Observabilidade - Prometheus
+      - traefik.http.routers.prometheus.rule=Host(`prometheus.conexaodesorte.com.br`)
+      - traefik.http.routers.prometheus.entrypoints=websecure
+      - traefik.http.routers.prometheus.tls.certresolver=letsencrypt
+      - traefik.http.routers.prometheus.middlewares=admin-auth@file,security-headers@file
+      - traefik.http.routers.prometheus.service=prometheus
+      - traefik.http.services.prometheus.loadbalancer.server.url=http://conexao-prometheus:9090
+      
+      # RabbitMQ Management
+      - traefik.http.routers.rabbitmq.rule=Host(`rabbitmq.conexaodesorte.com.br`)
+      - traefik.http.routers.rabbitmq.entrypoints=websecure
+      - traefik.http.routers.rabbitmq.tls.certresolver=letsencrypt
+      - traefik.http.routers.rabbitmq.middlewares=admin-auth@file,security-headers@file
+      - traefik.http.routers.rabbitmq.service=rabbitmq
+      - traefik.http.services.rabbitmq.loadbalancer.server.url=http://conexao-rabbitmq:15672
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
@@ -81,9 +130,9 @@ services:
 # 🌐 NETWORKS
 # ============================================================================
 networks:
-  conexao-network:
-    name: conexao-network
-    external: true  # Rede criada pelo projeto infraestrutura-core
+  conexao-network-swarm:
+    name: conexao-network-swarm
+    external: true  # Rede Swarm criada pelo projeto infraestrutura-core
 
 # ============================================================================
 # 📝 DOCUMENTAÇÃO - MICROSERVIÇOS REMOVIDOS

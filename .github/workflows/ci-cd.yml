@@ -262,7 +262,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: false
 
-      - name: Provisionar secrets runtime Traefik
+      - name: 🔐 Gerar e configurar secrets seguros Traefik
         shell: bash
         run: |
           set -euo pipefail
@@ -274,16 +274,26 @@ jobs:
             exit 1
           fi
           
-          echo "Loading Traefik secrets from Azure Key Vault: $VAULT" >&2
+          echo "🔐 Configurando secrets seguros do Traefik com Azure Key Vault: $VAULT"
           
-          # Como os secrets específicos do Traefik não existem, usar valores padrão seguros
-          echo "⚠️ Usando configuração padrão para Traefik (secrets específicos não disponíveis)"
+          # Instalar dependências
+          sudo apt-get update -qq
+          sudo apt-get install -y apache2-utils
           
-          # Criar Docker secrets com valores funcionais
-          printf "admin" | docker secret create traefik_dashboard_user - 2>/dev/null || docker secret update traefik_dashboard_user -
-          printf "TraefikAdmin123!" | docker secret create traefik_dashboard_password - 2>/dev/null || docker secret update traefik_dashboard_password -
-          printf "admin@conexaodesorte.com.br" | docker secret create letsencrypt_email - 2>/dev/null || docker secret update letsencrypt_email -
-          printf "conexaodesorte.com.br" | docker secret create domain_name - 2>/dev/null || docker secret update domain_name -
+          # Executar script de geração de secrets seguros
+          ./scripts/generate-secure-secrets.sh
+          
+          # Configurar autenticação dinâmica
+          ./scripts/configure-dynamic-auth.sh
+          
+          # Recuperar secrets do Key Vault para configuração
+          LETSENCRYPT_EMAIL=$(az keyvault secret show --vault-name "$VAULT" --name conexao-de-sorte-letsencrypt-email --query value -o tsv 2>/dev/null || echo "facilitaservicos.dev@gmail.com")
+          
+          # Criar Docker secrets seguros (sem exposição nos logs)
+          printf "%s" "$LETSENCRYPT_EMAIL" | docker secret create letsencrypt_email - 2>/dev/null || true
+          printf "conexaodesorte.com.br" | docker secret create domain_name - 2>/dev/null || true
+          
+          echo "✅ Secrets do Traefik configurados com sucesso"
 
       - name: Deploy Traefik via docker stack
         run: |

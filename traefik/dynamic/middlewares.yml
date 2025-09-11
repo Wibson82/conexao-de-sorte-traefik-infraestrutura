@@ -33,6 +33,11 @@ http:
         scheme: https
         permanent: true
     
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+    
     redirect-to-www:
       redirectRegex:
         regex: "^https://conexaodesorte.com.br/(.*)"
@@ -138,18 +143,19 @@ http:
     # Autenticação específica para serviços críticos
     crypto-auth:
       basicAuth:
-        users:
-          - "crypto:$2y$10$..."  # Placeholder - configurar em produção
+        users: []  # Configurado dinamicamente via Azure Key Vault
     
     audit-auth:
       basicAuth:
-        users:
-          - "audit:$2y$10$..."  # Placeholder - configurar em produção
+        users: []  # Configurado dinamicamente via Azure Key Vault
     
     admin-auth:
       basicAuth:
-        users:
-          - "admin:$2y$10$..."  # Placeholder - configurar em produção
+        users: []  # Configurado dinamicamente via Azure Key Vault
+    
+    dashboard-auth:
+      basicAuth:
+        users: []  # Configurado dinamicamente via Azure Key Vault
     
     # Security Headers
     security-headers:
