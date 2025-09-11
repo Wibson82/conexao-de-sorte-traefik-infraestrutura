@@ -284,7 +284,7 @@ jobs:
           ./scripts/generate-secure-secrets.sh
           
           # Configurar autenticação dinâmica
-          ./scripts/configure-dynamic-auth.sh
+          ./scripts/configure-dynamic-auth.shO
           
           # Recuperar secrets do Key Vault para configuração
           LETSENCRYPT_EMAIL=$(az keyvault secret show --vault-name "$VAULT" --name conexao-de-sorte-letsencrypt-email --query value -o tsv 2>/dev/null || echo "facilitaservicos.dev@gmail.com")
