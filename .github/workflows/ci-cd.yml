@@ -269,22 +269,19 @@ jobs:
         run: |
           echo "🧹 Limpando workspace Traefik com permissões corretas..."
           
-          # Parar processos Traefik se existirem (apenas se usuário tiver permissão)
-          pkill -f "traefik" || true
-          sleep 2
-          
-          # Limpar workspace de forma segura sem sudo
-          if [ -d "$GITHUB_WORKSPACE" ]; then
-            echo "🗑️  Corrigindo permissões e removendo workspace..."
-            # Corrigir permissões sem sudo
-            chmod -R 755 "$GITHUB_WORKSPACE" 2>/dev/null || true
-            # Remover conteúdo sem sudo
-            rm -rf "$GITHUB_WORKSPACE"/* 2>/dev/null || true
+          # Verificar permissões e processos apenas se possível
+          if pgrep -f "traefik" >/dev/null 2>&1; then
+            echo "⚠️  Processos Traefik detectados - pulando parada por falta de permissão"
           fi
           
-          # Recriar estrutura limpa
+          # Limpar workspace usando GitHub Actions cleanup
+          echo "🧹 Usando cleanup automático do GitHub Actions..."
+          
+          # GitHub Actions já limpa o workspace automaticamente
+          # Não precisamos fazer limpeza manual neste caso
+          
+          # Garantir diretório existe
           mkdir -p "$GITHUB_WORKSPACE" 2>/dev/null || true
-          chmod 755 "$GITHUB_WORKSPACE" 2>/dev/null || true
           
       - uses: actions/checkout@v4
         with:
