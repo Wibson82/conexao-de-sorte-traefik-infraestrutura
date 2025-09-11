@@ -389,9 +389,9 @@ jobs:
               command:
                 - "--api.dashboard=true"
                 - "--api.debug=true"
-                - "--providers.docker=true"
-                - "--providers.docker.swarmMode=true"
-                - "--providers.docker.exposedbydefault=false"
+                - "--providers.swarm=true"
+                - "--providers.swarm.network=conexao-network-swarm"
+                - "--providers.swarm.exposedbydefault=false"
                 - "--providers.file.directory=/etc/traefik/dynamic"
                 - "--providers.file.watch=true"
                 - "--entrypoints.web.address=:80"
@@ -507,9 +507,9 @@ jobs:
           echo "🎉 Traefik Infrastructure deployment completed successfully!"
           echo "🌐 Dashboard: https://traefik.conexaodesorte.com.br"
 
-      - name: Integrar containers existentes ao Traefik
+      - name: Configurar roteamento para containers existentes
         run: |
-          echo "🔗 Integrando containers existentes ao roteamento Traefik..."
+          echo "🔗 Configurando roteamento Traefik para containers existentes..."
           
           # Conectar containers à rede do Swarm
           echo "🌐 Conectando containers à rede conexao-network-swarm..."
@@ -517,40 +517,25 @@ jobs:
           # Frontend (porta 3000)
           if docker ps --format "table {{.Names}}" | grep -q "conexao-frontend"; then
             echo "🔗 Conectando frontend à rede Swarm..."
-            docker network connect conexao-network-swarm conexao-frontend 2>/dev/null || echo "⚠️ Frontend já conectado ou erro"
-            
-            # Adicionar labels do Traefik ao container frontend
-            docker update --label-add "traefik.enable=true" \
-              --label-add "traefik.http.routers.frontend.rule=Host(\`conexaodesorte.com.br\`)" \
-              --label-add "traefik.http.routers.frontend.tls.certresolver=letsencrypt" \
-              --label-add "traefik.http.services.frontend.loadbalancer.server.port=3000" \
-              --label-add "traefik.docker.network=conexao-network-swarm" \
-              conexao-frontend 2>/dev/null || echo "⚠️ Labels frontend não aplicadas"
+            docker network connect conexao-network-swarm conexao-frontend 2>/dev/null || echo "⚠️ Frontend já conectado"
           fi
           
           # Backend (porta 8080)
           BACKEND_CONTAINER=$(docker ps --format "{{.Names}}" | grep -E "(conexao.*backend|backend.*conexao)" | head -1)
           if [ -n "$BACKEND_CONTAINER" ]; then
             echo "🔗 Conectando backend ($BACKEND_CONTAINER) à rede Swarm..."
-            docker network connect conexao-network-swarm "$BACKEND_CONTAINER" 2>/dev/null || echo "⚠️ Backend já conectado ou erro"
-            
-            # Adicionar labels do Traefik ao container backend
-            docker update --label-add "traefik.enable=true" \
-              --label-add "traefik.http.routers.backend.rule=Host(\`api.conexaodesorte.com.br\`) || PathPrefix(\`/api\`)" \
-              --label-add "traefik.http.routers.backend.tls.certresolver=letsencrypt" \
-              --label-add "traefik.http.services.backend.loadbalancer.server.port=8080" \
-              --label-add "traefik.docker.network=conexao-network-swarm" \
-              "$BACKEND_CONTAINER" 2>/dev/null || echo "⚠️ Labels backend não aplicadas"
+            docker network connect conexao-network-swarm "$BACKEND_CONTAINER" 2>/dev/null || echo "⚠️ Backend já conectado"
           fi
           
           # MySQL (porta 3306) - apenas conectar à rede (sem roteamento HTTP)
           if docker ps --format "table {{.Names}}" | grep -q "conexao-mysql"; then
             echo "🔗 Conectando MySQL à rede Swarm..."
-            docker network connect conexao-network-swarm conexao-mysql 2>/dev/null || echo "⚠️ MySQL já conectado ou erro"
+            docker network connect conexao-network-swarm conexao-mysql 2>/dev/null || echo "⚠️ MySQL já conectado"
           fi
           
-          echo "✅ Integração dos containers existentes concluída!"
-          echo "🌍 Rotas configuradas:"
+          echo "✅ Containers conectados à rede Swarm!"
+          echo "⚠️  NOTA: Para roteamento completo, os containers devem ser migrados para Docker Swarm Services"
+          echo "🌍 Rotas disponíveis após migração:"
           echo "  - Frontend: https://conexaodesorte.com.br"
           echo "  - Backend: https://api.conexaodesorte.com.br"
           echo "  - Dashboard Traefik: https://traefik.conexaodesorte.com.br"
