@@ -389,9 +389,14 @@ jobs:
               command:
                 - "--api.dashboard=true"
                 - "--api.debug=true"
+                # HÍBRIDO: Swarm + Docker providers para suportar legado
                 - "--providers.swarm=true"
                 - "--providers.swarm.network=conexao-network-swarm"
                 - "--providers.swarm.exposedbydefault=false"
+                - "--providers.docker=true"
+                - "--providers.docker.network=conexao-network"
+                - "--providers.docker.exposedbydefault=false"
+                - "--providers.docker.watch=true"
                 - "--providers.file.directory=/etc/traefik/dynamic"
                 - "--providers.file.watch=true"
                 - "--entrypoints.web.address=:80"
@@ -408,6 +413,7 @@ jobs:
                 - "8080:8080"
               networks:
                 - conexao-network-swarm
+                - conexao-network
               secrets:
                 - traefik_dashboard_user
                 - traefik_dashboard_password
@@ -440,6 +446,8 @@ jobs:
                   
           networks:
             conexao-network-swarm:
+              external: true
+            conexao-network:
               external: true
               
           secrets:
@@ -509,9 +517,9 @@ jobs:
 
       - name: Configurar roteamento para containers existentes
         run: |
-          echo "🔗 Configurando roteamento Traefik para containers existentes..."
+          echo "🔗 Configurando roteamento Traefik HÍBRIDO (Swarm + Docker)..."
           
-          # Conectar containers à rede do Swarm
+          # Conectar containers novos à rede do Swarm
           echo "🌐 Conectando containers à rede conexao-network-swarm..."
           
           # Frontend (porta 3000)
@@ -520,24 +528,65 @@ jobs:
             docker network connect conexao-network-swarm conexao-frontend 2>/dev/null || echo "⚠️ Frontend já conectado"
           fi
           
-          # Backend (porta 8080)
-          BACKEND_CONTAINER=$(docker ps --format "{{.Names}}" | grep -E "(conexao.*backend|backend.*conexao)" | head -1)
-          if [ -n "$BACKEND_CONTAINER" ]; then
-            echo "🔗 Conectando backend ($BACKEND_CONTAINER) à rede Swarm..."
-            docker network connect conexao-network-swarm "$BACKEND_CONTAINER" 2>/dev/null || echo "⚠️ Backend já conectado"
-          fi
-          
           # MySQL (porta 3306) - apenas conectar à rede (sem roteamento HTTP)
           if docker ps --format "table {{.Names}}" | grep -q "conexao-mysql"; then
             echo "🔗 Conectando MySQL à rede Swarm..."
             docker network connect conexao-network-swarm conexao-mysql 2>/dev/null || echo "⚠️ MySQL já conectado"
           fi
           
-          echo "✅ Containers conectados à rede Swarm!"
-          echo "⚠️  NOTA: Para roteamento completo, os containers devem ser migrados para Docker Swarm Services"
-          echo "🌍 Rotas disponíveis após migração:"
+          echo "🔧 Configurando rotas dinâmicas para backend LEGADO..."
+          # Criar configuração dinâmica para backend legado
+          mkdir -p ./traefik/dynamic
+          
+          # Buscar backend legado na rede conexao-network
+          BACKEND_LEGADO=$(docker ps --format "{{.Names}}" --filter "network=conexao-network" | grep -E "(backend|conexao)" | head -1 || echo "")
+          
+          if [ -n "$BACKEND_LEGADO" ]; then
+            echo "📡 Backend legado encontrado: $BACKEND_LEGADO"
+            
+            # Obter IP do backend legado na rede conexao-network  
+            BACKEND_IP=$(docker inspect "$BACKEND_LEGADO" | jq -r '.[0].NetworkSettings.Networks["conexao-network"].IPAddress' 2>/dev/null || echo "")
+            
+            if [ -n "$BACKEND_IP" ] && [ "$BACKEND_IP" != "null" ]; then
+              echo "🌐 Backend legado IP: $BACKEND_IP"
+              
+              # Criar configuração dinâmica para roteamento do backend legado
+              cat > ./traefik/dynamic/legacy-backend.yml <<EOF
+          http:
+            routers:
+              backend-legacy:
+                rule: "Host(\`conexaodesorte.com.br\`) && PathPrefix(\`/rest/\`)"
+                service: backend-legacy-service
+                tls:
+                  certresolver: letsencrypt
+              backend-legacy-www:
+                rule: "Host(\`www.conexaodesorte.com.br\`) && PathPrefix(\`/rest/\`)"
+                service: backend-legacy-service
+                tls:
+                  certresolver: letsencrypt
+            
+            services:
+              backend-legacy-service:
+                loadBalancer:
+                  servers:
+                    - url: "http://$BACKEND_IP:8080"
+                  healthCheck:
+                    path: "/rest/health"
+                    interval: "30s"
+          EOF
+              echo "✅ Configuração dinâmica criada para backend legado!"
+            else
+              echo "❌ Não foi possível obter IP do backend legado"
+            fi
+          else
+            echo "⚠️ Backend legado não encontrado na rede conexao-network"
+          fi
+          
+          echo "✅ Configuração híbrida concluída!"
+          echo "🌍 Rotas configuradas:"
           echo "  - Frontend: https://conexaodesorte.com.br"
-          echo "  - Backend: https://api.conexaodesorte.com.br"
+          echo "  - Backend Legado: https://conexaodesorte.com.br/rest/"
+          echo "  - Backend Legado: https://www.conexaodesorte.com.br/rest/"
           echo "  - Dashboard Traefik: https://traefik.conexaodesorte.com.br"
 
 # ----------------------------------------------------------------------
