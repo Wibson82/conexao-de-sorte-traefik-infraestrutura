@@ -11,8 +11,15 @@ echo "🔧 Preparing environment for Traefik deploy..."
 # Ensure overlay network exists
 docker network create --driver overlay conexao-network-swarm 2>/dev/null || true
 
-# Ensure letsencrypt directory exists (for bind mount in compose)
+# Ensure required directories exist
 mkdir -p ./letsencrypt || true
+mkdir -p ./logs/traefik || true
+
+# Set proper permissions for acme.json
+if [ ! -f ./letsencrypt/acme.json ]; then
+    touch ./letsencrypt/acme.json
+fi
+chmod 600 ./letsencrypt/acme.json
 
 echo "🚀 Deploying stack $STACK_NAME from $COMPOSE_FILE"
 docker stack deploy -c "$COMPOSE_FILE" --with-registry-auth "$STACK_NAME"

@@ -24,9 +24,13 @@ jobs:
       - name: Prepare scripts
         run: |
           chmod +x .github/workflows/scripts/validate-traefik.sh
+          chmod +x .github/workflows/scripts/security-validation.sh
 
       - name: Validate Traefik Configs
         run: .github/workflows/scripts/validate-traefik.sh
+
+      - name: Security Validation
+        run: .github/workflows/scripts/security-validation.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -55,7 +59,7 @@ jobs:
 
       - name: Prepare scripts
         run: |
-          chmod +x .github/workflows/scripts/deploy-traefik.sh .github/workflows/scripts/healthcheck-traefik.sh
+          chmod +x .github/workflows/scripts/deploy-traefik.sh .github/workflows/scripts/healthcheck-traefik.sh .github/workflows/scripts/connectivity-validation.sh
 
       - name: Deploy Traefik Stack
         env:
@@ -67,3 +71,8 @@ jobs:
         env:
           STACK_NAME: conexao-traefik
         run: .github/workflows/scripts/healthcheck-traefik.sh
+
+      - name: Connectivity Validation
+        env:
+          STACK_NAME: conexao-traefik
+        run: .github/workflows/scripts/connectivity-validation.sh
