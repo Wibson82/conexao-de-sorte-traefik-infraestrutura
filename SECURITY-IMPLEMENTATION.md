@@ -29,6 +29,11 @@ permissions:
 ### 3. 📋 **Segredos Padronizados**
 Implementação completa seguindo `SEGREDOS_PADRONIZADOS.md`:
 
+**🔧 Tratamento Seguro de Valores Multilinhas:**
+- Detecção automática de chaves privadas/públicas
+- Uso de formato EOF para valores com quebras de linha
+- Proteção contra injection de comandos
+
 #### **🔴 Redis Configuration**
 - `conexao-de-sorte-redis-host`
 - `conexao-de-sorte-redis-port`
@@ -105,6 +110,7 @@ Azure Key Vault → CI/CD Pipeline → Environment Variables → Docker Compose 
 - 🔐 **Autenticação federada** GitHub ↔ Azure
 - 🔑 **Gestão centralizada** de segredos
 - 📋 **Padronização** da nomenclatura
+- 🛡️ **Tratamento seguro** de valores multilinhas
 
 ### ✅ **Operacional**
 - 🔄 **Sincronização automática** de segredos
@@ -119,6 +125,11 @@ Azure Key Vault → CI/CD Pipeline → Environment Variables → Docker Compose 
 - 👥 **Separação de responsabilidades**
 
 ## 🔧 **Configuração Necessária**
+
+### **Correções Aplicadas:**
+1. **Encoding Issues**: Removidos emojis e caracteres especiais do bash
+2. **Multiline Values**: Implementado tratamento seguro para chaves privadas/públicas
+3. **Command Injection**: Proteção contra valores maliciosos em segredos
 
 ### **GitHub Secrets Required:**
 ```
