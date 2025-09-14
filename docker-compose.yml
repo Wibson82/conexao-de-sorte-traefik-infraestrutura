@@ -146,9 +146,13 @@ services:
 # 🌐 NETWORKS
 # =============================================================================
 networks:
-  ${DOCKER_NETWORK_NAME:-conexao-network}:
-    name: ${DOCKER_NETWORK_NAME:-conexao-network}
-    external: true  # Criada pelo projeto infraestrutura-core
+  conexao-network:
+    name: conexao-network
+    external: true  # Para modo standalone
+
+  conexao-network-swarm:
+    name: conexao-network-swarm
+    external: true  # Para modo Docker Swarm
 
 # =============================================================================
 # 📋 INSTRUÇÕES DE USO

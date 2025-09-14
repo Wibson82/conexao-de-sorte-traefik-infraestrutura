@@ -1,0 +1,132 @@
+version: '3.8'
+
+# =============================================================================
+# ⚠️ DOCKER SWARM VERSION - Conexão de Sorte Traefik Infrastructure
+# =============================================================================
+# Este arquivo é específico para Docker Swarm deployment
+# Baseado no docker-compose.yml principal com ajustes para Swarm
+# =============================================================================
+
+services:
+  traefik:
+    image: traefik:v3.5.2  # Latest stable
+
+    # ==========================================================================
+    # 📡 PORTS
+    # ==========================================================================
+    ports:
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS
+      # Dashboard via HTTPS routing (sem porta externa 8080)
+    networks:
+      - conexao-network-swarm
+
+    # ==========================================================================
+    # 🔧 ENVIRONMENT VARIABLES
+    # ==========================================================================
+    environment:
+      - TZ=${TZ:-America/Sao_Paulo}
+      - TRAEFIK_ACME_EMAIL=${TRAEFIK_ACME_EMAIL:-facilitaservicos.tec@gmail.com}
+      # Security
+      - TRAEFIK_API_DASHBOARD=${ENABLE_DASHBOARD:-true}
+      - TRAEFIK_API_INSECURE=${API_INSECURE:-false}
+      # Performance
+      - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TRAEFIK_ACCESSLOG=${ACCESS_LOG_ENABLED:-true}
+
+    # ==========================================================================
+    # 📁 VOLUMES
+    # ==========================================================================
+    volumes:
+      # Docker socket para service discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+      # Configuração estática principal
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+
+      # Configurações dinâmicas
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+
+      # SSL/TLS certificates
+      - ./letsencrypt:/letsencrypt
+
+      # Logs (para auditoria)
+      - ./logs/traefik:/var/log/traefik
+
+      # Secrets para autenticação
+      - ./secrets:/secrets:ro
+
+    # ==========================================================================
+    # 🏷️ LABELS (Docker Swarm)
+    # ==========================================================================
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        # Habilitar Traefik para este serviço
+        - traefik.enable=true
+        - traefik.docker.network=conexao-network-swarm
+
+        # =======================================================================
+        # 📊 DASHBOARD HTTPS (sem porta externa)
+        # =======================================================================
+        - traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)
+        - traefik.http.routers.dashboard.entrypoints=websecure
+        - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
+        - traefik.http.routers.dashboard.service=api@internal
+
+        # Dashboard com autenticação
+        - traefik.http.routers.dashboard.middlewares=dashboard-auth,security-headers
+
+        # =======================================================================
+        # 🔐 DASHBOARD AUTH
+        # =======================================================================
+        - traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/secrets/traefik-basicauth
+
+        # =======================================================================
+        # 🛡️ SECURITY HEADERS
+        # =======================================================================
+        - traefik.http.middlewares.security-headers.headers.frameDeny=true
+        - traefik.http.middlewares.security-headers.headers.sslRedirect=true
+        - traefik.http.middlewares.security-headers.headers.browserXssFilter=true
+        - traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true
+        - traefik.http.middlewares.security-headers.headers.forceSTSHeader=true
+        - traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true
+        - traefik.http.middlewares.security-headers.headers.stsPreload=true
+        - traefik.http.middlewares.security-headers.headers.stsSeconds=31536000
+
+        # =======================================================================
+        # 🔀 API BACKEND PROXY
+        # =======================================================================
+        - traefik.http.routers.api-backend.rule=Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`)
+        - traefik.http.routers.api-backend.entrypoints=websecure
+        - traefik.http.routers.api-backend.tls.certresolver=letsencrypt
+        - traefik.http.routers.api-backend.service=api-backend-service
+        - traefik.http.services.api-backend-service.loadbalancer.server.port=${BACKEND_PORT:-8080}
+
+        # CORS para API
+        - traefik.http.routers.api-backend.middlewares=api-cors,security-headers
+
+        # =======================================================================
+        # 🌐 CORS MIDDLEWARE
+        # =======================================================================
+        - traefik.http.middlewares.api-cors.headers.accessControlAllowMethods=GET,OPTIONS,PUT,POST,DELETE,PATCH
+        - traefik.http.middlewares.api-cors.headers.accessControlAllowOriginList=https://conexaodesorte.com.br,https://www.conexaodesorte.com.br
+        - traefik.http.middlewares.api-cors.headers.accessControlMaxAge=100
+        - traefik.http.middlewares.api-cors.headers.addVaryHeader=true
+        - traefik.http.middlewares.api-cors.headers.accessControlAllowCredentials=true
+        - traefik.http.middlewares.api-cors.headers.accessControlAllowHeaders=Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With
+
+# =============================================================================
+# 🌐 NETWORKS
+# =============================================================================
+networks:
+  conexao-network-swarm:
+    name: conexao-network-swarm
+    external: true

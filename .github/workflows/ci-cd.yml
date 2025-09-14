@@ -43,6 +43,7 @@ jobs:
           name: traefik-configs
           path: |
             docker-compose.yml
+            docker-compose.swarm.yml
             traefik/
             letsencrypt/
 

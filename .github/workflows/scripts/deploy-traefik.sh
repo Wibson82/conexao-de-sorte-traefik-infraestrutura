@@ -11,6 +11,15 @@ echo "🔧 Preparing environment for Traefik deploy..."
 # Check which network to use based on environment variable
 NETWORK_NAME=${DOCKER_NETWORK_NAME:-conexao-network}
 
+# Determine correct compose file based on network type
+if [ "$NETWORK_NAME" = "conexao-network-swarm" ]; then
+  COMPOSE_FILE="docker-compose.swarm.yml"
+  echo "🐝 Using Docker Swarm mode with $COMPOSE_FILE"
+else
+  COMPOSE_FILE="docker-compose.yml"
+  echo "🐳 Using standalone mode with $COMPOSE_FILE"
+fi
+
 # Ensure required network exists
 if [ "$NETWORK_NAME" = "conexao-network-swarm" ]; then
   echo "🌐 Checking Docker Swarm overlay network: $NETWORK_NAME"
