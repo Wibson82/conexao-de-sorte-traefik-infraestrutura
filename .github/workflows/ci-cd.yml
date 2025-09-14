@@ -92,10 +92,10 @@ jobs:
 
           echo "Loading secrets from Azure Key Vault: $VAULT"
           get() {
-            echo "Fetching secret: $1" >&2
+            # SECURITY: Não logar nomes de segredos para evitar exposição
             SECRET_VALUE=$(az keyvault secret show --vault-name "$VAULT" --name "$1" --query value -o tsv 2>/dev/null)
             if [ $? -ne 0 ] || [ -z "$SECRET_VALUE" ]; then
-              echo "ERROR: Secret $1 not found in Azure Key Vault $VAULT" >&2
+              echo "ERROR: Failed to fetch secret from Azure Key Vault $VAULT" >&2
               exit 1
             fi
             echo "$SECRET_VALUE"
@@ -108,6 +108,9 @@ jobs:
             local value
             value=$(get "$secret_name")
 
+            # SECURITY: Mascarar o valor nos logs do GitHub Actions
+            echo "::add-mask::$value"
+
             # Para valores multilinhas, usar formato EOF
             if [[ "$value" == *$'\n'* ]] || [[ "$value" == *"-----BEGIN"* ]] || [[ "$value" == *"-----END"* ]]; then
               echo "$key<<EOF" >> $GITHUB_ENV
@@ -116,9 +119,7 @@ jobs:
             else
               echo "$key=$value" >> $GITHUB_ENV
             fi
-          }
-
-          # SEGREDOS PADRONIZADOS - conforme SEGREDOS_PADRONIZADOS.md
+          }          # SEGREDOS PADRONIZADOS - conforme SEGREDOS_PADRONIZADOS.md
           add_secret "REDIS_HOST" "conexao-de-sorte-redis-host"
           add_secret "REDIS_PORT" "conexao-de-sorte-redis-port"
           add_secret "REDIS_PASSWORD" "conexao-de-sorte-redis-password"
@@ -146,7 +147,8 @@ jobs:
           add_secret "ENCRYPTION_MASTER_PASSWORD" "conexao-de-sorte-encryption-master-password"
           add_secret "ENCRYPTION_BACKUP_KEY" "conexao-de-sorte-encryption-backup-key"
 
-          echo "Azure Key Vault secrets loaded successfully using standardized naming"
+          # SECURITY: Log apenas resumo sem expor nomes ou valores de segredos
+          echo "Successfully loaded 26 secrets from Azure Key Vault using standardized naming"
 
       - name: Prepare scripts
         run: |

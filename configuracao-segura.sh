@@ -26,14 +26,14 @@ fi
 get_secret() {
     local secret_name="$1"
     local vault_name="${AZURE_KEYVAULT_NAME:-conexao-de-sorte-keyvault}"
-    
-    echo "🔑 Recuperando segredo: $secret_name"
+
+    # SECURITY: Não logar nomes de segredos
     az keyvault secret show \
         --vault-name "$vault_name" \
         --name "$secret_name" \
         --query value \
         --output tsv 2>/dev/null || {
-        echo "❌ Erro ao recuperar segredo: $secret_name"
+        echo "❌ Erro ao recuperar segredo do Azure Key Vault"
         return 1
     }
 }
@@ -41,7 +41,7 @@ get_secret() {
 # Função para configurar variáveis de ambiente seguras
 setup_environment() {
     echo "🌍 Configurando variáveis de ambiente..."
-    
+
     # Criar arquivo .env se não existir
     if [[ ! -f .env ]]; then
         cat > .env << 'EOF'
@@ -70,7 +70,7 @@ CORS_ALLOW_CREDENTIALS=true
 EOF
         echo "✅ Arquivo .env criado"
     fi
-    
+
     # Adicionar .env ao .gitignore se não estiver
     if [[ -f .gitignore ]] && ! grep -q ".env" .gitignore; then
         echo ".env" >> .gitignore
@@ -81,10 +81,10 @@ EOF
 # Função para configurar sudo sem senha (desenvolvimento)
 setup_sudo_nopasswd() {
     echo "🔐 Configurando sudo sem senha para desenvolvimento..."
-    
+
     local user=$(whoami)
     local sudoers_file="/etc/sudoers.d/conexao-de-sorte-dev"
-    
+
     if [[ ! -f "$sudoers_file" ]]; then
         echo "$user ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/local/bin/docker-compose" | sudo tee "$sudoers_file" > /dev/null
         sudo chmod 440 "$sudoers_file"
@@ -97,14 +97,14 @@ setup_sudo_nopasswd() {
 # Função para validar configuração
 validate_setup() {
     echo "🔍 Validando configuração..."
-    
+
     # Verificar encoding
     if [[ "$LANG" == "pt_BR.UTF-8" ]]; then
         echo "✅ Encoding UTF-8 configurado"
     else
         echo "❌ Encoding não configurado corretamente"
     fi
-    
+
     # Verificar Azure Key Vault
     if [[ -n "${AZURE_KEYVAULT_NAME:-}" ]]; then
         if az keyvault show --name "$AZURE_KEYVAULT_NAME" &> /dev/null; then
@@ -115,7 +115,7 @@ validate_setup() {
     else
         echo "⚠️  AZURE_KEYVAULT_NAME não definido"
     fi
-    
+
     # Verificar arquivo .env
     if [[ -f .env ]]; then
         echo "✅ Arquivo .env existe"
@@ -127,16 +127,16 @@ validate_setup() {
 # Função principal
 main() {
     echo "🚀 Iniciando configuração segura..."
-    
+
     setup_environment
-    
+
     # Apenas em ambiente de desenvolvimento
     if [[ "${ENVIRONMENT:-dev}" == "dev" ]]; then
         setup_sudo_nopasswd
     fi
-    
+
     validate_setup
-    
+
     echo "✅ Configuração segura concluída!"
     echo ""
     echo "📋 Próximos passos:"
