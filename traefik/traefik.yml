@@ -1,13 +1,6 @@
-global:
-  checkNewVersion: false
-
 api:
   dashboard: true
-
-log:
-  level: INFO
-
-accessLog: {}
+  insecure: false  # Nunca expor dashboard sem autenticação em produção
 
 entryPoints:
   web:
@@ -15,25 +8,26 @@ entryPoints:
     http:
       redirections:
         entryPoint:
-          to: "websecure"
-          scheme: "https"
+          to: websecure
+          scheme: https
+
   websecure:
     address: ":443"
-    http3: {} # HTTP/3 opcional
 
 providers:
   docker:
-    endpoint: "unix:///var/run/docker.sock"
+    swarmMode: true
+    network: conexao-network-swarm
     exposedByDefault: false
-    network: "conexao-network-swarm"
-  file:
-    directory: "/dynamic"
-    watch: true
+
+log:
+  level: INFO
 
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: "facilitaservicos.dev@gmail.com"
-      storage: "/letsencrypt/acme.json"
+      # Defina via env var segura ou arquivo .env
+      email: ${TRAEFIK_ACME_EMAIL}
+      storage: /letsencrypt/acme.json
       httpChallenge:
         entryPoint: web
