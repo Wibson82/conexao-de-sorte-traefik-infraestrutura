@@ -1,8 +1,6 @@
 services:
   traefik:
     image: traefik:v3.5.2
-    container_name: traefik
-    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
@@ -17,7 +15,8 @@ services:
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - ./letsencrypt:/letsencrypt
       - ./logs/traefik:/var/log/traefik
-    entrypoint: ["/bin/sh","-lc","mkdir -p /letsencrypt; [ -f /letsencrypt/acme.json ] || touch /letsencrypt/acme.json; chmod 600 /letsencrypt/acme.json; exec traefik"]
+    command:
+      - --configFile=/etc/traefik/traefik.yml
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
@@ -28,6 +27,11 @@ services:
       placement:
         constraints:
           - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
 networks:
   conexao-network-swarm:

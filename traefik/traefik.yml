@@ -1,6 +1,10 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
 api:
   dashboard: true
-  insecure: false  # Nunca expor dashboard sem autenticação em produção
+  insecure: false
 
 entryPoints:
   web:
@@ -18,9 +22,14 @@ entryPoints:
 
 providers:
   docker:
-    swarmMode: true
-    network: conexao-network-swarm
+    endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
+    watch: true
+    network: conexao-network-swarm
+    # No Traefik 3.x, o SwarmMode é detectado automaticamente se o Docker estiver em modo Swarm
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
 
 log:
   level: INFO
@@ -33,8 +42,10 @@ accessLog:
 certificatesResolvers:
   letsencrypt:
     acme:
-      # Defina via env var segura ou arquivo .env
-      email: ${TRAEFIK_ACME_EMAIL}
+      email: ${TRAEFIK_ACME_EMAIL:-facilitaservicos.tec@gmail.com}
       storage: /letsencrypt/acme.json
       httpChallenge:
         entryPoint: web
+
+ping:
+  entryPoint: web

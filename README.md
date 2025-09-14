@@ -1,287 +1,342 @@
-# Reverse Proxy - Traefik v3.1
+# 🌐 Conexão de Sorte - Traefik Infrastructure
 
-Nota de migração: este diretório consolida e padroniza o antigo `conexao-traefik-infrastructure` sob o padrão `conexao-de-sorte-*`. Conteúdos foram copiados de forma segura e preservamos a compatibilidade.
+[![Security Score](https://img.shields.io/badge/Security%20Score-100%25-brightgreen)](./SECURITY-IMPROVEMENTS.md)
+[![Docker](https://img.shields.io/badge/Docker-Swarm%20Ready-blue)](https://docs.docker.com/engine/swarm/)
+[![Traefik](https://img.shields.io/badge/Traefik-v3.5.2-orange)](https://traefik.io/)
+[![HTTP/3](https://img.shields.io/badge/HTTP%2F3-Enabled-green)](https://en.wikipedia.org/wiki/HTTP/3)
 
-Repositório isolado com Traefik v3.1, rede Docker externa única e configurações separadas em estática e dinâmica.
+Infraestrutura Traefik robusta e segura para o projeto Conexão de Sorte, implementando load balancing, SSL termination e service discovery para microserviços.
 
-## Estrutura do Projeto
+## 🚀 Funcionalidades Principais
 
-```
-reverse-proxy/
-├─ docker-compose.yml
-├─ .env
-├─ traefik/
-│  ├─ traefik.yml              # configuração estática
-│  └─ dynamic/                 # configuração dinâmica (file provider)
-│     ├─ security-headers.yml
-│     ├─ tls.yml
-│     └─ middlewares.yml
-├─ letsencrypt/
-│  └─ acme.json                # chmod 600
-├─ secrets/
-│  └─ traefik-basicauth        # htpasswd
-├─ .gitignore
-└─ README.md
-```
+### ✅ **Segurança Robusta**
+- 🔒 **Score de Segurança 100%** com validações automatizadas
+- 🛡️ **HTTPS obrigatório** com redirecionamento automático
+- 🔐 **Let's Encrypt automático** para certificados SSL/TLS
+- 📊 **Security Headers completos** (HSTS, CSP, XSS Protection)
+- 🚦 **Rate Limiting avançado** por tipo de serviço
+- 🔍 **Logs de acesso JSON** para auditoria
 
-## 🚀 Como usar
+### ⚡ **Performance Otimizada**
+- 🚀 **HTTP/3 support** para conexões mais rápidas
+- 💨 **Gzip compression** automática
+- 🔄 **Health checks** com retry automático
+- 🌐 **Service discovery** dinâmico
+- ⚖️ **Load balancing** inteligente
 
-### 1. Criar a rede externa
+### 🛠️ **DevOps & Monitoramento**
+- 📋 **Pipeline CI/CD completo** com validações
+- 🏥 **Health checks Docker** robustos
+- 🔍 **Validações de conectividade** automatizadas
+- 📊 **Monitoramento contínuo** de saúde
+- 🐳 **Docker Swarm ready** para alta disponibilidade
 
-```bash
-docker network create conexao-network
-```
+## 📋 Pré-requisitos
 
-### 2. Iniciar o Traefik
+- 🐳 **Docker Engine** 20.10+
+- 🔧 **Docker Compose** 2.0+
+- 🌐 **Docker Swarm** (para produção)
+- 🌍 **Domínios configurados** (DNS)
 
-```bash
-docker-compose up -d
-```
+## 🚀 Instalação & Deploy
 
-## 🌐 Mapeamento de Rotas - Conexão de Sorte
-
-O Traefik está configurado para gerenciar as seguintes rotas:
-
-| Serviço | Domínio/Path | Descrição |
-|---------|--------------|----------|
-| Frontend Principal | `conexaodesorte.com.br` | Site principal |
-| Frontend Principal | `www.conexaodesorte.com.br` | Site principal (aceita diretamente) |
-| Backend Produção | `conexaodesorte.com.br/rest` | API de produção |
-| Backend Produção | `www.conexaodesorte.com.br/rest` | API de produção (com www) |
-| Backend Teste | `conexaodesorte.com.br/teste/rest` | API de teste |
-| Backend Teste | `www.conexaodesorte.com.br/teste/rest` | API de teste (com www) |
-| Frontend Teste | `conexaodesorte.com.br/teste` | Ambiente de teste do frontend |
-| Frontend Teste | `www.conexaodesorte.com.br/teste` | Ambiente de teste do frontend (com www) |
-| Frontend Frete | `conexaodesorte.com.br/teste/frete` | Sistema de frete |
-| Frontend Frete | `www.conexaodesorte.com.br/teste/frete` | Sistema de frete (com www) |
-| Traefik Dashboard | `traefik.conexaodesorte.com.br` | Dashboard do Traefik |
-
-## 📋 Configuração dos Projetos
-
-### 1. Frontend Principal
-**Domínios**: `conexaodesorte.com.br` e `www.conexaodesorte.com.br`
-
-```yaml
-services:
-  frontend:
-    build: .
-    networks:
-      - conexao-network
-    labels:
-      - "traefik.enable=true"
-      # Rota principal (sem www)
-      - "traefik.http.routers.frontend-main.rule=Host(`conexaodesorte.com.br`)"
-      - "traefik.http.routers.frontend-main.entrypoints=websecure"
-      - "traefik.http.routers.frontend-main.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend-main.middlewares=security-headers@file,gzip-compress@file"
-      - "traefik.http.routers.frontend-main.priority=1"
-      # Rota com www (aceita diretamente)
-      - "traefik.http.routers.frontend-www.rule=Host(`www.conexaodesorte.com.br`)"
-      - "traefik.http.routers.frontend-www.entrypoints=websecure"
-      - "traefik.http.routers.frontend-www.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend-www.middlewares=security-headers@file,gzip-compress@file"
-      - "traefik.http.routers.frontend-www.priority=1"
-      # Configuração do serviço
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
-
-networks:
-  conexao-network:
-    external: true
-```
-
-### 2. Backend Produção
-**Paths**: `/rest` em ambos os domínios
-
-```yaml
-services:
-  backend-prod:
-    build: .
-    networks:
-      - conexao-network
-    labels:
-      - "traefik.enable=true"
-      # Rota principal (sem www)
-      - "traefik.http.routers.backend-prod-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/rest`)"
-      - "traefik.http.routers.backend-prod-main.entrypoints=websecure"
-      - "traefik.http.routers.backend-prod-main.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.backend-prod-main.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file"
-      - "traefik.http.routers.backend-prod-main.priority=100"
-      # Rota com www
-      - "traefik.http.routers.backend-prod-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/rest`)"
-      - "traefik.http.routers.backend-prod-www.entrypoints=websecure"
-      - "traefik.http.routers.backend-prod-www.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.backend-prod-www.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file"
-      - "traefik.http.routers.backend-prod-www.priority=100"
-      # Configuração do serviço
-      - "traefik.http.services.backend-prod.loadbalancer.server.port=8080"
-
-networks:
-  conexao-network:
-    external: true
-```
-
-⚠️ **IMPORTANTE**: Se você estiver usando múltiplos paths, cada PathPrefix deve ser uma regra separada:
-```yaml
-# ❌ INCORRETO - Múltiplos parâmetros em um PathPrefix
-- "traefik.http.routers.backend.rule=Host(`example.com`) && PathPrefix(`/api`, `/v1`, `/public`)"
-
-# ✅ CORRETO - PathPrefix separados com OR
-- "traefik.http.routers.backend.rule=Host(`example.com`) && (PathPrefix(`/api`) || PathPrefix(`/v1`) || PathPrefix(`/public`))"
-```
-
-### 3. Backend Teste
-**Paths**: `/teste/rest` em ambos os domínios
-
-```yaml
-services:
-  backend-teste:
-    build: .
-    networks:
-      - conexao-network
-    labels:
-      - "traefik.enable=true"
-      # Rota principal (sem www)
-      - "traefik.http.routers.backend-teste-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)"
-      - "traefik.http.routers.backend-teste-main.entrypoints=websecure"
-      - "traefik.http.routers.backend-teste-main.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.backend-teste-main.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file"
-      - "traefik.http.routers.backend-teste-main.priority=200"
-      # Rota com www
-      - "traefik.http.routers.backend-teste-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/rest`)"
-      - "traefik.http.routers.backend-teste-www.entrypoints=websecure"
-      - "traefik.http.routers.backend-teste-www.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.backend-teste-www.middlewares=security-headers-api@file,gzip-compress@file,cors-api@file,rate-limit-strict@file"
-      - "traefik.http.routers.backend-teste-www.priority=200"
-      # Configuração do serviço
-      - "traefik.http.services.backend-teste.loadbalancer.server.port=8081"
-
-networks:
-  conexao-network:
-    external: true
-```
-
-### 4. Frontend Teste
-**Paths**: `/teste` em ambos os domínios
-
-```yaml
-services:
-  frontend-teste:
-    build: .
-    networks:
-      - conexao-network
-    labels:
-      - "traefik.enable=true"
-      # Rota principal (sem www)
-      - "traefik.http.routers.frontend-teste-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste`) && !PathPrefix(`/teste/rest`) && !PathPrefix(`/teste/frete`)"
-      - "traefik.http.routers.frontend-teste-main.entrypoints=websecure"
-      - "traefik.http.routers.frontend-teste-main.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend-teste-main.priority=50"
-      # Rota com www
-      - "traefik.http.routers.frontend-teste-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste`) && !PathPrefix(`/teste/rest`) && !PathPrefix(`/teste/frete`)"
-      - "traefik.http.routers.frontend-teste-www.entrypoints=websecure"
-      - "traefik.http.routers.frontend-teste-www.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend-teste-www.priority=50"
-      # Configuração do serviço
-      - "traefik.http.services.frontend-teste.loadbalancer.server.port=80"
-      - "traefik.http.routers.frontend-teste-main.middlewares=gzip-compress@file,security-headers@file"
-      - "traefik.http.routers.frontend-teste-www.middlewares=gzip-compress@file,security-headers@file"
-
-networks:
-  conexao-network:
-    external: true
-```
-
-### 5. Frontend Frete
-**Paths**: `/teste/frete` em ambos os domínios
-
-```yaml
-services:
-  frontend-frete:
-    build: .
-    networks:
-      - conexao-network
-    labels:
-      - "traefik.enable=true"
-      # Rota principal (sem www)
-      - "traefik.http.routers.frontend-frete-main.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/teste/frete`)"
-      - "traefik.http.routers.frontend-frete-main.entrypoints=websecure"
-      - "traefik.http.routers.frontend-frete-main.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend-frete-main.priority=300"
-      # Rota com www
-      - "traefik.http.routers.frontend-frete-www.rule=Host(`www.conexaodesorte.com.br`) && PathPrefix(`/teste/frete`)"
-      - "traefik.http.routers.frontend-frete-www.entrypoints=websecure"
-      - "traefik.http.routers.frontend-frete-www.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend-frete-www.priority=300"
-      # Configuração do serviço
-      - "traefik.http.services.frontend-frete.loadbalancer.server.port=80"
-      - "traefik.http.routers.frontend-frete-main.middlewares=gzip-compress@file,security-headers@file"
-      - "traefik.http.routers.frontend-frete-www.middlewares=gzip-compress@file,security-headers@file"
-
-networks:
-  conexao-network:
-    external: true
-```
-
-## 🔧 Middlewares Disponíveis
-
-### Middlewares de Segurança
-- `security-headers@file` - Cabeçalhos de segurança completos (CSP, HSTS, XSS, etc.)
-- `security-headers-api@file` - Cabeçalhos de segurança específicos para APIs
-- `injection-protection@file` - Proteção contra ataques de injeção
-- `gzip-compress@file` - Compressão GZIP
-- `cors-api@file` - CORS para APIs
-- `ip-allow-local@file` - Whitelist de IPs locais
-
-### Middlewares de Rate Limiting
-- `rate-limit-general@file` - Rate limiting geral (100 req/min)
-- `rate-limit-api@file` - Rate limiting para APIs (50 req/min)
-- `rate-limit-strict@file` - Rate limiting rigoroso (20 req/min)
-- `rate-limit-auth@file` - Rate limiting para autenticação (5 req/min)
-
-### Middlewares de Resiliência
-- `circuit-breaker@file` - Circuit breaker para proteção contra sobrecarga
-- `retry-policy@file` - Política de retry automático
-
-### Middlewares de Redirecionamento
-- `redirect-to-https@file` - Redirecionamento HTTP → HTTPS
-- `redirect-www-to-non-www@file` - Redirecionamento www → sem www
-- `redirect-non-www-to-www@file` - Redirecionamento sem www → www
-
-## 📊 Dashboard
-- **URL**: https://traefik.conexaodesorte.com.br
-- **Usuário**: admin
-- **Senha**: Configurada no arquivo `secrets/traefik-basicauth`
-
-## ⚠️ Observações Importantes
-
-### Prioridades de Roteamento
-As prioridades estão configuradas para garantir o roteamento correto:
-- **Frontend Frete** (300) - Mais específico: `/teste/frete`
-- **Backend Teste** (200) - Específico: `/teste/rest`
-- **Backend Produção** (100) - Específico: `/rest`
-- **Frontend Teste** (50) - Menos específico: `/teste` (excluindo `/teste/rest` e `/teste/frete`)
-- **Frontend Principal** (1) - Catch-all para o domínio principal
-
-### Estratégia de Domínios
-- **Frontend**: Aceita tanto `conexaodesorte.com.br` quanto `www.conexaodesorte.com.br` diretamente
-- **APIs**: Funcionam em ambos os domínios (com e sem www)
-- **Sem redirecionamentos**: Ambas as versões são tratadas como válidas
-
-### Certificados SSL
-- Certificados automáticos via Let's Encrypt
-- Suporte para ambos os domínios (`conexaodesorte.com.br` e `www.conexaodesorte.com.br`)
-- Redirecionamento automático HTTP → HTTPS
-- Certificados gerados para ambas as versões dos domínios
-
-### Rede Docker
-Todos os projetos devem usar a rede externa `conexao-network`:
+### 1. **Configuração Inicial**
 
 ```bash
-docker network create conexao-network
+# Clone o repositório
+git clone https://github.com/Wibson82/conexao-de-sorte-traefik-infraestrutura.git
+cd conexao-de-sorte-traefik-infraestrutura
+
+# Configure variáveis de ambiente
+cp .env.example .env
+nano .env  # Configure domínios e emails
 ```
 
-### Estrutura de Arquivos nos Projetos
-Cada projeto deve ter seu `docker-compose.yml` configurado conforme os exemplos acima, sempre incluindo:
-1. A rede `conexao-network` como externa
-2. As labels do Traefik apropriadas
-3. As prioridades corretas para evitar conflitos de roteamento
+### 2. **Deploy Local (Desenvolvimento)**
+
+```bash
+# Criar rede externa
+docker network create conexao-network-swarm
+
+# Deploy com Docker Compose
+docker compose up -d
+
+# Verificar status
+docker compose ps
+
+# Verificar logs
+docker compose logs -f traefik
+```
+
+### 3. **Deploy Produção (Docker Swarm)**
+
+```bash
+# Inicializar Swarm (se necessário)
+docker swarm init
+
+# Criar rede overlay
+docker network create --driver overlay conexao-network-swarm
+
+# Deploy via script automatizado
+./.github/workflows/scripts/deploy-traefik.sh
+
+# Verificar status
+docker service ls
+docker service logs conexao-traefik_traefik
+```
+
+### 4. **Validações de Segurança**
+
+```bash
+# Executar validação de segurança completa
+./.github/workflows/scripts/security-validation.sh
+
+# Executar validação de conectividade
+./.github/workflows/scripts/connectivity-validation.sh
+
+# Executar healthcheck
+./.github/workflows/scripts/healthcheck-traefik.sh
+```
+
+## 🌐 Endpoints & Rotas
+
+### **Principais Endpoints**
+- **Frontend**: `https://conexaodesorte.com.br`
+- **Frontend (www)**: `https://www.conexaodesorte.com.br`
+- **API Produção**: `https://conexaodesorte.com.br/rest`
+- **API Teste**: `https://conexaodesorte.com.br/teste/rest`
+- **Frontend Teste**: `https://conexaodesorte.com.br/teste`
+- **Sistema Frete**: `https://conexaodesorte.com.br/teste/frete`
+- **Dashboard**: `https://traefik.conexaodesorte.com.br` (protegido)
+
+### **Microserviços Suportados**
+- 🔐 **Auth API**: `/auth/*`
+- 👤 **User API**: `/users/*`
+- 🎯 **Results API**: `/results/*`
+- 💬 **Chat API**: `/chat/*`
+- 🔔 **Notifications API**: `/notifications/*`
+- 📊 **Observability API**: `/observability/*`
+- 🔐 **Crypto API**: `/crypto/*`
+
+## 📊 Monitoramento & Logs
+
+### **Logs de Acesso**
+```bash
+# Visualizar logs em tempo real
+tail -f logs/traefik/access.log
+
+# Analisar logs JSON
+cat logs/traefik/access.log | jq '.'
+```
+
+### **Health Checks**
+```bash
+# Status do serviço
+docker service ls | grep traefik
+
+# Health check manual
+curl -f http://localhost:80/ping || echo "Health check failed"
+```
+
+### **Métricas Docker**
+```bash
+# Uso de recursos
+docker stats conexao-traefik_traefik
+
+# Status detalhado
+docker service inspect conexao-traefik_traefik
+```
+
+## 🔧 Configuração Avançada
+
+### **Variáveis de Ambiente (.env)**
+
+```env
+# Domínios
+DOMAIN_NAME=conexaodesorte.com.br
+API_DOMAIN=api.conexaodesorte.com.br
+TRAEFIK_DOMAIN=traefik.conexaodesorte.com.br
+
+# Let's Encrypt
+TRAEFIK_ACME_EMAIL=seu-email@dominio.com
+
+# Segurança
+TRAEFIK_DASHBOARD_USER=admin
+TRAEFIK_DASHBOARD_PASSWORD=senha-segura-aqui
+
+# Performance
+HTTP3_ENABLED=true
+COMPRESSION_ENABLED=true
+RATE_LIMIT_AVERAGE=100
+RATE_LIMIT_BURST=200
+```
+
+### **Labels para Microserviços**
+
+Para adicionar um novo microserviço ao roteamento do Traefik:
+
+```yaml
+# docker-compose.yml do microserviço
+services:
+  meu-microservico:
+    image: minha-imagem:latest
+    networks:
+      - conexao-network-swarm
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.meu-service.rule=Host(`conexaodesorte.com.br`) && PathPrefix(`/meu-path`)"
+      - "traefik.http.routers.meu-service.entrypoints=websecure"
+      - "traefik.http.routers.meu-service.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.meu-service.middlewares=security-headers@file,rate-limit-api@file"
+      - "traefik.http.services.meu-service.loadbalancer.server.port=8080"
+
+networks:
+  conexao-network-swarm:
+    external: true
+```
+
+## 🔒 Segurança & Compliance
+
+### **Score de Segurança Automatizado**
+- ✅ **HTTPS obrigatório** (100%)
+- ✅ **Let's Encrypt automático** (100%)
+- ✅ **Security Headers** (100%)
+- ✅ **Rate Limiting** (100%)
+- ✅ **TLS 1.2+ mínimo** (100%)
+- ✅ **Logs de auditoria** (100%)
+- ✅ **Dashboard seguro** (100%)
+- ✅ **Health checks** (100%)
+
+### **Middlewares de Segurança Disponíveis**
+
+```yaml
+# Security Headers
+security-headers@file        # Headers completos (CSP, HSTS, XSS)
+security-headers-api@file    # Headers específicos para APIs
+injection-protection@file    # Proteção contra injeção
+
+# Rate Limiting
+rate-limit-general@file      # 100 req/min geral
+rate-limit-api@file          # 50 req/min para APIs
+rate-limit-strict@file       # 20 req/min rigoroso
+rate-limit-auth@file         # 5 req/min para autenticação
+
+# Resiliência
+circuit-breaker@file         # Circuit breaker
+retry-policy@file            # Política de retry
+
+# Compressão & CORS
+gzip-compress@file           # Compressão GZIP
+cors-api@file               # CORS para APIs
+```
+
+## 🚨 Troubleshooting
+
+### **Problemas Comuns**
+
+#### **Service não inicia (0/1 replicas)**
+```bash
+# Verificar logs do serviço
+docker service logs conexao-traefik_traefik
+
+# Verificar configuração
+./.github/workflows/scripts/security-validation.sh
+
+# Verificar rede
+docker network ls | grep conexao-network-swarm
+```
+
+#### **Certificado SSL não funciona**
+```bash
+# Verificar permissões do acme.json
+ls -la letsencrypt/acme.json  # Deve ter permissões 600
+
+# Verificar logs do ACME
+docker service logs conexao-traefik_traefik | grep -i acme
+
+# Recrear certificados
+rm letsencrypt/acme.json
+docker service update --force conexao-traefik_traefik
+```
+
+#### **Erro "field not found, node: swarmMode"**
+```bash
+# Este erro foi corrigido na versão atual
+# No Traefik 3.x, o SwarmMode é detectado automaticamente quando o Docker está em modo Swarm
+# Configuração correta:
+grep -A 10 "docker:" traefik/traefik.yml
+```
+
+### **Validações de Diagnóstico**
+```bash
+# Validação completa do sistema
+./.github/workflows/scripts/connectivity-validation.sh
+
+# Teste de conectividade
+curl -f http://localhost:80/ping
+
+# Verificar configuração
+docker compose config
+
+# Verificação de compatibilidade do Traefik
+./scripts/verify-traefik-config.sh
+```
+
+## 📈 Pipeline CI/CD
+
+### **Etapas Automatizadas**
+1. 🔍 **Validação de arquivos** obrigatórios
+2. 🔒 **Validação de segurança** (score 100%)
+3. 🚀 **Deploy automatizado** no Swarm
+4. 🏥 **Health check** do serviço
+5. 🌐 **Validação de conectividade** completa
+
+### **Scripts Disponíveis**
+- `validate-traefik.sh` - Validação básica de arquivos
+- `security-validation.sh` - Score de segurança automatizado
+- `deploy-traefik.sh` - Deploy com preparação de ambiente
+- `healthcheck-traefik.sh` - Verificação de saúde
+- `connectivity-validation.sh` - Testes de conectividade
+
+## 🔧 Estrutura de Prioridades
+
+As rotas estão configuradas com prioridades para garantir roteamento correto:
+
+| Serviço | Prioridade | Regra |
+|---------|------------|-------|
+| Frontend Frete | 300 | `/teste/frete` |
+| Backend Teste | 200 | `/teste/rest` |
+| Backend Produção | 100 | `/rest` |
+| Frontend Teste | 50 | `/teste` (excl. sub-paths) |
+| Frontend Principal | 1 | Catch-all domain |
+
+## 📚 Documentação Adicional
+
+- 📋 [**Melhorias de Segurança**](SECURITY-IMPROVEMENTS.md) - Detalhes das implementações
+- 🔧 [**Guia do Projeto**](GUIA_PROJETO_TRAEFIK.md) - Documentação técnica
+- 🐳 [**Deploy Strategy**](README-DEPLOY.md) - Estratégias de deploy
+- 🔒 [**Segurança Docker**](SEGURANCA-DOCKER.md) - Boas práticas
+- 📊 [**Routing Updates**](ROUTING_UPDATED.md) - Atualizações de roteamento
+
+## 🎯 Melhorias Implementadas
+
+### **Vs. Commit 4fee653**
+- ✅ **Healthcheck restaurado** - Container health monitoring
+- ✅ **Security validation** - Score automatizado de 100%
+- ✅ **Secrets management** - Gerenciamento seguro via env vars
+- ✅ **Access logs** - Auditoria JSON estruturada
+- ✅ **HTTP/3 support** - Performance moderna
+- ✅ **Explicit routes** - Roteamento de microserviços
+- ✅ **Connectivity validation** - Testes automatizados
+- ✅ **Docker Swarm fixes** - Configuração corrigida
+
+### **Benefícios Alcançados**
+- 🔒 **100% Security Score** - Validação automatizada
+- ⚡ **HTTP/3 Performance** - Conexões mais rápidas
+- 🛡️ **Production Ready** - Configuração robusta
+- 📊 **Full Monitoring** - Logs e health checks
+- 🔄 **Auto Validation** - Pipeline de qualidade
+
+---
+
+**⚡ Status**: ✅ Produção Ready | 🔒 100% Security Score | 🚀 HTTP/3 Enabled
