@@ -47,13 +47,12 @@ jobs:
           name: traefik-configs
           path: .
 
-      - name: Deploy Traefik Stack
+      - name: Prepare scripts
         run: |
-          docker stack deploy -c docker-compose.yml --with-registry-auth conexao-traefik
+          chmod +x .github/workflows/scripts/deploy-traefik.sh
 
-      - name: Verify Deployment
-        run: |
-          echo "⏳ Waiting for Traefik service to stabilize..."
-          sleep 20
-          docker service ls | grep conexao-traefik
-          echo "✅ Traefik stack deployed."
+      - name: Deploy Traefik Stack
+        env:
+          STACK_NAME: conexao-traefik
+          COMPOSE_FILE: docker-compose.yml
+        run: .github/workflows/scripts/deploy-traefik.sh
