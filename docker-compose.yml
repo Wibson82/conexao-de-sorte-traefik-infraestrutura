@@ -1,168 +1,27 @@
-# ============================================================================
-# 🌐 CONEXÃO DE SORTE - TRAEFIK GATEWAY REFATORADO
-# ============================================================================
-# 
-# REFATORAÇÃO APLICADA:
-# ❌ REMOVIDO: Todos os 14 microserviços (movidos para deploy independente)
-# ❌ REMOVIDO: Porta 8080 externa (evita conflito com backend-prod)
-# ✅ MANTIDO: Apenas Traefik como Load Balancer e SSL Termination
-# ✅ ADICIONADO: Roteamento para containers existentes
-# 
-# BENEFÍCIOS:
-# - 94% redução no tamanho do projeto (3.1MB → 200KB)
-# - Deploy independente de infraestrutura vs aplicações
-# - Service discovery dinâmico via Docker API
-# - Configuração simplificada e focada
-# - Coexistência com containers legados sem conflitos de porta
-# ============================================================================
+version: '3.9'
 
 services:
-  # ============================================================================
-  # 🌐 TRAEFIK - LOAD BALANCER & SSL TERMINATION
-  # ============================================================================
   traefik:
-    image: traefik:v3.1
-    container_name: traefik-microservices
+    image: traefik:v2.10
+    container_name: traefik
     restart: unless-stopped
     ports:
-      - "80:80"      # HTTP
-      - "443:443"    # HTTPS
-      # ❌ REMOVIDO: "8080:8080" para evitar conflito com backend-prod
-    env_file:
-      - ./.env
-    environment:
-      - TZ=${TZ:-America/Sao_Paulo}
-      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-seu-email@exemplo.com.br}
+      - "80:80"
+      - "443:443"
     networks:
       - conexao-network-swarm
+    environment:
+      - TRAEFIK_ACME_EMAIL=facilitaservicos.tec@gmail.com
     volumes:
-      # Docker socket para service discovery automático
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      
-      # Configurações Traefik
-      - ./traefik/traefik.yml:/traefik.yml:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
-      
-      # SSL/TLS
       - ./letsencrypt:/letsencrypt
-      
-      # Secrets (se necessário)
-      - ./secrets:/secrets:ro
-    labels:
-      # Habilitá-lo para auto-descoberta
-      - traefik.enable=true
-      
-      # Dashboard configuration
-      - traefik.http.routers.dashboard.rule=Host(`traefik.conexaodesorte.com.br`)
-      - traefik.http.routers.dashboard.entrypoints=websecure
-      - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
-      - traefik.http.routers.dashboard.middlewares=dashboard-auth@file
-      - traefik.http.routers.dashboard.service=api@internal
-      
-      # Dashboard redirect HTTP → HTTPS
-      - traefik.http.routers.dashboard-redirect.rule=Host(`traefik.conexaodesorte.com.br`)
-      - traefik.http.routers.dashboard-redirect.entrypoints=web
-      - traefik.http.routers.dashboard-redirect.middlewares=https-redirect@file
-      
-      # ✅ ROTEAMENTO PARA CONTAINERS EXISTENTES (coexistência)
-      
-      # Backend Legacy - Rota principal API
-      - traefik.http.routers.backend-api.rule=Host(`api.conexaodesorte.com.br`)
-      - traefik.http.routers.backend-api.entrypoints=websecure
-      - traefik.http.routers.backend-api.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-api.middlewares=cors-api@file,rate-limit-api@file,security-headers@file
-      - traefik.http.routers.backend-api.service=backend-legacy
-      - traefik.http.services.backend-legacy.loadbalancer.server.url=http://backend-prod:8080
-      
-      # Backend Legacy - Rota de fallback /legacy
-      - traefik.http.routers.backend-legacy.rule=Host(`api.conexaodesorte.com.br`) && PathPrefix(`/legacy`)
-      - traefik.http.routers.backend-legacy.entrypoints=websecure
-      - traefik.http.routers.backend-legacy.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-legacy.service=backend-legacy
-      
-      # Frontend - Roteamento principal
-      - traefik.http.routers.frontend.rule=Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)
-      - traefik.http.routers.frontend.entrypoints=websecure
-      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
-      - traefik.http.routers.frontend.middlewares=security-headers@file,gzip@file
-      - traefik.http.routers.frontend.service=frontend
-      - traefik.http.services.frontend.loadbalancer.server.url=http://conexao-frontend:3000
-      
-      # Observabilidade - Zipkin
-      - traefik.http.routers.zipkin.rule=Host(`zipkin.conexaodesorte.com.br`)
-      - traefik.http.routers.zipkin.entrypoints=websecure
-      - traefik.http.routers.zipkin.tls.certresolver=letsencrypt
-      - traefik.http.routers.zipkin.middlewares=admin-auth@file,security-headers@file
-      - traefik.http.routers.zipkin.service=zipkin
-      - traefik.http.services.zipkin.loadbalancer.server.url=http://conexao-zipkin:9411
-      
-      # Observabilidade - Jaeger
-      - traefik.http.routers.jaeger.rule=Host(`jaeger.conexaodesorte.com.br`)
-      - traefik.http.routers.jaeger.entrypoints=websecure
-      - traefik.http.routers.jaeger.tls.certresolver=letsencrypt
-      - traefik.http.routers.jaeger.middlewares=admin-auth@file,security-headers@file
-      - traefik.http.routers.jaeger.service=jaeger
-      - traefik.http.services.jaeger.loadbalancer.server.url=http://conexao-jaeger:16686
-      
-      # Observabilidade - Prometheus
-      - traefik.http.routers.prometheus.rule=Host(`prometheus.conexaodesorte.com.br`)
-      - traefik.http.routers.prometheus.entrypoints=websecure
-      - traefik.http.routers.prometheus.tls.certresolver=letsencrypt
-      - traefik.http.routers.prometheus.middlewares=admin-auth@file,security-headers@file
-      - traefik.http.routers.prometheus.service=prometheus
-      - traefik.http.services.prometheus.loadbalancer.server.url=http://conexao-prometheus:9090
-      
-      # RabbitMQ Management
-      - traefik.http.routers.rabbitmq.rule=Host(`rabbitmq.conexaodesorte.com.br`)
-      - traefik.http.routers.rabbitmq.entrypoints=websecure
-      - traefik.http.routers.rabbitmq.tls.certresolver=letsencrypt
-      - traefik.http.routers.rabbitmq.middlewares=admin-auth@file,security-headers@file
-      - traefik.http.routers.rabbitmq.service=rabbitmq
-      - traefik.http.services.rabbitmq.loadbalancer.server.url=http://conexao-rabbitmq:15672
-    healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
 
-# ============================================================================
-# 🌐 NETWORKS
-# ============================================================================
 networks:
   conexao-network-swarm:
-    name: conexao-network-swarm
-    external: true  # Rede Swarm criada pelo projeto infraestrutura-core
-
-# ============================================================================
-# 📝 DOCUMENTAÇÃO - MICROSERVIÇOS REMOVIDOS
-# ============================================================================
-# 
-# Os seguintes microserviços foram REMOVIDOS deste projeto:
-# - auth-microservice (Port: 8081)
-# - user-microservice (Port: 8089) 
-# - results-microservice (Port: 8082)
-# - chat-microservice (Port: 8083)
-# - notifications-microservice (Port: 8084)
-# - audit-microservice (Port: 8085)
-# - observability-microservice (Port: 8086)
-# - scheduler-microservice (Port: 8087)
-# - crypto-microservice (Port: 8089)
-# - crypto-kms-microservice (Port: 8082)
-# - observability-diagnostics-microservice (Port: 8092)
-# - scheduler-extractions-microservice (Port: 8091)
-# - chatbot-microservice (Port: 8087)
-# - frontend-web (Port: 3000)
-#
-# ✅ SOLUÇÃO: 
-# Microserviços agora devem ser deployados independentemente com labels Traefik
-# para auto-descoberta via Docker API.
-#
-# Exemplo de label para microserviço:
-# labels:
-#   - traefik.enable=true
-#   - traefik.http.routers.auth.rule=Host(`auth.conexaodesorte.com.br`)
-#   - traefik.http.routers.auth.entrypoints=websecure
-#   - traefik.http.routers.auth.tls.certresolver=letsencrypt
-#   - traefik.http.services.auth.loadbalancer.server.port=8081
-# ============================================================================
+    external: true
