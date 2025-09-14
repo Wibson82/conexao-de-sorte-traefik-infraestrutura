@@ -17,6 +17,7 @@ services:
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - ./letsencrypt:/letsencrypt
+    entrypoint: ["/bin/sh","-lc","mkdir -p /letsencrypt; [ -f /letsencrypt/acme.json ] || touch /letsencrypt/acme.json; chmod 600 /letsencrypt/acme.json; exec traefik"]
     deploy:
       placement:
         constraints:
