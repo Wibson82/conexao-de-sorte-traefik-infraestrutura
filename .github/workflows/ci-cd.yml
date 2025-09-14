@@ -21,10 +21,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate Docker Compose
+      - name: Prepare scripts
         run: |
-          docker compose -f docker-compose.yml config >/dev/null
-          echo "✅ Docker Compose syntax is valid"
+          chmod +x .github/workflows/scripts/validate-traefik.sh
+
+      - name: Validate Traefik Configs
+        run: .github/workflows/scripts/validate-traefik.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -49,10 +51,15 @@ jobs:
 
       - name: Prepare scripts
         run: |
-          chmod +x .github/workflows/scripts/deploy-traefik.sh
+          chmod +x .github/workflows/scripts/deploy-traefik.sh .github/workflows/scripts/healthcheck-traefik.sh
 
       - name: Deploy Traefik Stack
         env:
           STACK_NAME: conexao-traefik
           COMPOSE_FILE: docker-compose.yml
         run: .github/workflows/scripts/deploy-traefik.sh
+
+      - name: Healthcheck Traefik
+        env:
+          STACK_NAME: conexao-traefik
+        run: .github/workflows/scripts/healthcheck-traefik.sh
