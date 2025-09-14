@@ -89,9 +89,9 @@ jobs:
             exit 1
           fi
 
-          echo "🔐 Loading secrets from Azure Key Vault: $VAULT"
+          echo "Loading secrets from Azure Key Vault: $VAULT"
           get() {
-            echo "🔍 Fetching secret: $1" >&2
+            echo "Fetching secret: $1" >&2
             SECRET_VALUE=$(az keyvault secret show --vault-name "$VAULT" --name "$1" --query value -o tsv 2>/dev/null)
             if [ $? -ne 0 ] || [ -z "$SECRET_VALUE" ]; then
               echo "ERROR: Secret $1 not found in Azure Key Vault $VAULT" >&2
@@ -100,7 +100,7 @@ jobs:
             echo "$SECRET_VALUE"
           }
 
-          # 🔐 SEGREDOS PADRONIZADOS - conforme SEGREDOS_PADRONIZADOS.md
+          # SEGREDOS PADRONIZADOS - conforme SEGREDOS_PADRONIZADOS.md
           echo "REDIS_HOST=$(get conexao-de-sorte-redis-host)" >> $GITHUB_ENV
           echo "REDIS_PORT=$(get conexao-de-sorte-redis-port)" >> $GITHUB_ENV
           echo "REDIS_PASSWORD=$(get conexao-de-sorte-redis-password)" >> $GITHUB_ENV
@@ -128,7 +128,7 @@ jobs:
           echo "ENCRYPTION_MASTER_PASSWORD=$(get conexao-de-sorte-encryption-master-password)" >> $GITHUB_ENV
           echo "ENCRYPTION_BACKUP_KEY=$(get conexao-de-sorte-encryption-backup-key)" >> $GITHUB_ENV
 
-          echo "✅ Azure Key Vault secrets loaded successfully using standardized naming"
+          echo "Azure Key Vault secrets loaded successfully using standardized naming"
 
       - name: Prepare scripts
         run: |
