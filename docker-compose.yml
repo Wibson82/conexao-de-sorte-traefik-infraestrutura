@@ -1,29 +1,130 @@
+# =============================================================================
+# 🌐 TRAEFIK INFRASTRUCTURE - CONSOLIDATED DOCKER COMPOSE
+# =============================================================================
+#
+# VERSÃO CONSOLIDADA que combina as melhores práticas de:
+# - docker-compose.yml (v3.5.2, Docker Swarm, logs, health checks robustos)
+# - docker-compose-sem-conflitos.yml (labels inline, secrets, coexistência)
+#
+# VERSÃO: v3.5.2 (Latest Stable)
+# COMPATIBILIDADE: Docker Swarm + Standalone
+# SEGURANÇA: Enterprise Grade
+# =============================================================================
+
+# Versão do Docker Compose (removida conforme boas práticas atuais)
+
 services:
   traefik:
+    # ==========================================================================
+    # 🔧 CONFIGURAÇÃO BÁSICA
+    # ==========================================================================
     image: traefik:v3.5.2
+    container_name: traefik-microservices
+    restart: unless-stopped
+
+    # ==========================================================================
+    # 🌐 NETWORK & PORTS
+    # ==========================================================================
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:80"      # HTTP (redirect to HTTPS)
+      - "443:443"    # HTTPS
+      # Dashboard via HTTPS routing (sem porta externa 8080)
     networks:
-      - conexao-network-swarm
+      - ${DOCKER_NETWORK_NAME:-conexao-network}
+
+    # ==========================================================================
+    # 🔧 ENVIRONMENT VARIABLES
+    # ==========================================================================
     environment:
       - TZ=${TZ:-America/Sao_Paulo}
       - TRAEFIK_ACME_EMAIL=${TRAEFIK_ACME_EMAIL:-facilitaservicos.tec@gmail.com}
+      # Security
+      - TRAEFIK_API_DASHBOARD=${ENABLE_DASHBOARD:-true}
+      - TRAEFIK_API_INSECURE=${API_INSECURE:-false}
+      # Performance
+      - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TRAEFIK_ACCESSLOG=${ACCESS_LOG_ENABLED:-true}
+
+    # ==========================================================================
+    # 📁 VOLUMES
+    # ==========================================================================
     volumes:
+      # Docker socket para service discovery
       - /var/run/docker.sock:/var/run/docker.sock:ro
+
+      # Configuração estática principal
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+
+      # Configurações dinâmicas
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
+
+      # SSL/TLS certificates
       - ./letsencrypt:/letsencrypt
+
+      # Logs (para auditoria)
       - ./logs/traefik:/var/log/traefik
-    command:
-      - --configFile=/etc/traefik/traefik.yml
+
+      # Secrets para autenticação
+      - ./secrets:/secrets:ro
+
+    # ==========================================================================
+    # 🏷️ LABELS (Docker Swarm + Standalone compatibility)
+    # ==========================================================================
+    labels:
+      # Habilitar Traefik para este serviço
+      - traefik.enable=true
+
+      # =======================================================================
+      # 📊 DASHBOARD HTTPS (sem porta externa)
+      # =======================================================================
+      - traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
+      - traefik.http.routers.dashboard.middlewares=dashboard-auth@file,security-headers@file
+      - traefik.http.routers.dashboard.service=api@internal
+
+      # Dashboard HTTP redirect
+      - traefik.http.routers.dashboard-redirect.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)
+      - traefik.http.routers.dashboard-redirect.entrypoints=web
+      - traefik.http.routers.dashboard-redirect.middlewares=https-redirect@file
+
+      # =======================================================================
+      # 🔄 COEXISTÊNCIA COM BACKEND LEGACY (se necessário)
+      # =======================================================================
+      - traefik.http.routers.backend-legacy.rule=Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/legacy`)
+      - traefik.http.routers.backend-legacy.entrypoints=websecure
+      - traefik.http.routers.backend-legacy.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend-legacy.middlewares=security-headers-api@file,cors-api@file
+      - traefik.http.routers.backend-legacy.service=backend-legacy
+      - traefik.http.services.backend-legacy.loadbalancer.server.url=http://${BACKEND_SERVICE:-backend-prod}:${BACKEND_PORT:-8080}
+      - traefik.http.services.backend-legacy.loadbalancer.healthcheck.path=/actuator/health
+      - traefik.http.services.backend-legacy.loadbalancer.healthcheck.interval=30s
+
+      # =======================================================================
+      # 🏷️ METADATA
+      # =======================================================================
+      - org.opencontainers.image.title=Traefik Gateway - Conexão de Sorte
+      - org.opencontainers.image.description=Load Balancer e SSL Termination
+      - org.opencontainers.image.version=v3.5.2
+
+    # ==========================================================================
+    # 🏥 HEALTH CHECK
+    # ==========================================================================
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 45s
+
+    # ==========================================================================
+    # 🚀 COMMAND & DEPLOY (Docker Swarm compatibility)
+    # ==========================================================================
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+
     deploy:
+      # Docker Swarm específico (ignorado no standalone)
       placement:
         constraints:
           - node.role == manager
@@ -32,7 +133,50 @@ services:
         delay: 5s
         max_attempts: 3
         window: 120s
+      # Recursos (aplicado em ambos os modos)
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
+# =============================================================================
+# 🌐 NETWORKS
+# =============================================================================
 networks:
-  conexao-network-swarm:
-    external: true
+  ${DOCKER_NETWORK_NAME:-conexao-network}:
+    name: ${DOCKER_NETWORK_NAME:-conexao-network}
+    external: true  # Criada pelo projeto infraestrutura-core
+
+# =============================================================================
+# 📋 INSTRUÇÕES DE USO
+# =============================================================================
+#
+# STANDALONE MODE:
+# ================
+# 1. Criar rede: docker network create conexao-network
+# 2. Deploy: docker-compose up -d
+#
+# DOCKER SWARM MODE:
+# =================
+# 1. Inicializar Swarm: docker swarm init
+# 2. Criar rede: docker network create --driver overlay conexao-network-swarm
+# 3. Definir variável: export DOCKER_NETWORK_NAME=conexao-network-swarm
+# 4. Deploy: docker stack deploy -c docker-compose.yml traefik
+#
+# VARIÁVEIS DE AMBIENTE (.env):
+# ============================
+# TZ=America/Sao_Paulo
+# TRAEFIK_ACME_EMAIL=seu-email@exemplo.com
+# TRAEFIK_DOMAIN=traefik.seudominio.com.br
+# API_DOMAIN=api.seudominio.com.br
+# DOCKER_NETWORK_NAME=conexao-network
+# BACKEND_SERVICE=backend-prod
+# BACKEND_PORT=8080
+# ENABLE_DASHBOARD=true
+# LOG_LEVEL=INFO
+# ACCESS_LOG_ENABLED=true
+#
+# =============================================================================

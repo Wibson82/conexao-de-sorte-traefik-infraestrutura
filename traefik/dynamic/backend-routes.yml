@@ -1,0 +1,87 @@
+# ============================================================================
+# 🌐 BACKEND API PUBLIC ENDPOINTS
+# ============================================================================
+# Caminhos públicos para o backend-prod com regras corrigidas
+
+http:
+  routers:
+    # Regra original com erro:
+    # PathPrefix(`/v1/publico`, `/v1/resultados/publico`, `/v1/horario/publico`, `/v1/usuarios/publico`, `/v1/info`)
+
+    # Regras separadas para cada caminho
+    backend-prod-public-v1:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/v1/publico`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - security-headers-api
+        - cors-api
+      service: backend-service
+      tls:
+        certresolver: letsencrypt
+
+    backend-prod-resultados:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/v1/resultados/publico`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - security-headers-api
+        - cors-api
+      service: backend-service
+      tls:
+        certresolver: letsencrypt
+
+    backend-prod-horario:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/v1/horario/publico`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - security-headers-api
+        - cors-api
+      service: backend-service
+      tls:
+        certresolver: letsencrypt
+
+    backend-prod-usuarios:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/v1/usuarios/publico`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - security-headers-api
+        - cors-api
+      service: backend-service
+      tls:
+        certresolver: letsencrypt
+
+    backend-prod-info:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/v1/info`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - security-headers-api
+        - cors-api
+      service: backend-service
+      tls:
+        certresolver: letsencrypt
+
+    backend-prod-rest:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/rest`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - security-headers-api
+        - cors-api
+      service: backend-service
+      tls:
+        certresolver: letsencrypt
+
+  services:
+    backend-service:
+      loadbalancer:
+        servers:
+          - url: "http://backend-prod:8080"
+        passHostHeader: true
+        healthCheck:
+          path: /actuator/health
+          interval: "30s"
+          timeout: "5s"
