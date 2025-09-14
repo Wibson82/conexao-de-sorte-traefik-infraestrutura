@@ -8,8 +8,29 @@ COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.yml}
 
 echo "🔧 Preparing environment for Traefik deploy..."
 
-# Ensure overlay network exists
-docker network create --driver overlay conexao-network-swarm 2>/dev/null || true
+# Check which network to use based on environment variable
+NETWORK_NAME=${DOCKER_NETWORK_NAME:-conexao-network}
+
+# Ensure required network exists
+if [ "$NETWORK_NAME" = "conexao-network-swarm" ]; then
+  echo "🌐 Checking Docker Swarm overlay network: $NETWORK_NAME"
+  # Verificar se a rede já existe antes de tentar criar
+  if ! docker network ls --filter name="$NETWORK_NAME" --format "{{.Name}}" | grep -q "^$NETWORK_NAME$"; then
+    echo "🌐 Creating overlay network: $NETWORK_NAME"
+    docker network create --driver overlay "$NETWORK_NAME" 2>/dev/null || true
+  else
+    echo "✅ Network $NETWORK_NAME already exists"
+  fi
+else
+  echo "🌐 Checking bridge network: $NETWORK_NAME"
+  # Para redes bridge (standalone mode)
+  if ! docker network ls --filter name="$NETWORK_NAME" --format "{{.Name}}" | grep -q "^$NETWORK_NAME$"; then
+    echo "🌐 Creating bridge network: $NETWORK_NAME"
+    docker network create "$NETWORK_NAME" 2>/dev/null || true
+  else
+    echo "✅ Network $NETWORK_NAME already exists"
+  fi
+fi
 
 # Ensure required directories exist
 mkdir -p ./letsencrypt || true
