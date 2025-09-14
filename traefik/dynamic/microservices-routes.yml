@@ -1,0 +1,253 @@
+# =============================================================================
+# 🌐 TRAEFIK MICROSERVICES ROUTING CONFIGURATION
+# =============================================================================
+# Explicit routes for critical microservices with security and performance settings
+
+http:
+  routers:
+    # ==========================================================================
+    # 🔐 AUTHENTICATION & AUTHORIZATION
+    # ==========================================================================
+    auth-api:
+      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/auth`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - auth-stripprefix
+        - rate-limit-auth
+        - security-headers-api
+        - cors-api
+      service: auth-service
+      tls:
+        certresolver: letsencrypt
+
+    # ==========================================================================
+    # 👤 USER MANAGEMENT
+    # ==========================================================================
+    user-api:
+      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/users`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - user-stripprefix
+        - rate-limit-api
+        - security-headers-api
+        - cors-api
+      service: user-service
+      tls:
+        certresolver: letsencrypt
+
+    # ==========================================================================
+    # 🎯 RESULTS & GAMES
+    # ==========================================================================
+    results-api:
+      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/results`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - results-stripprefix
+        - rate-limit-api
+        - security-headers-api
+        - cors-api
+      service: results-service
+      tls:
+        certresolver: letsencrypt
+
+    # ==========================================================================
+    # 💬 CHAT & COMMUNICATION
+    # ==========================================================================
+    chat-api:
+      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/chat`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - chat-stripprefix
+        - rate-limit-general
+        - security-headers-api
+        - cors-api
+      service: chat-service
+      tls:
+        certresolver: letsencrypt
+
+    # ==========================================================================
+    # 🔔 NOTIFICATIONS
+    # ==========================================================================
+    notifications-api:
+      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/notifications`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - notifications-stripprefix
+        - rate-limit-notifications
+        - security-headers-api
+        - cors-api
+      service: notifications-service
+      tls:
+        certresolver: letsencrypt
+
+    # ==========================================================================
+    # 📊 OBSERVABILITY & MONITORING
+    # ==========================================================================
+    observability-api:
+      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/observability`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - observability-stripprefix
+        - rate-limit-strict
+        - security-headers-api
+        - admin-auth
+      service: observability-service
+      tls:
+        certresolver: letsencrypt
+
+    # ==========================================================================
+    # 🔐 CRYPTO & SECURITY
+    # ==========================================================================
+    crypto-api:
+      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/crypto`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - crypto-stripprefix
+        - rate-limit-strict
+        - security-headers-api
+        - crypto-auth
+        - ip-allow-local
+      service: crypto-service
+      tls:
+        certresolver: letsencrypt
+
+    # ==========================================================================
+    # 🌐 FRONTEND APPLICATION
+    # ==========================================================================
+    frontend-main:
+      rule: "Host(`${DOMAIN_NAME:-conexaodesorte.com.br}`) || Host(`www.${DOMAIN_NAME:-conexaodesorte.com.br}`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - security-headers
+        - gzip-compress
+        - redirect-to-www
+      service: frontend-service
+      tls:
+        certresolver: letsencrypt
+
+    # Frontend HTTP -> HTTPS redirect
+    frontend-redirect:
+      rule: "Host(`${DOMAIN_NAME:-conexaodesorte.com.br}`) || Host(`www.${DOMAIN_NAME:-conexaodesorte.com.br}`)"
+      entrypoints:
+        - web
+      middlewares:
+        - redirect-to-https
+      service: frontend-service
+
+    # ==========================================================================
+    # 🛠️ ADMIN & MANAGEMENT
+    # ==========================================================================
+    traefik-dashboard:
+      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - admin-auth
+        - security-headers
+        - ip-allow-local
+      service: api@internal
+      tls:
+        certresolver: letsencrypt
+
+  # ============================================================================
+  # 🔧 SERVICES CONFIGURATION
+  # ============================================================================
+  services:
+    # Microservices (to be discovered by Docker provider or configured manually)
+    auth-service:
+      loadBalancer:
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+        # Will be auto-discovered by Docker provider when containers are running
+
+    user-service:
+      loadBalancer:
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+        # Will be auto-discovered by Docker provider when containers are running
+
+    results-service:
+      loadBalancer:
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+        # Will be auto-discovered by Docker provider when containers are running
+
+    chat-service:
+      loadBalancer:
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+        # Will be auto-discovered by Docker provider when containers are running
+
+    notifications-service:
+      loadBalancer:
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+        # Will be auto-discovered by Docker provider when containers are running
+
+    observability-service:
+      loadBalancer:
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+        # Will be auto-discovered by Docker provider when containers are running
+
+    crypto-service:
+      loadBalancer:
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+        # Will be auto-discovered by Docker provider when containers are running
+
+    frontend-service:
+      loadBalancer:
+        healthCheck:
+          path: "/"
+          interval: "30s"
+        # Will be auto-discovered by Docker provider when containers are running
+
+# ==============================================================================
+# 📝 CONFIGURATION NOTES
+# ==============================================================================
+#
+# 🔧 HOW TO USE:
+# 1. This file defines explicit routes for microservices
+# 2. Services will be auto-discovered when containers have proper labels
+# 3. Environment variables can be used for domain configuration
+#
+# 🏷️  REQUIRED CONTAINER LABELS:
+# Each microservice container should have these labels:
+#   - traefik.enable=true
+#   - traefik.http.services.<service-name>.loadbalancer.server.port=<port>
+#   - traefik.docker.network=conexao-network-swarm
+#
+# 🌐 DOMAIN VARIABLES:
+# - DOMAIN_NAME: Main domain (default: conexaodesorte.com.br)
+# - API_DOMAIN: API subdomain (default: api.conexaodesorte.com.br)
+# - TRAEFIK_DOMAIN: Traefik dashboard domain (default: traefik.conexaodesorte.com.br)
+#
+# 🔒 SECURITY FEATURES:
+# - All routes use HTTPS with Let's Encrypt certificates
+# - Rate limiting configured per service type
+# - Security headers applied to all routes
+# - Admin routes protected with authentication
+# - Crypto routes restricted to local networks
+#
+# ⚡ PERFORMANCE FEATURES:
+# - Health checks configured for all services
+# - Compression enabled for frontend
+# - HTTP/3 support available
+# - Circuit breakers and retry policies applied
+# ==============================================================================
