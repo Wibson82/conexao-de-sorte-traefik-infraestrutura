@@ -37,6 +37,14 @@ jobs:
       - name: Security Validation
         run: .github/workflows/scripts/security-validation.sh
 
+      - name: Create secrets directory for artifact
+        run: |
+          mkdir -p secrets
+          # Criar arquivo básico de auth se não existir
+          if [ ! -f secrets/traefik-basicauth ]; then
+            echo 'admin:$2y$10$rQ.0eEWJx7mQ8k4yR4x9/.2l0JUqN7zYTHmFePXkz1YRkFvqRZ5hW' > secrets/traefik-basicauth
+          fi
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -46,6 +54,7 @@ jobs:
             docker-compose.swarm.yml
             traefik/
             letsencrypt/
+            secrets/
 
   deploy-selfhosted:
     needs: validate-and-build

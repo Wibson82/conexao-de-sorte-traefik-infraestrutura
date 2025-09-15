@@ -44,12 +44,22 @@ fi
 # Ensure required directories exist
 mkdir -p ./letsencrypt || true
 mkdir -p ./logs/traefik || true
+mkdir -p ./secrets || true
 
 # Set proper permissions for acme.json
 if [ ! -f ./letsencrypt/acme.json ]; then
     touch ./letsencrypt/acme.json
 fi
 chmod 600 ./letsencrypt/acme.json
+
+# Create basic auth file for Traefik dashboard
+if [ ! -f ./secrets/traefik-basicauth ]; then
+    echo "🔐 Criando arquivo básico de autenticação..."
+    # Usuário: admin, Senha: admin123 (hash htpasswd)
+    echo 'admin:$2y$10$rQ.0eEWJx7mQ8k4yR4x9/.2l0JUqN7zYTHmFePXkz1YRkFvqRZ5hW' > ./secrets/traefik-basicauth
+    chmod 600 ./secrets/traefik-basicauth
+    echo "✅ Arquivo traefik-basicauth criado"
+fi
 
 # Verificações pré-deploy
 echo "🔍 Verificações pré-deploy:"
