@@ -9,7 +9,7 @@ COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.yml}
 echo "🔧 Preparing environment for Traefik deploy..."
 
 # Check which network to use based on environment variable
-NETWORK_NAME=${DOCKER_NETWORK_NAME:-conexao-network}
+NETWORK_NAME=${DOCKER_NETWORK_NAME:-conexao-network-swarm}
 
 # Determine correct compose file based on network type
 if [ "$NETWORK_NAME" = "conexao-network-swarm" ]; then
@@ -26,7 +26,7 @@ if [ "$NETWORK_NAME" = "conexao-network-swarm" ]; then
   # Verificar se a rede já existe antes de tentar criar
   if ! docker network ls --filter name="$NETWORK_NAME" --format "{{.Name}}" | grep -q "^$NETWORK_NAME$"; then
     echo "🌐 Creating overlay network: $NETWORK_NAME"
-    docker network create --driver overlay "$NETWORK_NAME" 2>/dev/null || true
+    docker network create --driver overlay --attachable "$NETWORK_NAME" 2>/dev/null || true
   else
     echo "✅ Network $NETWORK_NAME already exists"
   fi
