@@ -204,7 +204,7 @@ networks:
 # ENABLE_DASHBOARD=true
 # LOG_LEVEL=INFO
 # ACCESS_LOG_ENABLED=true
-#
+# 
 # # Azure Key Vault (Obrigatório para Produção)
 # AZURE_CLIENT_ID=your-client-id
 # AZURE_TENANT_ID=your-tenant-id
