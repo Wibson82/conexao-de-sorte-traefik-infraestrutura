@@ -186,7 +186,7 @@ http:
 
     dashboard-auth:
       basicAuth:
-        users: []  # Configurado dinamicamente via Azure Key Vault
+        usersFile: /secrets/traefik-basicauth
 
     # Security Headers
     security-headers:

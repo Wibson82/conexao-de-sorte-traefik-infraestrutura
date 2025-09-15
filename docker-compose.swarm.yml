@@ -97,27 +97,10 @@ services:
         - traefik.http.routers.dashboard.service=api@internal
 
         # Dashboard com autenticação
-        - traefik.http.routers.dashboard.middlewares=dashboard-auth,security-headers
+        - traefik.http.routers.dashboard.middlewares=dashboard-auth@file,security-headers@file
 
         # =======================================================================
-        # 🔐 DASHBOARD AUTH
-        # =======================================================================
-        - traefik.http.middlewares.dashboard-auth.basicauth.usersfile=/secrets/traefik-basicauth
-
-        # =======================================================================
-        # 🛡️ SECURITY HEADERS
-        # =======================================================================
-        - traefik.http.middlewares.security-headers.headers.frameDeny=true
-        - traefik.http.middlewares.security-headers.headers.sslRedirect=true
-        - traefik.http.middlewares.security-headers.headers.browserXssFilter=true
-        - traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true
-        - traefik.http.middlewares.security-headers.headers.forceSTSHeader=true
-        - traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true
-        - traefik.http.middlewares.security-headers.headers.stsPreload=true
-        - traefik.http.middlewares.security-headers.headers.stsSeconds=31536000
-
-        # =======================================================================
-        # 🔀 API BACKEND PROXY
+        # 🔀 API BACKEND PROXY (usando middlewares de arquivo)
         # =======================================================================
         - traefik.http.routers.api-backend.rule=Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`)
         - traefik.http.routers.api-backend.entrypoints=websecure
@@ -125,18 +108,8 @@ services:
         - traefik.http.routers.api-backend.service=api-backend-service
         - traefik.http.services.api-backend-service.loadbalancer.server.port=${BACKEND_PORT:-8080}
 
-        # CORS para API
-        - traefik.http.routers.api-backend.middlewares=api-cors,security-headers
-
-        # =======================================================================
-        # 🌐 CORS MIDDLEWARE
-        # =======================================================================
-        - traefik.http.middlewares.api-cors.headers.accessControlAllowMethods=GET,OPTIONS,PUT,POST,DELETE,PATCH
-        - traefik.http.middlewares.api-cors.headers.accessControlAllowOriginList=https://conexaodesorte.com.br,https://www.conexaodesorte.com.br
-        - traefik.http.middlewares.api-cors.headers.accessControlMaxAge=100
-        - traefik.http.middlewares.api-cors.headers.addVaryHeader=true
-        - traefik.http.middlewares.api-cors.headers.accessControlAllowCredentials=true
-        - traefik.http.middlewares.api-cors.headers.accessControlAllowHeaders=Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With
+        # CORS para API - usar middlewares definidos em arquivo
+        - traefik.http.routers.api-backend.middlewares=cors-api@file,security-headers@file
 
 # =============================================================================
 # 🌐 NETWORKS

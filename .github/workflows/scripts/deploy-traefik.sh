@@ -11,14 +11,23 @@ echo "🔧 Preparing environment for Traefik deploy..."
 # Check which network to use based on environment variable
 NETWORK_NAME=${DOCKER_NETWORK_NAME:-conexao-network-swarm}
 
-# Determine correct compose file based on network type
-if [ "$NETWORK_NAME" = "conexao-network-swarm" ]; then
-  COMPOSE_FILE="docker-compose.swarm.yml"
-  echo "🐝 Using Docker Swarm mode with $COMPOSE_FILE"
+# OBRIGATÓRIO: Sempre usar arquivo Swarm em produção
+if [ -n "${COMPOSE_FILE:-}" ] && [ "$COMPOSE_FILE" = "docker-compose.swarm.yml" ]; then
+  echo "✅ Usando arquivo Swarm especificado: $COMPOSE_FILE"
 else
-  COMPOSE_FILE="docker-compose.yml"
-  echo "🐳 Using standalone mode with $COMPOSE_FILE"
+  COMPOSE_FILE="docker-compose.swarm.yml"
+  echo "🔄 Forçando uso do arquivo Swarm: $COMPOSE_FILE"
 fi
+
+# Verificar se o arquivo obrigatório existe
+if [ ! -f "$COMPOSE_FILE" ]; then
+  echo "❌ ERRO: Arquivo obrigatório não encontrado: $COMPOSE_FILE"
+  echo "📋 Arquivos disponíveis:"
+  ls -la docker-compose*.yml || true
+  exit 1
+fi
+
+echo "🐝 Usando Docker Swarm mode com $COMPOSE_FILE"
 
 # Ensure required network exists
 if [ "$NETWORK_NAME" = "conexao-network-swarm" ]; then
@@ -70,8 +79,19 @@ echo "  - Secrets dir: $(test -d secrets && echo "✅" || echo "❌") secrets"
 echo "  - LetsEncrypt dir: $(test -d letsencrypt && echo "✅" || echo "❌") letsencrypt"
 echo "  - ACME file: $(test -f letsencrypt/acme.json && echo "✅" || echo "❌") letsencrypt/acme.json"
 
+# Validar configurações SWARM antes do deploy
+echo "🔍 Validando configurações do Swarm para Traefik..."
+if ! docker stack config -c "$COMPOSE_FILE" > /dev/null; then
+  echo "❌ ERRO na configuração do $COMPOSE_FILE"
+  echo "🔍 Listando secrets disponíveis:"
+  docker secret ls --format "table {{.Name}}\t{{.CreatedAt}}"
+  echo "🔍 Verificando arquivo compose:"
+  cat "$COMPOSE_FILE" | head -50
+  exit 1
+fi
+
 echo ""
-echo "🚀 Deploying stack $STACK_NAME from $COMPOSE_FILE"
+echo "🚀 Deploying stack $STACK_NAME from $COMPOSE_FILE com Swarm"
 docker stack deploy -c "$COMPOSE_FILE" --with-registry-auth "$STACK_NAME"
 
 echo "⏳ Waiting for $STACK_NAME service to reach 1/1..."
