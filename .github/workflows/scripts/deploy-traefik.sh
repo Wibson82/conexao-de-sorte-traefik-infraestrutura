@@ -51,6 +51,16 @@ if [ ! -f ./letsencrypt/acme.json ]; then
 fi
 chmod 600 ./letsencrypt/acme.json
 
+# Verificações pré-deploy
+echo "🔍 Verificações pré-deploy:"
+echo "  - Docker compose file: $(test -f "$COMPOSE_FILE" && echo "✅" || echo "❌") $COMPOSE_FILE"
+echo "  - Traefik config: $(test -f traefik/traefik.yml && echo "✅" || echo "❌") traefik/traefik.yml"
+echo "  - Dynamic config dir: $(test -d traefik/dynamic && echo "✅" || echo "❌") traefik/dynamic"
+echo "  - Secrets dir: $(test -d secrets && echo "✅" || echo "❌") secrets"
+echo "  - LetsEncrypt dir: $(test -d letsencrypt && echo "✅" || echo "❌") letsencrypt"
+echo "  - ACME file: $(test -f letsencrypt/acme.json && echo "✅" || echo "❌") letsencrypt/acme.json"
+
+echo ""
 echo "🚀 Deploying stack $STACK_NAME from $COMPOSE_FILE"
 docker stack deploy -c "$COMPOSE_FILE" --with-registry-auth "$STACK_NAME"
 
@@ -78,7 +88,22 @@ done
 
 echo "❌ Traefik did not reach 1/1 in ${timeout}s. Service status:"
 docker service ls --filter name="${STACK_NAME}_traefik" || true
-echo "📜 Last logs:"
-docker service logs "${STACK_NAME}_traefik" --tail 80 || true
+
+echo ""
+echo "🔍 Service inspection:"
+docker service inspect "${STACK_NAME}_traefik" --pretty || true
+
+echo ""
+echo "📋 Service tasks:"
+docker service ps "${STACK_NAME}_traefik" --no-trunc || true
+
+echo ""
+echo "📜 Service logs (últimas 100 linhas):"
+docker service logs "${STACK_NAME}_traefik" --tail 100 --timestamps || true
+
+echo ""
+echo "🌐 Network inspection:"
+docker network inspect conexao-network-swarm || true
+
 exit 1
 
