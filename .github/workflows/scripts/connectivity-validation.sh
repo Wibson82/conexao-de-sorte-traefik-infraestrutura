@@ -92,10 +92,19 @@ wait_for_condition \
     "Serviço ${STACK_NAME}_traefik criado" \
     60
 
-# Wait for service to reach desired state
+# Wait for service to reach desired state (réplicas)
 wait_for_condition \
     "docker service ls --filter name=${STACK_NAME}_traefik --format '{{.Replicas}}' | grep -q '1/1'" \
-    "Serviço ${STACK_NAME}_traefik em estado 1/1" \
+    "Serviço ${STACK_NAME}_traefik com réplicas 1/1" \
+    120 \
+    5
+
+# CRITICAL: Wait for service to be actually healthy (HTTP ping)
+echo ""
+echo "🏥 Aguardando Traefik estar funcionalmente healthy..."
+wait_for_condition \
+    "CONTAINER_ID=\$(docker ps --filter 'label=com.docker.swarm.service.name=${STACK_NAME}_traefik' --format '{{.ID}}' | head -1 2>/dev/null) && [ -n \"\$CONTAINER_ID\" ] && docker exec \$CONTAINER_ID wget -q --spider http://localhost:8080/ping 2>/dev/null" \
+    "Traefik ping endpoint respondendo" \
     $TIMEOUT \
     $CHECK_INTERVAL
 
