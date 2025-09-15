@@ -1,6 +1,6 @@
 tls:
   options:
-    default:
+    modern:
       minVersion: "VersionTLS12"
       maxVersion: "VersionTLS13"
       cipherSuites:
