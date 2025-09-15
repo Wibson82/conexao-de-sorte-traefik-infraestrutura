@@ -56,8 +56,7 @@ metrics:
     addEntryPointsLabels: true
     addServicesLabels: true
 
-# Timeout configurations
+# Timeout configurations (Traefik 3.x format)
 serversTransport:
-  insecureSkipVerify: false
-  dialTimeout: 30s
-  responseHeaderTimeout: 30s
+  default:
+    insecureSkipVerify: false
