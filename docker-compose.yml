@@ -30,7 +30,7 @@ services:
       - "443:443"    # HTTPS
       # Dashboard via HTTPS routing (sem porta externa 8080)
     networks:
-      - ${DOCKER_NETWORK_NAME:-conexao-network}
+      - ${DOCKER_NETWORK_NAME:-conexao-network-swarm}
 
     # ==========================================================================
     # 🔧 ENVIRONMENT VARIABLES
@@ -146,10 +146,6 @@ services:
 # 🌐 NETWORKS
 # =============================================================================
 networks:
-  conexao-network:
-    name: conexao-network
-    external: true  # Para modo standalone
-
   conexao-network-swarm:
     name: conexao-network-swarm
     external: true  # Para modo Docker Swarm
