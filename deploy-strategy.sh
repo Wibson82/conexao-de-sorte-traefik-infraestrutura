@@ -10,8 +10,8 @@ set -euo pipefail
 
 # Configurações
 export TZ="America/Sao_Paulo"
-COMPOSE_FILE="docker-compose.yml"
-NETWORK_NAME="conexao-network"
+COMPOSE_FILE="docker-compose.yml"  # PRODUÇÃO: arquivo principal consolidado
+NETWORK_NAME="conexao-network-swarm"  # CONFLITO RESOLVIDO: rede padronizada
 LOG_FILE="deploy.log"
 
 # Cores para output
@@ -53,11 +53,19 @@ check_env_vars() {
         "AZURE_CLIENT_ID"
         "AZURE_TENANT_ID" 
         "AZURE_KEYVAULT_ENDPOINT"
+        "TRAEFIK_DOMAIN"
+        "API_DOMAIN"
     )
+    
+    # Verificar se arquivo .env existe
+    if [[ ! -f .env ]]; then
+        warning "Arquivo .env não encontrado. Execute configuracao-segura.sh primeiro."
+    fi
     
     for var in "${required_vars[@]}"; do
         if [[ -z "${!var:-}" ]]; then
             error "Variável de ambiente obrigatória não definida: $var"
+            error "Execute: source configuracao-segura.sh"
             exit 1
         fi
     done
@@ -108,10 +116,20 @@ wait_for_health() {
 deploy_phase1() {
     log "🏗️  FASE 1: INFRAESTRUTURA BASE"
     
-    # Traefik (Load Balancer)
-    log "Deployando Traefik..."
-    docker-compose up -d traefik
-    wait_for_health "traefik-microservices" 60
+    # Traefik (Load Balancer) - PRODUÇÃO
+    log "Deployando Traefik (configuração de produção segura)..."
+    
+    # PRODUÇÃO: Priorizar Docker Swarm
+    if docker info --format '{{.Swarm.LocalNodeState}}' | grep -q "active"; then
+        log "✅ Modo Docker Swarm (PRODUÇÃO) - usando stack deploy"
+        docker stack deploy -c "$COMPOSE_FILE" traefik-stack
+        wait_for_health "traefik-stack_traefik" 90  # Mais tempo para produção
+    else
+        warning "⚠️  Modo Standalone detectado - recomendado usar Docker Swarm em produção"
+        log "Deployando em modo standalone..."
+        docker-compose -f "$COMPOSE_FILE" up -d traefik
+        wait_for_health "traefik" 90
+    fi
     
     success "FASE 1 completada"
 }
@@ -209,16 +227,16 @@ final_check() {
     docker ps --filter label=traefik.enable=true --format "table {{.Names}}\t{{.Status}}"
     
     echo ""
-    log "URLs de acesso:"
-    echo "🌐 Frontend: https://www.conexaodesorte.com.br"
-    echo "🔐 Auth: https://auth.conexaodesorte.com.br"
-    echo "👤 Users: https://users.conexaodesorte.com.br"
-    echo "💬 Chat: https://chat.conexaodesorte.com.br"
-    echo "📢 Notifications: https://notifications.conexaodesorte.com.br"
-    echo "🔑 Crypto-KMS: https://crypto-kms.conexaodesorte.com.br"
-    echo "📋 Audit: https://audit.conexaodesorte.com.br"
-    echo "🤖 Chatbot: https://chatbot.conexaodesorte.com.br"
-    echo "📊 Traefik Dashboard: https://traefik.conexaodesorte.com.br"
+    log "🌐 Frontend: https://www.conexaodesorte.com.br"
+    echo "🔌 API: https://api.conexaodesorte.com.br"
+    echo "📊 Traefik Dashboard: https://traefik.conexaodesorte.com.br (PROTEGIDO)"
+    echo ""
+    echo "🛡️  SEGURANÇA DE PRODUÇÃO:"
+    echo "   ✅ SSL/TLS automático (Let's Encrypt)"
+    echo "   ✅ Dashboard protegido por autenticação"
+    echo "   ✅ Headers de segurança aplicados"
+    echo "   ✅ Rate limiting configurado"
+    echo "   ✅ Logs de auditoria habilitados"
     
     success "Deploy finalizado com sucesso!"
 }

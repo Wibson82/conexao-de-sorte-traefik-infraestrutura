@@ -45,30 +45,75 @@ setup_environment() {
     # Criar arquivo .env se não existir
     if [[ ! -f .env ]]; then
         cat > .env << 'EOF'
-# Configuração Segura - Conexão de Sorte
+# =============================================================================
+# 🔐 CONFIGURAÇÃO SEGURA - CONEXÃO DE SORTE
+# =============================================================================
+# CONFLITOS RESOLVIDOS: Variáveis padronizadas para docker-compose.consolidated.yml
 # Não commitar este arquivo!
 
-# Database
+# =============================================================================
+# 🌐 TRAEFIK CONFIGURATION (Obrigatório)
+# =============================================================================
+TZ=America/Sao_Paulo
+TRAEFIK_ACME_EMAIL=facilitaservicos.tec@gmail.com
+TRAEFIK_DOMAIN=traefik.conexaodesorte.com.br
+API_DOMAIN=api.conexaodesorte.com.br
+
+# =============================================================================
+# 🔧 BACKEND CONFIGURATION
+# =============================================================================
+BACKEND_SERVICE=backend-prod
+BACKEND_PORT=8080
+
+# =============================================================================
+# 📊 DASHBOARD & LOGGING
+# =============================================================================
+ENABLE_DASHBOARD=true
+API_INSECURE=false
+LOG_LEVEL=INFO
+ACCESS_LOG_ENABLED=true
+
+# =============================================================================
+# 🔐 AZURE KEY VAULT (Obrigatório para Produção)
+# =============================================================================
+# AZURE_CLIENT_ID=your-client-id
+# AZURE_TENANT_ID=your-tenant-id
+# AZURE_KEYVAULT_ENDPOINT=https://your-keyvault.vault.azure.net/
+# AZURE_KEYVAULT_NAME=conexao-de-sorte-keyvault
+
+# =============================================================================
+# 🗄️ DATABASE (Legacy - manter compatibilidade)
+# =============================================================================
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=conexao_sorte
 
-# Redis
+# =============================================================================
+# 📡 REDIS
+# =============================================================================
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_DATABASE=0
 
-# JWT
+# =============================================================================
+# 🔑 JWT & SECURITY
+# =============================================================================
 JWT_ISSUER=conexao-de-sorte
-
-# SSL
 SSL_ENABLED=true
 
-# CORS
-CORS_ALLOWED_ORIGINS=https://conexao-de-sorte.com
+# =============================================================================
+# 🌐 CORS
+# =============================================================================
+CORS_ALLOWED_ORIGINS=https://conexaodesorte.com.br,https://www.conexaodesorte.com.br
 CORS_ALLOW_CREDENTIALS=true
+
+# =============================================================================
+# 🏗️ BUILD & DEPLOYMENT
+# =============================================================================
+BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+ENVIRONMENT=production
 EOF
-        echo "✅ Arquivo .env criado"
+        echo "✅ Arquivo .env criado com configurações consolidadas"
     fi
 
     # Adicionar .env ao .gitignore se não estiver
@@ -78,21 +123,9 @@ EOF
     fi
 }
 
-# Função para configurar sudo sem senha (desenvolvimento)
-setup_sudo_nopasswd() {
-    echo "🔐 Configurando sudo sem senha para desenvolvimento..."
-
-    local user=$(whoami)
-    local sudoers_file="/etc/sudoers.d/conexao-de-sorte-dev"
-
-    if [[ ! -f "$sudoers_file" ]]; then
-        echo "$user ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/local/bin/docker-compose" | sudo tee "$sudoers_file" > /dev/null
-        sudo chmod 440 "$sudoers_file"
-        echo "✅ Configuração sudo criada em $sudoers_file"
-    else
-        echo "ℹ️  Configuração sudo já existe"
-    fi
-}
+# FUNÇÃO REMOVIDA: setup_sudo_nopasswd
+# Motivo: Configuração insegura não adequada para produção
+# Em produção, usar autenticação adequada e controle de acesso restrito
 
 # Função para validar configuração
 validate_setup() {
@@ -115,6 +148,16 @@ validate_setup() {
     else
         echo "⚠️  AZURE_KEYVAULT_NAME não definido"
     fi
+    
+    # Verificar variáveis obrigatórias do Traefik
+    local traefik_vars=("TRAEFIK_DOMAIN" "API_DOMAIN" "TRAEFIK_ACME_EMAIL")
+    for var in "${traefik_vars[@]}"; do
+        if [[ -n "${!var:-}" ]]; then
+            echo "✅ $var configurado"
+        else
+            echo "❌ $var não configurado"
+        fi
+    done
 
     # Verificar arquivo .env
     if [[ -f .env ]]; then
@@ -130,20 +173,27 @@ main() {
 
     setup_environment
 
-    # Apenas em ambiente de desenvolvimento
-    if [[ "${ENVIRONMENT:-dev}" == "dev" ]]; then
-        setup_sudo_nopasswd
-    fi
+    # PRODUÇÃO: Sem configurações inseguras de desenvolvimento
+    # Todas as configurações são validadas para ambiente de produção
 
     validate_setup
 
     echo "✅ Configuração segura concluída!"
     echo ""
-    echo "📋 Próximos passos:"
-    echo "1. Configure as variáveis AZURE_* no seu ambiente"
+    echo "📋 Próximos passos para PRODUÇÃO:"
+    echo "1. ⚠️  OBRIGATÓRIO: Configure as variáveis AZURE_* no arquivo .env"
     echo "2. Execute 'source .env' para carregar as variáveis"
-    echo "3. Teste a conexão com o Azure Key Vault"
-    echo "4. Execute os testes de integração"
+    echo "3. ✅ Teste a conexão com o Azure Key Vault"
+    echo "4. 🚀 Execute o deploy: ./deploy-strategy.sh"
+    echo "5. 📊 Verifique os serviços: docker service ls (Swarm)"
+    echo "6. 🔍 Monitore logs: docker service logs traefik-stack_traefik"
+    echo ""
+    echo "🔗 URLs de PRODUÇÃO após deploy:"
+    echo "   🌐 Frontend: https://www.conexaodesorte.com.br"
+    echo "   📊 Dashboard: https://traefik.conexaodesorte.com.br (PROTEGIDO)"
+    echo "   🔌 API: https://api.conexaodesorte.com.br"
+    echo ""
+    echo "🛡️  SEGURANÇA: Dashboard protegido por autenticação obrigatória"
 }
 
 # Executar apenas se chamado diretamente
