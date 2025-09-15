@@ -70,85 +70,36 @@ jobs:
           name: traefik-configs
           path: .
 
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      # REMOVIDO: Azure CLI não deve ser usado em produção
+      # Traefik usa apenas Docker Secrets sincronizados pela infraestrutura-core
 
-      - name: Fetch Azure Key Vault secrets
-        id: kv
+      - name: "🔍 Verificar Docker Secrets (sem Azure CLI)"
         shell: bash
         run: |
-          set -euo pipefail
-          VAULT_ENDPOINT="${{ secrets.AZURE_KEYVAULT_ENDPOINT }}"
-          if [[ "$VAULT_ENDPOINT" =~ https://([^.]+)\.vault\.azure\.net ]]; then
-            VAULT="${BASH_REMATCH[1]}"
-          else
-            echo "ERROR: Invalid AZURE_KEYVAULT_ENDPOINT format: $VAULT_ENDPOINT" >&2
-            exit 1
-          fi
+          echo "🔍 Verificando Docker Secrets disponíveis para Traefik..."
 
-          echo "Loading secrets from Azure Key Vault: $VAULT"
-          get() {
-            # SECURITY: Não logar nomes de segredos para evitar exposição
-            SECRET_VALUE=$(az keyvault secret show --vault-name "$VAULT" --name "$1" --query value -o tsv 2>/dev/null)
-            if [ $? -ne 0 ] || [ -z "$SECRET_VALUE" ]; then
-              echo "ERROR: Failed to fetch secret from Azure Key Vault $VAULT" >&2
-              exit 1
-            fi
-            echo "$SECRET_VALUE"
-          }
+          # Verificar se os secrets essenciais estão disponíveis
+          REQUIRED_SECRETS=(
+            "conexao-de-sorte-cors-allowed-origins"
+            "conexao-de-sorte-ssl-enabled"
+          )
 
-          # Função para adicionar segredo ao GITHUB_ENV de forma segura
-          add_secret() {
-            local key="$1"
-            local secret_name="$2"
-            local value
-            value=$(get "$secret_name")
-
-            # SECURITY: Mascarar o valor nos logs do GitHub Actions
-            echo "::add-mask::$value"
-
-            # Para valores multilinhas, usar formato EOF
-            if [[ "$value" == *$'\n'* ]] || [[ "$value" == *"-----BEGIN"* ]] || [[ "$value" == *"-----END"* ]]; then
-              echo "$key<<EOF" >> $GITHUB_ENV
-              echo "$value" >> $GITHUB_ENV
-              echo "EOF" >> $GITHUB_ENV
+          MISSING_SECRETS=""
+          for secret in "${REQUIRED_SECRETS[@]}"; do
+            if docker secret inspect "$secret" >/dev/null 2>&1; then
+              echo "✅ $secret: Disponível"
             else
-              echo "$key=$value" >> $GITHUB_ENV
+              echo "❌ $secret: AUSENTE"
+              MISSING_SECRETS="$MISSING_SECRETS $secret"
             fi
-          }          # SEGREDOS PADRONIZADOS - conforme SEGREDOS_PADRONIZADOS.md
-          add_secret "REDIS_HOST" "conexao-de-sorte-redis-host"
-          add_secret "REDIS_PORT" "conexao-de-sorte-redis-port"
-          add_secret "REDIS_PASSWORD" "conexao-de-sorte-redis-password"
-          add_secret "REDIS_DATABASE" "conexao-de-sorte-redis-database"
-          add_secret "DATABASE_JDBC_URL" "conexao-de-sorte-database-jdbc-url"
-          add_secret "DATABASE_R2DBC_URL" "conexao-de-sorte-database-r2dbc-url"
-          add_secret "DATABASE_USERNAME" "conexao-de-sorte-database-username"
-          add_secret "DATABASE_PASSWORD" "conexao-de-sorte-database-password"
-          add_secret "DATABASE_HOST" "conexao-de-sorte-database-host"
-          add_secret "DATABASE_PORT" "conexao-de-sorte-database-port"
-          add_secret "JWT_SECRET" "conexao-de-sorte-jwt-secret"
-          add_secret "JWT_ISSUER" "conexao-de-sorte-jwt-issuer"
-          add_secret "JWT_JWKS_URI" "conexao-de-sorte-jwt-jwks-uri"
-          add_secret "JWT_KEY_ID" "conexao-de-sorte-jwt-key-id"
-          add_secret "JWT_SIGNING_KEY" "conexao-de-sorte-jwt-signing-key"
-          add_secret "JWT_VERIFICATION_KEY" "conexao-de-sorte-jwt-verification-key"
-          add_secret "JWT_PRIVATE_KEY" "conexao-de-sorte-jwt-privateKey"
-          add_secret "JWT_PUBLIC_KEY" "conexao-de-sorte-jwt-publicKey"
-          add_secret "CORS_ALLOWED_ORIGINS" "conexao-de-sorte-cors-allowed-origins"
-          add_secret "CORS_ALLOW_CREDENTIALS" "conexao-de-sorte-cors-allow-credentials"
-          add_secret "SSL_ENABLED" "conexao-de-sorte-ssl-enabled"
-          add_secret "SSL_KEYSTORE_PATH" "conexao-de-sorte-ssl-keystore-path"
-          add_secret "SSL_KEYSTORE_PASSWORD" "conexao-de-sorte-ssl-keystore-password"
-          add_secret "ENCRYPTION_MASTER_KEY" "conexao-de-sorte-encryption-master-key"
-          add_secret "ENCRYPTION_MASTER_PASSWORD" "conexao-de-sorte-encryption-master-password"
-          add_secret "ENCRYPTION_BACKUP_KEY" "conexao-de-sorte-encryption-backup-key"
+          done
 
-          # SECURITY: Log apenas resumo sem expor nomes ou valores de segredos
-          echo "Successfully loaded 26 secrets from Azure Key Vault using standardized naming"
+          if [[ -n "$MISSING_SECRETS" ]]; then
+            echo "⚠️ Secrets ausentes:$MISSING_SECRETS"
+            echo "🔧 Execute infraestrutura-core pipeline para sincronizar secrets"
+          else
+            echo "✅ Secrets essenciais para Traefik estão disponíveis"
+          fi
 
       - name: Prepare scripts
         run: |

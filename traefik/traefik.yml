@@ -50,3 +50,15 @@ certificatesResolvers:
 
 ping:
   entryPoint: web
+
+# Health check para Docker Swarm
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+
+# Timeout configurations
+serversTransport:
+  insecureSkipVerify: false
+  dialTimeout: 30s
+  responseHeaderTimeout: 30s
