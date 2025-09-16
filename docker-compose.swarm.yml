@@ -1,0 +1,132 @@
+version: '3.8'
+
+# =============================================================================
+# ⚠️ DOCKER SWARM VERSION - Conexão de Sorte Traefik Infrastructure
+# =============================================================================
+# Este arquivo é específico para Docker Swarm deployment
+# Baseado no docker-compose.yml principal com ajustes para Swarm
+# =============================================================================
+
+services:
+  traefik:
+    image: traefik:v3.5.2  # Latest stable 2025-09-09
+
+    # ==========================================================================
+    # 📡 PORTS
+    # ==========================================================================
+    ports:
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS
+      # Dashboard via HTTPS routing (sem porta externa 8080)
+    networks:
+      - conexao-network-swarm
+
+    # ==========================================================================
+    # 🔧 ENVIRONMENT VARIABLES
+    # ==========================================================================
+    environment:
+      - TZ=${TZ:-America/Sao_Paulo}
+      - TRAEFIK_ACME_EMAIL=${TRAEFIK_ACME_EMAIL:-facilitaservicos.tec@gmail.com}
+      # Security
+      - TRAEFIK_API_DASHBOARD=${ENABLE_DASHBOARD:-true}
+      - TRAEFIK_API_INSECURE=${API_INSECURE:-false}
+      # Performance
+      - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - TRAEFIK_ACCESSLOG=${ACCESS_LOG_ENABLED:-true}
+
+    # ==========================================================================
+    # 📁 VOLUMES
+    # ==========================================================================
+    volumes:
+      # Docker socket para service discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+      # Configuração estática principal
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+
+      # Configurações dinâmicas
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+
+      # SSL/TLS certificates
+      - ./letsencrypt:/letsencrypt
+
+      # Logs (para auditoria)
+      - ./logs/traefik:/var/log/traefik
+
+      # Secrets para autenticação
+      - ./secrets:/secrets:ro
+
+    # ==========================================================================
+    # 🩺 HEALTHCHECK (Traefik 3.5.2 optimized)
+    # ==========================================================================
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s  # Aligned with main compose
+
+    # ==========================================================================
+    # 🏷️ LABELS (Docker Swarm)
+    # ==========================================================================
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      # Resource optimization for Traefik 3.5.2
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+      labels:
+        # Habilitar Traefik para este serviço
+        - traefik.enable=true
+        - traefik.docker.network=conexao-network-swarm
+
+        # =======================================================================
+        # 📊 DASHBOARD HTTPS (sem porta externa)
+        # =======================================================================
+        - traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)
+        - traefik.http.routers.dashboard.entrypoints=websecure
+        - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
+        - traefik.http.routers.dashboard.service=api@internal
+
+        # Dashboard com autenticação
+        - traefik.http.routers.dashboard.middlewares=dashboard-auth@file,security-headers@file
+
+        # =======================================================================
+        # 🔀 API BACKEND PROXY (usando middlewares de arquivo)
+        # =======================================================================
+        - traefik.http.routers.api-backend.rule=Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`)
+        - traefik.http.routers.api-backend.entrypoints=websecure
+        - traefik.http.routers.api-backend.tls.certresolver=letsencrypt
+        - traefik.http.routers.api-backend.service=api-backend-service
+        - traefik.http.services.api-backend-service.loadbalancer.server.port=${BACKEND_PORT:-8080}
+
+        # CORS para API - usar middlewares definidos em arquivo
+        - traefik.http.routers.api-backend.middlewares=cors-api@file,security-headers@file,rate-limit@file
+
+        # Health check para load balancer
+        - traefik.http.services.api-backend-service.loadbalancer.healthcheck.path=/actuator/health
+        - traefik.http.services.api-backend-service.loadbalancer.healthcheck.interval=30s
+
+# =============================================================================
+# 🌐 NETWORKS
+# =============================================================================
+networks:
+  conexao-network-swarm:
+    name: conexao-network-swarm
+    external: true
