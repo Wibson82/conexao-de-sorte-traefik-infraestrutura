@@ -90,9 +90,81 @@ if ! docker stack config -c "$COMPOSE_FILE" > /dev/null; then
   exit 1
 fi
 
+# Remover imagens antigas do Traefik antes de fazer o deploy
+echo "🧹 Removendo imagens antigas do Traefik..."
+# Verificar se o serviço existe antes de tentar remover
+if docker service ls --filter name="${STACK_NAME}_traefik" --format "{{.Name}}" | grep -q "${STACK_NAME}_traefik"; then
+  echo "🔄 Serviço Traefik existente encontrado, preparando para atualização..."
+  
+  # Obter a imagem atual para referência
+  CURRENT_IMAGE=$(docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' "${STACK_NAME}_traefik" 2>/dev/null || echo "")
+  if [ -n "$CURRENT_IMAGE" ]; then
+    echo "📋 Imagem atual: $CURRENT_IMAGE"
+  fi
+  
+  # Forçar remoção de containers antigos
+  echo "🧹 Removendo containers antigos do Traefik..."
+  docker service scale "${STACK_NAME}_traefik=0" || true
+  sleep 5
+  
+  # Verificar se há containers ainda em execução
+  RUNNING_CONTAINERS=$(docker ps --filter name="${STACK_NAME}_traefik" --format "{{.ID}}" || echo "")
+  if [ -n "$RUNNING_CONTAINERS" ]; then
+    echo "🧹 Forçando remoção de containers ainda em execução..."
+    echo "$RUNNING_CONTAINERS" | xargs -r docker rm -f
+  fi
+  
+  # Limpar imagens antigas não utilizadas
+  echo "🧹 Limpando imagens antigas não utilizadas..."
+  docker image prune -f
+else
+  echo "ℹ️ Nenhum serviço Traefik existente encontrado, prosseguindo com deploy inicial..."
+fi
+
 echo ""
 echo "🚀 Deploying stack $STACK_NAME from $COMPOSE_FILE com Swarm"
-docker stack deploy -c "$COMPOSE_FILE" --with-registry-auth "$STACK_NAME"
+
+# Implementar mecanismo de retry para garantir o envio da imagem
+MAX_RETRIES=3
+RETRY_COUNT=0
+DEPLOY_SUCCESS=false
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$DEPLOY_SUCCESS" != "true" ]; do
+  echo "🔄 Tentativa de deploy #$((RETRY_COUNT+1))..."
+  
+  # Forçar pull da imagem antes do deploy
+  echo "📥 Forçando pull da imagem Traefik..."
+  docker pull traefik:v3.5.2
+  
+  # Executar o deploy com --with-registry-auth para garantir acesso ao registry
+  if docker stack deploy -c "$COMPOSE_FILE" --with-registry-auth "$STACK_NAME" --prune; then
+    echo "✅ Deploy executado com sucesso!"
+    DEPLOY_SUCCESS=true
+  else
+    echo "❌ Falha no deploy, tentando novamente..."
+    RETRY_COUNT=$((RETRY_COUNT+1))
+    
+    if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+      echo "⏳ Aguardando 10 segundos antes da próxima tentativa..."
+      sleep 10
+      
+      # Limpar possíveis containers problemáticos
+      echo "🧹 Limpando possíveis containers problemáticos..."
+      docker ps -a --filter name="${STACK_NAME}_traefik" --format "{{.ID}}" | xargs -r docker rm -f
+      
+      # Verificar status do Docker
+      echo "🔍 Verificando status do Docker..."
+      docker info | grep -E "Server Version|Containers|Images|Swarm"
+    else
+      echo "❌ Número máximo de tentativas excedido!"
+    fi
+  fi
+done
+
+if [ "$DEPLOY_SUCCESS" != "true" ]; then
+  echo "❌ Falha ao fazer deploy após $MAX_RETRIES tentativas!"
+  exit 1
+fi
 
 echo "⏳ Waiting for $STACK_NAME service to reach 1/1..."
 timeout=180
