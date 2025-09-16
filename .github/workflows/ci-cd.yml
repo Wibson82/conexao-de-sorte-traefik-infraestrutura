@@ -51,7 +51,6 @@ jobs:
           name: traefik-configs
           path: |
             docker-compose.yml
-            docker-compose.swarm.yml
             .env.ci
             traefik/
             letsencrypt/
@@ -68,7 +67,7 @@ jobs:
     env:
       DOCKER_NETWORK_NAME: conexao-network-swarm  # Usar rede overlay existente
       STACK_NAME: conexao-traefik
-      COMPOSE_FILE: docker-compose.swarm.yml  # OBRIGATÓRIO: Usar arquivo Swarm
+      COMPOSE_FILE: docker-compose.yml  # OBRIGATÓRIO: Usar arquivo consolidado
     steps:
       - uses: actions/checkout@v4.3.0
         with:
@@ -83,57 +82,12 @@ jobs:
       # REMOVIDO: Azure CLI não deve ser usado em produção
       # Traefik usa apenas Docker Secrets sincronizados pela infraestrutura-core
 
-      - name: "🔍 Validar Docker Secrets Críticos (OIDC-Only)"
+      - name: "🔍 Validar Docker Secrets e Azure Key Vault (OIDC-Only)"
         shell: bash
         run: |
-          echo "🔍 Validando Docker Secrets críticos para Traefik (OIDC-Only)..."
-
-          # Lista de secrets críticos para Traefik (nomenclatura UPPERCASE dos Docker Secrets)
-          CRITICAL_SECRETS=(
-            "CORS_ALLOWED_ORIGINS"
-            "SSL_ENABLED"
-            "SSL_KEYSTORE_PASSWORD"
-            "JWT_VERIFICATION_KEY"
-          )
-
-          # Lista de secrets opcionais mas recomendados
-          OPTIONAL_SECRETS=(
-            "CORS_ALLOW_CREDENTIALS"
-            "SSL_KEYSTORE_PATH"
-            "JWT_SIGNING_KEY"
-          )
-
-          echo "🔍 Verificando secrets CRÍTICOS:"
-          MISSING_CRITICAL=""
-          for secret in "${CRITICAL_SECRETS[@]}"; do
-            if docker secret inspect "$secret" >/dev/null 2>&1; then
-              echo "✅ $secret: Disponível"
-            else
-              echo "❌ $secret: CRÍTICO AUSENTE"
-              MISSING_CRITICAL="$MISSING_CRITICAL $secret"
-            fi
-          done
-
-          echo ""
-          echo "🔍 Verificando secrets OPCIONAIS:"
-          for secret in "${OPTIONAL_SECRETS[@]}"; do
-            if docker secret inspect "$secret" >/dev/null 2>&1; then
-              echo "✅ $secret: Disponível (opcional)"
-            else
-              echo "⚠️ $secret: Ausente (opcional)"
-            fi
-          done
-
-          if [[ -n "$MISSING_CRITICAL" ]]; then
-            echo ""
-            echo "❌ ERRO CRÍTICO: Secrets obrigatórios ausentes:$MISSING_CRITICAL"
-            echo "🔧 SOLUÇÃO: Execute infraestrutura-core pipeline para sincronizar todos os secrets"
-            echo "📋 Aguarde infraestrutura-core sincronizar antes de prosseguir com Traefik"
-            exit 1
-          else
-            echo ""
-            echo "✅ Todos os secrets críticos para Traefik estão disponíveis"
-          fi
+          # Usar script consolidado para validação de secrets
+          chmod +x .github/workflows/scripts/validate-secrets.sh
+          .github/workflows/scripts/validate-secrets.sh
 
       - name: Prepare scripts
         run: |
@@ -144,31 +98,11 @@ jobs:
       - name: 🚀 Deploy Traefik Stack (Swarm-Only)
         env:
           STACK_NAME: conexao-traefik
-          COMPOSE_FILE: docker-compose.swarm.yml  # OBRIGATÓRIO: Swarm file
+          COMPOSE_FILE: docker-compose.yml  # OBRIGATÓRIO: Arquivo consolidado
         run: |
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
 
-          # Verificação FINAL dos secrets antes do deploy
-          echo "🔍 Verificação FINAL dos secrets antes do deploy..."
-          REQUIRED_SECRETS=("CORS_ALLOWED_ORIGINS" "SSL_ENABLED" "JWT_VERIFICATION_KEY")
-          MISSING_CRITICAL=""
-
-          for secret in "${REQUIRED_SECRETS[@]}"; do
-            if ! docker secret inspect "$secret" >/dev/null 2>&1; then
-              echo "❌ CRITICAL SECRET MISSING: $secret"
-              MISSING_CRITICAL="$MISSING_CRITICAL $secret"
-            else
-              echo "✅ Secret verified: $secret"
-            fi
-          done
-
-          if [ -n "$MISSING_CRITICAL" ]; then
-            echo "❌ FATAL: Missing critical secrets for Traefik:$MISSING_CRITICAL"
-            echo "🔧 Cannot proceed with Traefik deploy without critical secrets"
-            exit 1
-          fi
-
-          # Executar deploy usando APENAS o arquivo Swarm
+          # Executar deploy usando o arquivo consolidado
           chmod +x .github/workflows/scripts/deploy-traefik.sh
           .github/workflows/scripts/deploy-traefik.sh
 
