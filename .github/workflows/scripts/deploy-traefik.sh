@@ -11,12 +11,12 @@ echo "🔧 Preparing environment for Traefik deploy..."
 # Check which network to use based on environment variable
 NETWORK_NAME=${DOCKER_NETWORK_NAME:-conexao-network-swarm}
 
-# OBRIGATÓRIO: Sempre usar arquivo Swarm em produção
-if [ -n "${COMPOSE_FILE:-}" ] && [ "$COMPOSE_FILE" = "docker-compose.swarm.yml" ]; then
-  echo "✅ Usando arquivo Swarm especificado: $COMPOSE_FILE"
+# OBRIGATÓRIO: Usar arquivo consolidado docker-compose.yml
+if [ -n "${COMPOSE_FILE:-}" ]; then
+  echo "✅ Usando arquivo especificado: $COMPOSE_FILE"
 else
-  COMPOSE_FILE="docker-compose.swarm.yml"
-  echo "🔄 Forçando uso do arquivo Swarm: $COMPOSE_FILE"
+  COMPOSE_FILE="docker-compose.yml"
+  echo "🔄 Usando arquivo consolidado: $COMPOSE_FILE"
 fi
 
 # Verificar se o arquivo obrigatório existe
