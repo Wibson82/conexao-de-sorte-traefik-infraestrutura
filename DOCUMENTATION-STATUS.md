@@ -5,12 +5,10 @@
 ### **🏠 Documentação Principal**
 - `README.md` - Documentação principal do projeto
 - `SECURITY-IMPLEMENTATION.md` - Implementação de segurança com GitHub OIDC e Azure Key Vault
+- `TRAEFIK-DEPLOYMENT-GUIDE.md` - Guia completo de implantação segura do Traefik
 
 ### **🔐 Configuração de Segredos**
 - `SEGREDOS_PADRONIZADOS.md` - Padrões de nomenclatura de segredos Azure Key Vault
-
-### **🔧 Troubleshooting**
-- `TRAEFIK-TROUBLESHOOTING.md` - Guia de solução de problemas do Traefik
 
 ## 🧹 **Limpeza Realizada**
 
@@ -23,6 +21,9 @@
 - `DOCKER-CONSOLIDATION.md` - Processo concluído
 - `CI-CD-FIX.md` - Correções aplicadas
 - `CLEANUP-SUMMARY.md` - Não mais necessário
+- `TRAEFIK-TROUBLESHOOTING.md` - Consolidado em TRAEFIK-DEPLOYMENT-GUIDE.md
+- `backup/docs/TRAEFIK-TROUBLESHOOTING.md` - Substituído pelo novo guia de implantação
+- `backup/docs/TROUBLESHOOTING-SSL.md` - Informações consolidadas no novo guia
 
 ## 🎯 **Estado Atual**
 
@@ -30,7 +31,7 @@
 - **README.md**: Documentação principal atualizada
 - **SECURITY-IMPLEMENTATION.md**: Padrões de segurança implementados
 - **SEGREDOS_PADRONIZADOS.md**: Nomenclatura de segredos padronizada
-- **TRAEFIK-TROUBLESHOOTING.md**: Guia de problemas comuns
+- **TRAEFIK-DEPLOYMENT-GUIDE.md**: Guia completo de implantação e solução de problemas
 
 ### ✅ **Benefícios da Limpeza**
 - 📋 Documentação consolidada e focada
@@ -46,5 +47,6 @@
 4. **Adicionar nova documentação** apenas quando essencial
 
 ---
-**🧹 Limpeza realizada em:** 2024-09-14
+**🧹 Limpeza inicial realizada em:** 2024-09-14
+**🧹 Última atualização em:** 2025-09-16
 **📋 Status:** Documentação otimizada e consolidada
