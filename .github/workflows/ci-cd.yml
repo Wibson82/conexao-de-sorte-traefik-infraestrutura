@@ -84,6 +84,11 @@ jobs:
 
       - name: "🔍 Validar Docker Secrets e Azure Key Vault (OIDC-Only)"
         shell: bash
+        env:
+          # Variáveis Azure Key Vault via OIDC (disponíveis no runner)
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_KEYVAULT_ENDPOINT: ${{ secrets.AZURE_KEYVAULT_ENDPOINT }}
         run: |
           # Usar script consolidado para validação de secrets
           chmod +x .github/workflows/scripts/validate-secrets.sh
