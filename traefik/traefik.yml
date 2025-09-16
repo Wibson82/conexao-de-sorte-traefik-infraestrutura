@@ -58,5 +58,4 @@ metrics:
 
 # Timeout configurations (Traefik 3.x format)
 serversTransport:
-  forwarder:
-    insecureSkipVerify: false
+  insecureSkipVerify: false
