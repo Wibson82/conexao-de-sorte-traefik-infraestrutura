@@ -79,7 +79,7 @@ http:
     backend-service:
       loadbalancer:
         servers:
-          - url: "http://backend-prod:8080"
+          - url: "http://host.docker.internal:8080"
         passHostHeader: true
         healthCheck:
           path: /actuator/health
