@@ -12,6 +12,10 @@ secrets/
 *.log
 logs/
 /logs/
+logs/traefik/
+logs/traefik-bridge/
+/logs/traefik/
+/logs/traefik-bridge/
 
 # Arquivos temporários
 *.tmp
