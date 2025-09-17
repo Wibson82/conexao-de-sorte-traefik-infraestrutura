@@ -79,7 +79,7 @@ http:
     backend-service:
       loadbalancer:
         servers:
-          - url: "http://172.17.0.1:8080"
+          - url: "http://backend-prod:8080"
         passHostHeader: true
         healthCheck:
           path: /actuator/health

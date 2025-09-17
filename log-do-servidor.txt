@@ -1,10 +1,9 @@
-CONTAINER ID   IMAGE                                                                                                     COMMAND                  CREATED              STATUS                                 PORTS                                         NAMES
-1bf7b2fc85ce   ghcr.io/wibson82/conexao-de-sorte-backend-scheduler/conexao-de-sorte-backend-scheduler:14-09-2025-08-14   "/app/docker-entrypo…"   17 seconds ago       Up 12 seconds (health: starting)       5005/tcp, 8084/tcp                            scheduler.1.lz5rpr25sxe495ae5682q016l
-2f03abca67d5   traefik:v3.5.2                                                                                            "/entrypoint.sh --co…"   About a minute ago   Up About a minute (healthy)            80/tcp                                        conexao-traefik_traefik.1.v89aw9594w72oxfjnqd56sfh7
-b64b4333c33e   ghcr.io/wibson82/conexao-de-sorte-backend-gateway/gateway:14-09-2025-07-40                                "sh -c 'java $JAVA_O…"   3 minutes ago        Up About a minute (health: starting)   8086/tcp                                      conexao-gateway_gateway.1.yqkz6huv2v1fskintjt9viho0
-e69ac47a3d7e   facilita/conexao-de-sorte-frontend:latest                                                                 "dumb-init -- serve …"   7 days ago           Up 21 hours (healthy)                  0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp   conexao-frontend
-037bafe7e94c   facilita/conexao-de-sorte-backend:30-07-2025-17-01                                                        "dumb-init -- /app/b…"   6 weeks ago          Up 21 hours (unhealthy)                8080/tcp                                      backend-prod
-97ff4c87c716   b5239da13ab0                                                                                              "/bin/prometheus --c…"   2 months ago         Up 21 hours                            0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp   conexao-prometheus
+CONTAINER ID   IMAGE                                                                        COMMAND                  CREATED         STATUS                             PORTS                                         NAMES
+b2d765359cae   ghcr.io/wibson82/conexao-de-sorte-backend-gateway/gateway:14-09-2025-07-40   "sh -c 'java $JAVA_O…"   2 minutes ago   Up 12 seconds (health: starting)   8086/tcp                                      conexao-gateway_gateway.1.hkfm8rfqd4h56n00bu0bmqzz4
+fab882679de2   traefik:v3.5.2                                                               "/entrypoint.sh --co…"   4 minutes ago   Up 4 minutes (healthy)             80/tcp                                        conexao-traefik_traefik.1.g6c60tah3gox0yivpe3pznhiq
+e69ac47a3d7e   facilita/conexao-de-sorte-frontend:latest                                    "dumb-init -- serve …"   7 days ago      Up 21 hours (healthy)              0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp   conexao-frontend
+037bafe7e94c   facilita/conexao-de-sorte-backend:30-07-2025-17-01                           "dumb-init -- /app/b…"   6 weeks ago     Up 21 hours (unhealthy)            8080/tcp                                      backend-prod
+97ff4c87c716   b5239da13ab0                                                                 "/bin/prometheus --c…"   2 months ago    Up 21 hours                        0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp   conexao-prometheus
 NETWORK ID     NAME                    DRIVER    SCOPE
 975e8747d321   bridge                  bridge    local
 5613ec22796f   conexao-network         bridge    local
@@ -13,37 +12,43 @@ f9ux3ueosu7k   conexao-network-swarm   overlay   swarm
 5d72aaa5b47b   host                    host      local
 obweyn7ktrhq   ingress                 overlay   swarm
 e542734a4e9d   none                    null      local
-2025-09-16T21:02:24-03:00 INF Traefik version 3.5.2 built on 2025-09-09T10:17:00Z version=3.5.2
-2025-09-16T21:02:24-03:00 INF
+2025-09-16T21:11:00-03:00 INF Traefik version 3.5.2 built on 2025-09-09T10:17:00Z version=3.5.2
+2025-09-16T21:11:01-03:00 INF
 Stats collection is disabled.
 Help us improve Traefik by turning this feature on :)
 More details on: https://doc.traefik.io/traefik/contributing/data-collection/
 
-2025-09-16T21:02:24-03:00 INF Starting provider aggregator *aggregator.ProviderAggregator
-2025-09-16T21:02:24-03:00 INF Starting provider *file.Provider
-2025-09-16T21:02:24-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-main
-2025-09-16T21:02:24-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-redirect
-2025-09-16T21:02:24-03:00 WRN HTTP service already configured, skipping filename=microservices-routes.yml providerName=file serviceName=frontend-service
-2025-09-16T21:02:24-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=gzip-compress providerName=file
-2025-09-16T21:02:24-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=redirect-to-www providerName=file
-2025-09-16T21:02:24-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=https-redirect providerName=file
-2025-09-16T21:02:24-03:00 WRN HTTP middleware already configured, skipping filename=security-headers.yml middlewareName=security-headers providerName=file
-2025-09-16T21:02:24-03:00 INF Starting provider *traefik.Provider
-2025-09-16T21:02:24-03:00 INF Starting provider *docker.Provider
-2025-09-16T21:02:24-03:00 INF Starting provider *acme.ChallengeTLSALPN
-2025-09-16T21:02:24-03:00 INF Starting provider *acme.Provider
-2025-09-16T21:02:24-03:00 INF Testing certificate renew... acmeCA=https://acme-v02.api.letsencrypt.org/directory providerName=letsencrypt.acme
-2025-09-16T21:02:25-03:00 ERR Unable to parse certificate /letsencrypt/conexaodesorte.com.br.crt error="unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"
-2025-09-16T21:02:25-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-2025-09-16T21:02:25-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-2025-09-16T21:02:25-03:00 ERR Error while adding route for host error="error while adding rule HostSNI(`${traefik_domain:-traefik.conexaodesorte.com.br}`): invalid value for HostSNI matcher, \"${traefik_domain:-traefik.conexaodesorte.com.br}\" is not a valid hostname"
-2025-09-16T21:02:25-03:00 ERR Error while adding route for host error="error while adding rule HostSNI(`${api_domain:-api.conexaodesorte.com.br}`): invalid value for HostSNI matcher, \"${api_domain:-api.conexaodesorte.com.br}\" is not a valid hostname"
-2025-09-16T21:02:31-03:00 INF Register... providerName=letsencrypt.acme
-2025-09-16T21:02:33-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["${api_domain:-api.conexaodesorte.com.br}"] providerName=letsencrypt.acme routerName=user-api@file rule="Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/users`)"
-2025-09-16T21:02:35-03:00 INF Register... providerName=letsencrypt.acme
-2025-09-16T21:02:36-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["conexaodesorte.com.br","www.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=backend-prod-resultados@file rule="(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/v1/resultados/publico`)"
-2025-09-16T21:02:37-03:00 INF Register... providerName=letsencrypt.acme
-2025-09-16T21:02:38-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["${traefik_domain:-traefik.conexaodesorte.com.br}"] providerName=letsencrypt.acme routerName=traefik-dashboard@file rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)
-2025-09-16T21:02:55-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://host.docker.internal:8080/actuator/health\": dial tcp: lookup host.docker.internal on 127.0.0.11:53: no such host" serviceName=backend-service@file targetURL=http://host.docker.internal:8080
-2025-09-16T21:03:25-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://host.docker.internal:8080/actuator/health\": dial tcp: lookup host.docker.internal on 127.0.0.11:53: no such host" serviceName=backend-service@file targetURL=http://host.docker.internal:8080
-2025-09-16T21:03:55-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://host.docker.internal:8080/actuator/health\": dial tcp: lookup host.docker.internal on 127.0.0.11:53: no such host" serviceName=backend-service@file targetURL=http://host.docker.internal:8080
+2025-09-16T21:11:01-03:00 INF Starting provider aggregator *aggregator.ProviderAggregator
+2025-09-16T21:11:01-03:00 INF Starting provider *file.Provider
+2025-09-16T21:11:01-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-main
+2025-09-16T21:11:01-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-redirect
+2025-09-16T21:11:01-03:00 WRN HTTP service already configured, skipping filename=microservices-routes.yml providerName=file serviceName=frontend-service
+2025-09-16T21:11:01-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=redirect-to-www providerName=file
+2025-09-16T21:11:01-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=https-redirect providerName=file
+2025-09-16T21:11:01-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=gzip-compress providerName=file
+2025-09-16T21:11:01-03:00 WRN HTTP middleware already configured, skipping filename=security-headers.yml middlewareName=security-headers providerName=file
+2025-09-16T21:11:01-03:00 INF Starting provider *traefik.Provider
+2025-09-16T21:11:01-03:00 INF Starting provider *docker.Provider
+2025-09-16T21:11:01-03:00 INF Starting provider *acme.ChallengeTLSALPN
+2025-09-16T21:11:01-03:00 INF Starting provider *acme.Provider
+2025-09-16T21:11:01-03:00 INF Testing certificate renew... acmeCA=https://acme-v02.api.letsencrypt.org/directory providerName=letsencrypt.acme
+2025-09-16T21:11:01-03:00 ERR Unable to parse certificate /letsencrypt/conexaodesorte.com.br.crt error="unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"
+2025-09-16T21:11:01-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
+2025-09-16T21:11:01-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
+2025-09-16T21:11:01-03:00 ERR Unable to parse certificate /letsencrypt/conexaodesorte.com.br.crt error="unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"
+2025-09-16T21:11:03-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
+2025-09-16T21:11:03-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
+2025-09-16T21:11:08-03:00 INF Register... providerName=letsencrypt.acme
+2025-09-16T21:11:09-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["api.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=auth-api@file rule="Host(`api.conexaodesorte.com.br`) && PathPrefix(`/auth`)"
+2025-09-16T21:11:11-03:00 INF Register... providerName=letsencrypt.acme
+2025-09-16T21:11:12-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["conexaodesorte.com.br","www.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=frontend-main@file rule="Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
+2025-09-16T21:11:14-03:00 INF Register... providerName=letsencrypt.acme
+2025-09-16T21:11:16-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["traefik.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=traefik-dashboard@file rule=Host(`traefik.conexaodesorte.com.br`)
+2025-09-16T21:11:33-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
+2025-09-16T21:12:03-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
+2025-09-16T21:12:33-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
+2025-09-16T21:13:03-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
+2025-09-16T21:13:33-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
+2025-09-16T21:14:03-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
+2025-09-16T21:14:33-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
+2025-09-16T21:15:03-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080

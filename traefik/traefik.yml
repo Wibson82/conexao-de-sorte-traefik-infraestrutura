@@ -42,7 +42,7 @@ accessLog:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: ${TRAEFIK_ACME_EMAIL:-facilitaservicos.tec@gmail.com}
+      email: "facilitaservicos.tec@gmail.com"
       storage: /letsencrypt/acme.json
       httpChallenge:
         entryPoint: web
