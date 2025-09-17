@@ -30,7 +30,6 @@ services:
       # Dashboard via HTTPS routing (sem porta externa 8080 - SEGURANÇA)
     networks:
       - conexao-network-swarm  # CONFLITO RESOLVIDO: rede fixa para consistência
-      - conexao-network        # Rede bridge para comunicação híbrida com backend-prod
 
     # ==========================================================================
     # 🔧 ENVIRONMENT VARIABLES (Azure Key Vault Compatible)
@@ -173,11 +172,6 @@ networks:
     name: conexao-network-swarm
     external: true
     # CONFLITO RESOLVIDO: rede externa obrigatória para Docker Swarm
-  
-  conexao-network:
-    name: conexao-network
-    external: true
-    # Rede bridge externa para comunicação híbrida com backend-prod (docker-compose)
 
 # =============================================================================
 # 📋 INSTRUÇÕES DE USO CONSOLIDADAS

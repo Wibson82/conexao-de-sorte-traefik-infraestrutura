@@ -1,0 +1,99 @@
+# =============================================================================
+# 🌉 TRAEFIK BRIDGE - DOCKER COMPOSE PARA COMUNICAÇÃO COM BACKEND-PROD
+# =============================================================================
+# Container Traefik separado em modo bridge para comunicação com backend-prod
+# Funciona em paralelo com o Traefik Swarm sem conflitos
+# =============================================================================
+
+version: '3.8'
+
+services:
+  traefik-bridge:
+    image: traefik:v3.5.2
+    container_name: traefik-bridge
+    restart: unless-stopped
+    
+    # ==========================================================================
+    # 🌐 NETWORK & PORTS (Portas diferentes para evitar conflitos)
+    # ==========================================================================
+    ports:
+      - "8080:80"      # HTTP bridge (porta diferente do Swarm)
+      - "8443:443"     # HTTPS bridge (porta diferente do Swarm)
+    
+    networks:
+      - conexao-network  # Rede bridge para comunicação com backend-prod
+    
+    # ==========================================================================
+    # 🔧 ENVIRONMENT VARIABLES
+    # ==========================================================================
+    environment:
+      - TZ=America/Sao_Paulo
+      - TRAEFIK_ACME_EMAIL=facilitaservicos.tec@gmail.com
+      - TRAEFIK_API_DASHBOARD=false  # Dashboard desabilitado para segurança
+      - TRAEFIK_LOG_LEVEL=INFO
+    
+    # ==========================================================================
+    # 📁 VOLUMES
+    # ==========================================================================
+    volumes:
+      # Configuração específica para bridge
+      - ./traefik/traefik-bridge.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic-bridge:/etc/traefik/dynamic:ro
+      
+      # Certificados separados para evitar conflitos
+      - ./letsencrypt-bridge:/letsencrypt
+      - ./logs/traefik-bridge:/var/log/traefik
+      
+      # Docker socket para descoberta de serviços
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    
+    # ==========================================================================
+    # 🏷️ LABELS
+    # ==========================================================================
+    labels:
+      - "traefik.enable=false"  # Não gerenciado pelo Traefik Swarm
+      - "com.docker.compose.project=traefik-bridge"
+      - "org.opencontainers.image.title=Traefik Bridge - Backend Communication"
+      - "org.opencontainers.image.description=Traefik Bridge para comunicação com backend-prod"
+    
+    # ==========================================================================
+    # 🔒 SECURITY
+    # ==========================================================================
+    security_opt:
+      - no-new-privileges:true
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# =============================================================================
+# 🌐 NETWORKS
+# =============================================================================
+networks:
+  conexao-network:
+    name: conexao-network
+    external: true
+    # Rede bridge externa compartilhada com backend-prod
+
+# =============================================================================
+# 📋 INSTRUÇÕES DE USO
+# =============================================================================
+#
+# DEPLOY:
+# docker-compose -f docker-compose.bridge.yml up -d
+#
+# LOGS:
+# docker-compose -f docker-compose.bridge.yml logs -f traefik-bridge
+#
+# STOP:
+# docker-compose -f docker-compose.bridge.yml down
+#
+# ENDPOINTS:
+# - HTTP: http://localhost:8080
+# - HTTPS: https://localhost:8443
+#
+# =============================================================================

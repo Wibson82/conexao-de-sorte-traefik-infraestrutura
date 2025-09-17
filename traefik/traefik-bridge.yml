@@ -1,0 +1,61 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+api:
+  dashboard: false  # Dashboard desabilitado para segurança
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+
+  websecure:
+    address: ":443"
+    http3:
+      advertisedPort: 443
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    watch: true
+    network: conexao-network  # Rede bridge
+    # Modo standalone (não Swarm)
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
+
+log:
+  level: INFO
+
+accessLog:
+  format: json
+  filePath: "/var/log/traefik/access.log"
+  bufferingSize: 100
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "facilitaservicos.tec@gmail.com"
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
+
+ping:
+  entryPoint: web
+
+# Health check para Docker Compose
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+
+# Timeout configurations (Traefik 3.x format)
+serversTransport:
+  insecureSkipVerify: false
