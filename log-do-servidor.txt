@@ -1,204 +1,10 @@
-Run echo "� Iniciando deploy do Traefik com Docker Swarm..."
-� Iniciando deploy do Traefik com Docker Swarm...
-� Preparing environment for Traefik deploy...
-✅ Usando arquivo especificado: docker-compose.yml
-� Usando Docker Swarm mode com docker-compose.yml
-� Checking Docker Swarm overlay network: conexao-network-swarm
-✅ Network conexao-network-swarm already exists
-� Verificações pré-deploy:
-  - Docker compose file: ✅ docker-compose.yml
-  - Traefik config: ✅ traefik/traefik.yml
-  - Dynamic config dir: ✅ traefik/dynamic
-  - Secrets dir: ✅ secrets
-  - LetsEncrypt dir: ✅ letsencrypt
-  - ACME file: ✅ letsencrypt/acme.json
-� Validando configurações do Swarm para Traefik...
-� Removendo imagens antigas do Traefik...
-� Serviço Traefik existente encontrado, preparando para atualização...
-� Imagem atual: traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54
-� Removendo containers antigos do Traefik...
-conexao-traefik_traefik scaled to 0
-overall progress: 0 out of 0 tasks
-overall progress: 0 out of 0 tasks
-verify: Waiting 5 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 5 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 5 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 5 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 5 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 4 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 4 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 4 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 4 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 4 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 3 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 3 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 3 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 3 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 3 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 2 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 2 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 2 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 2 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 1 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 1 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 1 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 1 seconds to verify that tasks are stable...
-overall progress: 0 out of 0 tasks
-verify: Waiting 1 seconds to verify that tasks are stable...
-verify: Service conexao-traefik_traefik converged
-� Limpando imagens antigas não utilizadas...
-Deleted Images:
-untagged: confluentinc/cp-kafka@sha256:02170e46da5c36b1581cd42ebfbf2a55edae6348c62bc772bc2166841db745b2
-deleted: sha256:a2716a120846c7f3f4b7c136692e23498721fca1d0f1fa79e4a444f6cf26a2b9
-deleted: sha256:4277cebbf294c2a815f6a301fe2d00355d6517d60974a66c329e5deeeffbcc1a
-deleted: sha256:a1f822a7d0b7913baebf2494097ec09010f5d45d6a6da4560fb164236b69580d
-untagged: jaegertracing/all-in-one@sha256:4fd2d70fa347d6a47e79fcb06b1c177e6079f92cba88b083153d56263082135e
-deleted: sha256:a0253dd1a194a3f33cf867620f4aa4943d4fc53746247ec0ed576a4ac7b061a2
-deleted: sha256:e468e85c0165eb3cbcc2b9ebfb45c12997d9fee72e70419431b390967b37db46
-deleted: sha256:722daca52c44a90e8f50a60dd431816572c979a7537e22122024c2a5a692a51f
-deleted: sha256:26100d034e4c1e9354583517fd93741d6ed26718ab125e049952f25b9c62c18e
-deleted: sha256:edbe0c75090cad3be6394cf1754f45c31e8e8a8932bef3c611038200f53033bd
-deleted: sha256:78561cef0761903dd2f7d09856150a6d4fb48967a8f113f3e33d79effbf59a07
-untagged: openzipkin/zipkin@sha256:c2830e93d95de43f0d10e00a3784a9ee101cdf4909370196c8802514fd7f1954
-deleted: sha256:4f80c5497c7e16c8fd169c182a3c2176477a6bb25f4741619b49a36eccdff5f1
-deleted: sha256:1f7dcbff6bfd2233e3d9367544f5c5b4f16ba4e6ca746db8ad39d2e4dfb74e5c
-deleted: sha256:1ebb99f20a1267317f6b8492de0d95bf16fd18b8481e333194a159e9e5096a5b
-deleted: sha256:c80b468e0dbc9f14757b40a69a487d5efcce9bb77c537d3b4b96f9517aaf34c1
-deleted: sha256:dd933111fb1e88d38fd7d70feda61fb53466b469c1d21352dfac431c80961a3d
-deleted: sha256:45eb5ff60a98c4980c3b738836be7b4980d88c318db04e6c807368b8d9b73d69
-deleted: sha256:d8d9684980a6369682a7f70991b67a30ddab36a69dbf201c768ba5b0d0ed3032
-deleted: sha256:6bc4dbd083952d9021af082071be24cc9e0930faf69966111effdad53541a943
-deleted: sha256:79311567859911ff27bc8bb8f00f0d06302ea0e85de32255d5353f95427a104d
-deleted: sha256:d66a9cb87c24c65e50dfd1629c73f82809faecb9fbfd97d0a126bcec87e5faf1
-untagged: mysql@sha256:6e60ad6d61d8e7f0a4fd07f6b14109331d66a2f0d089e4b7a1f485d671a29604
-deleted: sha256:cb72985bb938a89de9f49e38b08d864d5cd16a71d7cc2131bb5705759c3a8a85
-deleted: sha256:4e3a063991142916885559f2cf85efcade8534c13d9519bdcd3f4a45f957c541
-deleted: sha256:c91471a56aa9dd9f6a60faa422c33dea7dd40aa070968445e611331ceafdd477
-deleted: sha256:b144b3ea8e0891b4b277692fc6d30fdac5914a99e808bd83191464e045af99ec
-deleted: sha256:f5685e549840227dc874453879f0ed17be9785d863c3ee2d9a007c15b0222027
-deleted: sha256:87a1352b5d349cb9c14d2c653683de2a70f8553acf578868525b4787d10c9ca8
-deleted: sha256:71726eb2d9cd6d403ff87d793479015756c20d0690bd53a6917fd7a9ba979cb6
-deleted: sha256:cd8206e848998e069f4fc0efacd0ec37559a9356ca04b3de2a06758c94965ed5
-deleted: sha256:3e27aa249c90c1baf71880c7b3b4bd51e1c7758a21fa892a77fdc6284f4393f3
-deleted: sha256:ba7e14f9a1dca90c9ca5a8913d8835b765ea12a08a6dbb6505f279333bb8f1a1
-deleted: sha256:b7433112edcc73d12fd962e21eef3bdf1ba7efeec515127fecf03c398d844b28
-untagged: rabbitmq@sha256:770948395acde6a1faf449f8570dc1f0365eb573dba1c6c89d060e1fcbfe199c
-deleted: sha256:49ac63115c68dae1dd914f70de7a24d60a144274e2a9e910142ef8818ca8d425
-deleted: sha256:11cb008326380f2f10ca1663de6e40ead67a14a95a8ebaf1743d5a67f1a0e502
-deleted: sha256:ca44951b6ac3f2b3d48687e7dd07b7787be3e38199d96eb3176ccd2af0a20ba3
-deleted: sha256:1dee946d63e2f58b8241e79718f31cec4520ffbc0620bda14eef889002c8e4fc
-deleted: sha256:7a7fef488161de6d6f03a730cd6b1750307ed4cffbd3e9e9f35b2c201e3c3138
-deleted: sha256:2d51b8ffd0914ec6d1d49892a6a032a477ba98ecdbe3c080407d66bff483e5ca
-deleted: sha256:5ad1c804759c7110c13c992d67802bb914c898e32565cb80c3454d9dcb4cfe45
-deleted: sha256:2d2fde062bc875c248b31cc0802fe00fce1066c785b5b3b06b9966c363470fea
-deleted: sha256:0d2e788e7d8e47ef57b78c99075329e29a80d2e8e6666a4d7db311076876ec49
-deleted: sha256:57ace914b559a22f1e0b0a1497e89318d5c4a248e024d8c217868a5974c7ebcc
-deleted: sha256:fd2758d7a50e2b78d275ee7d1c218489f2439084449d895fa17eede6c61ab2c4
-untagged: confluentinc/cp-zookeeper@sha256:5ae28c2f45b89e12e8ba27bd0cfbe6488ef7082a17f01c878ab7f1841a58874b
-deleted: sha256:725e1614cf4d76a844c5f28dddc4662843e5abf7f829fa27d838046ccb29896f
-deleted: sha256:ea3663558ec88d81a6ac24e7c8926c60c0949724a898b2c1b14557277cbd44ad
-deleted: sha256:ef2d565d0f41adb2956ff25af05ec03bb7e834949669a192f05d45b5c9b8025f
-deleted: sha256:56ee8e93a81f43f70637b3ce5942069a6eeb4ff0f794194710eb3f50b3c6e1b0
-deleted: sha256:7ab69dc0823fe1e796d01f28d12cb55ee54770a66fae5e0612b37da44e2b0cf2
-deleted: sha256:3c18c0e332791ba47301060532e5c6f651f280d0443de3e3ebf47e991727b922
-deleted: sha256:60d70063a3d7813749cbe0abcd1ba63a383cc361aca8a5fbd6130c0e2618a1bf
-deleted: sha256:147aa89c32eaa2d1bcb9d07b97b43b8596a966b64a09079e44345037df3fbd3c
-deleted: sha256:bdcd996ab533582321a822c537cd533ce61a3beee9e068a127a8a3d114b8b77d
-deleted: sha256:76a8d921c0d6ee54ea6845751c5ebf8105d73f2b4326cd7e5278da182f297430
-deleted: sha256:dbf3d1e5ca2d1b4bca915828b9b4c4e95296e548fdf7a926da2a370f2d6537d4
-deleted: sha256:3ff157be961f7bad5d5a276cf5ce3c533068290d4c2e02eaff26c58a6586d680
-deleted: sha256:1aa810f9ae5c20c1610e0de4e7b9216c44044259b6b2a0bfa1a8157f5f37df32
-deleted: sha256:39c8ac215e39889ce89fa48c7b15336becde24bd29eebe2cf7ea347d41a780f9
-deleted: sha256:89603d9625c3b32ab52cd1bfaa867dbab5c04973e2ff09a8116088950d82f01c
-deleted: sha256:8d7d657d45b456e52f3bb3c9073755d00234756220f41b544e119df0d3b77248
-
-Total reclaimed space: 2.506GB
-
-� Deploying stack conexao-traefik from docker-compose.yml com Swarm
-� Tentativa de deploy #1...
-� Forçando pull da imagem Traefik...
-v3.5.2: Pulling from library/traefik
-Digest: sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54
-Status: Image is up to date for traefik:v3.5.2
-docker.io/library/traefik:v3.5.2
-Ignoring unsupported options: restart
-
-Since --detach=false was not specified, tasks will be created in the background.
-In a future release, --detach=false will become the default.
-network "conexao-network" is declared as external, but it is not in the right scope: "local" instead of "swarm"
-❌ Falha no deploy, tentando novamente...
-⏳ Aguardando 10 segundos antes da próxima tentativa...
-� Limpando possíveis containers problemáticos...
-68e76db7f596
-f5664fe90c5d
-� Verificando status do Docker...
- Containers: 32
- Images: 10
- Server Version: 28.3.3
- Swarm: active
-� Tentativa de deploy #2...
-� Forçando pull da imagem Traefik...
-v3.5.2: Pulling from library/traefik
-Digest: sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54
-Status: Image is up to date for traefik:v3.5.2
-docker.io/library/traefik:v3.5.2
-Ignoring unsupported options: restart
-
-Since --detach=false was not specified, tasks will be created in the background.
-In a future release, --detach=false will become the default.
-network "conexao-network" is declared as external, but it is not in the right scope: "local" instead of "swarm"
-❌ Falha no deploy, tentando novamente...
-⏳ Aguardando 10 segundos antes da próxima tentativa...
-� Limpando possíveis containers problemáticos...
-� Verificando status do Docker...
- Containers: 32
- Images: 10
- Server Version: 28.3.3
- Swarm: active
-� Tentativa de deploy #3...
-� Forçando pull da imagem Traefik...
-v3.5.2: Pulling from library/traefik
-Digest: sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54
-Status: Image is up to date for traefik:v3.5.2
-docker.io/library/traefik:v3.5.2
-Ignoring unsupported options: restart
-
-Since --detach=false was not specified, tasks will be created in the background.
-In a future release, --detach=false will become the default.
-network "conexao-network" is declared as external, but it is not in the right scope: "local" instead of "swarm"
-❌ Falha no deploy, tentando novamente...
-❌ Número máximo de tentativas excedido!
-❌ Falha ao fazer deploy após 3 tentativas!
-Error: Process completed with exit code 1.
-
-
-CONTAINER ID   IMAGE                                                                        COMMAND                  CREATED         STATUS                             PORTS                                         NAMES
-594b689ea27c   ghcr.io/wibson82/conexao-de-sorte-backend-gateway/gateway:14-09-2025-07-40   "sh -c 'java $JAVA_O…"   2 minutes ago   Up 25 seconds (health: starting)   8086/tcp                                      conexao-gateway_gateway.1.4vang29x4f5m0qywar1m9wt14
-e69ac47a3d7e   facilita/conexao-de-sorte-frontend:latest                                    "dumb-init -- serve …"   7 days ago      Up 21 hours (healthy)              0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp   conexao-frontend
-037bafe7e94c   facilita/conexao-de-sorte-backend:30-07-2025-17-01                           "dumb-init -- /app/b…"   6 weeks ago     Up 21 hours (unhealthy)            8080/tcp                                      backend-prod
-97ff4c87c716   b5239da13ab0                                                                 "/bin/prometheus --c…"   2 months ago    Up 21 hours                        0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp   conexao-prometheus
+CONTAINER ID   IMAGE                                                                                                     COMMAND                  CREATED              STATUS                                 PORTS                                         NAMES
+1bf7b2fc85ce   ghcr.io/wibson82/conexao-de-sorte-backend-scheduler/conexao-de-sorte-backend-scheduler:14-09-2025-08-14   "/app/docker-entrypo…"   17 seconds ago       Up 12 seconds (health: starting)       5005/tcp, 8084/tcp                            scheduler.1.lz5rpr25sxe495ae5682q016l
+2f03abca67d5   traefik:v3.5.2                                                                                            "/entrypoint.sh --co…"   About a minute ago   Up About a minute (healthy)            80/tcp                                        conexao-traefik_traefik.1.v89aw9594w72oxfjnqd56sfh7
+b64b4333c33e   ghcr.io/wibson82/conexao-de-sorte-backend-gateway/gateway:14-09-2025-07-40                                "sh -c 'java $JAVA_O…"   3 minutes ago        Up About a minute (health: starting)   8086/tcp                                      conexao-gateway_gateway.1.yqkz6huv2v1fskintjt9viho0
+e69ac47a3d7e   facilita/conexao-de-sorte-frontend:latest                                                                 "dumb-init -- serve …"   7 days ago           Up 21 hours (healthy)                  0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp   conexao-frontend
+037bafe7e94c   facilita/conexao-de-sorte-backend:30-07-2025-17-01                                                        "dumb-init -- /app/b…"   6 weeks ago          Up 21 hours (unhealthy)                8080/tcp                                      backend-prod
+97ff4c87c716   b5239da13ab0                                                                                              "/bin/prometheus --c…"   2 months ago         Up 21 hours                            0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp   conexao-prometheus
 NETWORK ID     NAME                    DRIVER    SCOPE
 975e8747d321   bridge                  bridge    local
 5613ec22796f   conexao-network         bridge    local
@@ -207,3 +13,37 @@ f9ux3ueosu7k   conexao-network-swarm   overlay   swarm
 5d72aaa5b47b   host                    host      local
 obweyn7ktrhq   ingress                 overlay   swarm
 e542734a4e9d   none                    null      local
+2025-09-16T21:02:24-03:00 INF Traefik version 3.5.2 built on 2025-09-09T10:17:00Z version=3.5.2
+2025-09-16T21:02:24-03:00 INF
+Stats collection is disabled.
+Help us improve Traefik by turning this feature on :)
+More details on: https://doc.traefik.io/traefik/contributing/data-collection/
+
+2025-09-16T21:02:24-03:00 INF Starting provider aggregator *aggregator.ProviderAggregator
+2025-09-16T21:02:24-03:00 INF Starting provider *file.Provider
+2025-09-16T21:02:24-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-main
+2025-09-16T21:02:24-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-redirect
+2025-09-16T21:02:24-03:00 WRN HTTP service already configured, skipping filename=microservices-routes.yml providerName=file serviceName=frontend-service
+2025-09-16T21:02:24-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=gzip-compress providerName=file
+2025-09-16T21:02:24-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=redirect-to-www providerName=file
+2025-09-16T21:02:24-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=https-redirect providerName=file
+2025-09-16T21:02:24-03:00 WRN HTTP middleware already configured, skipping filename=security-headers.yml middlewareName=security-headers providerName=file
+2025-09-16T21:02:24-03:00 INF Starting provider *traefik.Provider
+2025-09-16T21:02:24-03:00 INF Starting provider *docker.Provider
+2025-09-16T21:02:24-03:00 INF Starting provider *acme.ChallengeTLSALPN
+2025-09-16T21:02:24-03:00 INF Starting provider *acme.Provider
+2025-09-16T21:02:24-03:00 INF Testing certificate renew... acmeCA=https://acme-v02.api.letsencrypt.org/directory providerName=letsencrypt.acme
+2025-09-16T21:02:25-03:00 ERR Unable to parse certificate /letsencrypt/conexaodesorte.com.br.crt error="unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"
+2025-09-16T21:02:25-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
+2025-09-16T21:02:25-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
+2025-09-16T21:02:25-03:00 ERR Error while adding route for host error="error while adding rule HostSNI(`${traefik_domain:-traefik.conexaodesorte.com.br}`): invalid value for HostSNI matcher, \"${traefik_domain:-traefik.conexaodesorte.com.br}\" is not a valid hostname"
+2025-09-16T21:02:25-03:00 ERR Error while adding route for host error="error while adding rule HostSNI(`${api_domain:-api.conexaodesorte.com.br}`): invalid value for HostSNI matcher, \"${api_domain:-api.conexaodesorte.com.br}\" is not a valid hostname"
+2025-09-16T21:02:31-03:00 INF Register... providerName=letsencrypt.acme
+2025-09-16T21:02:33-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["${api_domain:-api.conexaodesorte.com.br}"] providerName=letsencrypt.acme routerName=user-api@file rule="Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/users`)"
+2025-09-16T21:02:35-03:00 INF Register... providerName=letsencrypt.acme
+2025-09-16T21:02:36-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["conexaodesorte.com.br","www.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=backend-prod-resultados@file rule="(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/v1/resultados/publico`)"
+2025-09-16T21:02:37-03:00 INF Register... providerName=letsencrypt.acme
+2025-09-16T21:02:38-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["${traefik_domain:-traefik.conexaodesorte.com.br}"] providerName=letsencrypt.acme routerName=traefik-dashboard@file rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)
+2025-09-16T21:02:55-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://host.docker.internal:8080/actuator/health\": dial tcp: lookup host.docker.internal on 127.0.0.11:53: no such host" serviceName=backend-service@file targetURL=http://host.docker.internal:8080
+2025-09-16T21:03:25-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://host.docker.internal:8080/actuator/health\": dial tcp: lookup host.docker.internal on 127.0.0.11:53: no such host" serviceName=backend-service@file targetURL=http://host.docker.internal:8080
+2025-09-16T21:03:55-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://host.docker.internal:8080/actuator/health\": dial tcp: lookup host.docker.internal on 127.0.0.11:53: no such host" serviceName=backend-service@file targetURL=http://host.docker.internal:8080

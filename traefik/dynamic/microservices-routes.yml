@@ -9,7 +9,7 @@ http:
     # 🔐 AUTHENTICATION & AUTHORIZATION
     # ==========================================================================
     auth-api:
-      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/auth`)"
+      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/auth`)"
       entrypoints:
         - websecure
       middlewares:
@@ -25,7 +25,7 @@ http:
     # 👤 USER MANAGEMENT
     # ==========================================================================
     user-api:
-      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/users`)"
+      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/users`)"
       entrypoints:
         - websecure
       middlewares:
@@ -41,7 +41,7 @@ http:
     # 🎯 RESULTS & GAMES
     # ==========================================================================
     results-api:
-      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/results`)"
+      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/results`)"
       entrypoints:
         - websecure
       middlewares:
@@ -57,7 +57,7 @@ http:
     # 💬 CHAT & COMMUNICATION
     # ==========================================================================
     chat-api:
-      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/chat`)"
+      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/chat`)"
       entrypoints:
         - websecure
       middlewares:
@@ -73,7 +73,7 @@ http:
     # 🔔 NOTIFICATIONS
     # ==========================================================================
     notifications-api:
-      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/notifications`)"
+      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/notifications`)"
       entrypoints:
         - websecure
       middlewares:
@@ -89,7 +89,7 @@ http:
     # 📊 OBSERVABILITY & MONITORING
     # ==========================================================================
     observability-api:
-      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/observability`)"
+      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/observability`)"
       entrypoints:
         - websecure
       middlewares:
@@ -105,7 +105,7 @@ http:
     # 🔐 CRYPTO & SECURITY
     # ==========================================================================
     crypto-api:
-      rule: "Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/crypto`)"
+      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/crypto`)"
       entrypoints:
         - websecure
       middlewares:
@@ -122,7 +122,7 @@ http:
     # 🌐 FRONTEND APPLICATION
     # ==========================================================================
     frontend-main:
-      rule: "Host(`${DOMAIN_NAME:-conexaodesorte.com.br}`) || Host(`www.${DOMAIN_NAME:-conexaodesorte.com.br}`)"
+      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
       entrypoints:
         - websecure
       middlewares:
@@ -135,7 +135,7 @@ http:
 
     # Frontend HTTP -> HTTPS redirect
     frontend-redirect:
-      rule: "Host(`${DOMAIN_NAME:-conexaodesorte.com.br}`) || Host(`www.${DOMAIN_NAME:-conexaodesorte.com.br}`)"
+      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
       entrypoints:
         - web
       middlewares:
@@ -146,7 +146,7 @@ http:
     # 🛠️ ADMIN & MANAGEMENT
     # ==========================================================================
     traefik-dashboard:
-      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)"
+      rule: "Host(`traefik.conexaodesorte.com.br`)"
       entrypoints:
         - websecure
       middlewares:
