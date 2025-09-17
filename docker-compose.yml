@@ -54,14 +54,14 @@ services:
     volumes:
       # Docker socket para descoberta de serviços
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      
+
       # Configuração principal do Traefik
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
-      
+
       # Certificados Let's Encrypt
       - ./letsencrypt:/letsencrypt
-      
+
       # Secrets para autenticação
       - ./secrets:/secrets:ro
 
@@ -143,14 +143,6 @@ services:
         # ===================================================================
         # 🔄 BACKEND LEGACY (Compatibilidade)
         # ===================================================================
-        - traefik.http.routers.backend-legacy.rule=Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`) && PathPrefix(`/legacy`)
-        - traefik.http.routers.backend-legacy.entrypoints=websecure
-        - traefik.http.routers.backend-legacy.tls.certresolver=letsencrypt
-        - traefik.http.routers.backend-legacy.middlewares=security-headers-api@file,cors-api@file
-        - traefik.http.routers.backend-legacy.service=backend-legacy
-        - traefik.http.services.backend-legacy.loadbalancer.server.url=http://${BACKEND_SERVICE:-backend-prod}:${BACKEND_PORT:-8080}
-
-        # ===================================================================
         # 🏷️ METADATA (Compliance)
         # ===================================================================
         - org.opencontainers.image.title=Traefik Gateway - Conexão de Sorte
@@ -192,8 +184,6 @@ networks:
 # TRAEFIK_ACME_EMAIL=facilitaservicos.tec@gmail.com
 # TRAEFIK_DOMAIN=traefik.conexaodesorte.com.br
 # API_DOMAIN=api.conexaodesorte.com.br
-# BACKEND_SERVICE=backend-prod
-# BACKEND_PORT=8080
 # ENABLE_DASHBOARD=true
 # LOG_LEVEL=INFO
 # ACCESS_LOG_ENABLED=true

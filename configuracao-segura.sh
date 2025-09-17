@@ -60,10 +60,11 @@ TRAEFIK_DOMAIN=traefik.conexaodesorte.com.br
 API_DOMAIN=api.conexaodesorte.com.br
 
 # =============================================================================
-# 🔧 BACKEND CONFIGURATION
+# 🔧 BACKEND CONFIGURATION (Docker Swarm Only)
 # =============================================================================
-BACKEND_SERVICE=backend-prod
-BACKEND_PORT=8080
+# Configurações removidas: BACKEND_SERVICE e BACKEND_PORT eram específicas
+# para comunicação bridge com backend-prod legacy
+# Agora usando apenas Docker Swarm para todos os serviços
 
 # =============================================================================
 # 📊 DASHBOARD & LOGGING
@@ -148,7 +149,7 @@ validate_setup() {
     else
         echo "⚠️  AZURE_KEYVAULT_NAME não definido"
     fi
-    
+
     # Verificar variáveis obrigatórias do Traefik
     local traefik_vars=("TRAEFIK_DOMAIN" "API_DOMAIN" "TRAEFIK_ACME_EMAIL")
     for var in "${traefik_vars[@]}"; do

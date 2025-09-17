@@ -93,26 +93,16 @@ jobs:
           # Criar secrets Docker se não existirem (ambiente limpo)
           chmod +x .github/workflows/scripts/create-docker-secrets.sh
           .github/workflows/scripts/create-docker-secrets.sh
-          
+
           # Usar script consolidado para validação de secrets
           chmod +x .github/workflows/scripts/validate-secrets.sh
           .github/workflows/scripts/validate-secrets.sh
 
       - name: Prepare scripts
         run: |
-          chmod +x .github/workflows/scripts/deploy-traefik.sh .github/workflows/scripts/healthcheck-traefik.sh .github/workflows/scripts/connectivity-validation.sh .github/workflows/scripts/connect-backend-to-swarm.sh .github/workflows/scripts/create-docker-secrets.sh .github/workflows/scripts/deploy-traefik-bridge.sh
+          chmod +x .github/workflows/scripts/deploy-traefik.sh .github/workflows/scripts/healthcheck-traefik.sh .github/workflows/scripts/connectivity-validation.sh .github/workflows/scripts/create-docker-secrets.sh
           # Usar arquivo de ambiente específico para CI/CD
           cp .env.ci .env
-
-      - name: 🌉 Deploy Traefik Bridge for backend-prod
-        run: |
-          echo "🌉 Deployando Traefik Bridge para comunicação com backend-prod..."
-          .github/workflows/scripts/deploy-traefik-bridge.sh
-
-      - name: 🔗 Connect backend-prod to Swarm network
-        run: |
-          echo "🔗 Conectando backend-prod à rede overlay do Swarm..."
-          .github/workflows/scripts/connect-backend-to-swarm.sh
 
       - name: 🚀 Deploy Traefik Stack (Swarm-Only)
         env:
