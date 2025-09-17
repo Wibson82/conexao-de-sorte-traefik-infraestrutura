@@ -24,3 +24,9 @@ http:
     #   loadbalancer:
     #     servers:
     #       - url: "http://backend-swarm:8080"
+
+    # YAML válido requer pelo menos um item, mesmo que comentado
+    placeholder-service:
+      loadbalancer:
+        servers:
+          - url: "http://placeholder:3000"
