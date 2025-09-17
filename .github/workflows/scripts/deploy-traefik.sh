@@ -57,15 +57,38 @@ else
 fi
 
 # Ensure required directories exist
-mkdir -p ./letsencrypt || true
+echo "📁 Criando diretórios necessários..."
+echo "📍 Diretório atual: $(pwd)"
+echo "📋 Conteúdo do diretório atual:"
+ls -la . | head -10
+
+mkdir -p ./letsencrypt || {
+    echo "❌ Erro ao criar diretório ./letsencrypt"
+    exit 1
+}
 mkdir -p ./logs/traefik || true
 mkdir -p ./secrets || true
+echo "✅ Diretórios criados com sucesso"
 
 # Set proper permissions for acme.json
+echo "🔐 Configurando certificados SSL..."
+echo "📋 Verificando diretório letsencrypt:"
+ls -la ./letsencrypt/ || echo "Diretório letsencrypt não encontrado"
+
 if [ ! -f ./letsencrypt/acme.json ]; then
-    touch ./letsencrypt/acme.json
+    echo "📄 Criando arquivo acme.json..."
+    touch ./letsencrypt/acme.json || {
+        echo "❌ Erro ao criar ./letsencrypt/acme.json"
+        echo "📋 Verificando permissões do diretório:"
+        ls -la ./letsencrypt/ || echo "Diretório não existe"
+        exit 1
+    }
+    echo "✅ Arquivo acme.json criado"
+else
+    echo "✅ Arquivo acme.json já existe"
 fi
 chmod 600 ./letsencrypt/acme.json
+echo "✅ Permissões do acme.json configuradas"
 
 # Create basic auth file for Traefik dashboard
 if [ ! -f ./secrets/traefik-basicauth ]; then
