@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Deploy Traefik stack using the repo's docker-compose.yml and validate readiness.
+# Deploy Traefik s# Set proper permissions for letsencrypt acme.json (Swarm only)
+if [ ! -f ./letsencrypt/acme.json ]; then
+    touch ./letsencrypt/acme.json
+fi
+chmod 600 ./letsencrypt/acme.json
+
+# Create basic auth file for Traefik dashboarde repo's docker-compose.yml and validate readiness.
 
 STACK_NAME=${STACK_NAME:-conexao-traefik}
 COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.yml}
@@ -61,12 +67,6 @@ if [ ! -f ./letsencrypt/acme.json ]; then
 fi
 chmod 600 ./letsencrypt/acme.json
 
-# Set proper permissions for letsencrypt-bridge acme.json
-if [ ! -f ./letsencrypt-bridge/acme.json ]; then
-    touch ./letsencrypt-bridge/acme.json
-fi
-chmod 600 ./letsencrypt-bridge/acme.json
-
 # Create basic auth file for Traefik dashboard
 if [ ! -f ./secrets/traefik-basicauth ]; then
     echo "🔐 Criando arquivo básico de autenticação..."
@@ -101,25 +101,25 @@ echo "🧹 Removendo imagens antigas do Traefik..."
 # Verificar se o serviço existe antes de tentar remover
 if docker service ls --filter name="${STACK_NAME}_traefik" --format "{{.Name}}" | grep -q "${STACK_NAME}_traefik"; then
   echo "🔄 Serviço Traefik existente encontrado, preparando para atualização..."
-  
+
   # Obter a imagem atual para referência
   CURRENT_IMAGE=$(docker service inspect --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' "${STACK_NAME}_traefik" 2>/dev/null || echo "")
   if [ -n "$CURRENT_IMAGE" ]; then
     echo "📋 Imagem atual: $CURRENT_IMAGE"
   fi
-  
+
   # Forçar remoção de containers antigos
   echo "🧹 Removendo containers antigos do Traefik..."
   docker service scale "${STACK_NAME}_traefik=0" || true
   sleep 5
-  
+
   # Verificar se há containers ainda em execução
   RUNNING_CONTAINERS=$(docker ps --filter name="${STACK_NAME}_traefik" --format "{{.ID}}" || echo "")
   if [ -n "$RUNNING_CONTAINERS" ]; then
     echo "🧹 Forçando remoção de containers ainda em execução..."
     echo "$RUNNING_CONTAINERS" | xargs -r docker rm -f
   fi
-  
+
   # Limpar imagens antigas não utilizadas
   echo "🧹 Limpando imagens antigas não utilizadas..."
   docker image prune -f
@@ -137,11 +137,11 @@ DEPLOY_SUCCESS=false
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$DEPLOY_SUCCESS" != "true" ]; do
   echo "🔄 Tentativa de deploy #$((RETRY_COUNT+1))..."
-  
+
   # Forçar pull da imagem antes do deploy
   echo "📥 Forçando pull da imagem Traefik..."
   docker pull traefik:v3.5.2
-  
+
   # Executar o deploy com --with-registry-auth para garantir acesso ao registry
   if docker stack deploy -c "$COMPOSE_FILE" --with-registry-auth "$STACK_NAME" --prune; then
     echo "✅ Deploy executado com sucesso!"
@@ -149,15 +149,15 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$DEPLOY_SUCCESS" != "true" ]; do
   else
     echo "❌ Falha no deploy, tentando novamente..."
     RETRY_COUNT=$((RETRY_COUNT+1))
-    
+
     if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
       echo "⏳ Aguardando 10 segundos antes da próxima tentativa..."
       sleep 10
-      
+
       # Limpar possíveis containers problemáticos
       echo "🧹 Limpando possíveis containers problemáticos..."
       docker ps -a --filter name="${STACK_NAME}_traefik" --format "{{.ID}}" | xargs -r docker rm -f
-      
+
       # Verificar status do Docker
       echo "🔍 Verificando status do Docker..."
       docker info | grep -E "Server Version|Containers|Images|Swarm"
