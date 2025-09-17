@@ -1,9 +1,7 @@
-CONTAINER ID   IMAGE                                                                        COMMAND                  CREATED         STATUS                             PORTS                                         NAMES
-b2d765359cae   ghcr.io/wibson82/conexao-de-sorte-backend-gateway/gateway:14-09-2025-07-40   "sh -c 'java $JAVA_O…"   2 minutes ago   Up 12 seconds (health: starting)   8086/tcp                                      conexao-gateway_gateway.1.hkfm8rfqd4h56n00bu0bmqzz4
-fab882679de2   traefik:v3.5.2                                                               "/entrypoint.sh --co…"   4 minutes ago   Up 4 minutes (healthy)             80/tcp                                        conexao-traefik_traefik.1.g6c60tah3gox0yivpe3pznhiq
-e69ac47a3d7e   facilita/conexao-de-sorte-frontend:latest                                    "dumb-init -- serve …"   7 days ago      Up 21 hours (healthy)              0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp   conexao-frontend
-037bafe7e94c   facilita/conexao-de-sorte-backend:30-07-2025-17-01                           "dumb-init -- /app/b…"   6 weeks ago     Up 21 hours (unhealthy)            8080/tcp                                      backend-prod
-97ff4c87c716   b5239da13ab0                                                                 "/bin/prometheus --c…"   2 months ago    Up 21 hours                        0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp   conexao-prometheus
+CONTAINER ID   IMAGE                                                         COMMAND                  CREATED          STATUS                     PORTS                                                                                NAMES
+6931533837e2   traefik:v3.5.2                                                "/entrypoint.sh trae…"   2 minutes ago    Up 2 minutes (unhealthy)   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp, 0.0.0.0:8443->443/tcp, [::]:8443->443/tcp   traefik-bridge
+a28975df3c6b   ghcr.io/wibson82/conexao-de-sorte-frontend:16-09-2025-22-35   "dumb-init -- serve …"   12 minutes ago   Up 12 minutes (healthy)    3000/tcp                                                                             conexao-frontend_frontend.1.jiqwmid5eswmwqm1gwoilsymw
+037bafe7e94c   facilita/conexao-de-sorte-backend:30-07-2025-17-01            "dumb-init -- /app/b…"   6 weeks ago      Up 23 hours (unhealthy)    8080/tcp                                                                             backend-prod
 NETWORK ID     NAME                    DRIVER    SCOPE
 975e8747d321   bridge                  bridge    local
 5613ec22796f   conexao-network         bridge    local
@@ -12,43 +10,516 @@ f9ux3ueosu7k   conexao-network-swarm   overlay   swarm
 5d72aaa5b47b   host                    host      local
 obweyn7ktrhq   ingress                 overlay   swarm
 e542734a4e9d   none                    null      local
-2025-09-16T21:11:00-03:00 INF Traefik version 3.5.2 built on 2025-09-09T10:17:00Z version=3.5.2
-2025-09-16T21:11:01-03:00 INF
+2025-09-16T22:46:52-03:00 INF Traefik version 3.5.2 built on 2025-09-09T10:17:00Z version=3.5.2
+2025-09-16T22:46:52-03:00 INF
 Stats collection is disabled.
 Help us improve Traefik by turning this feature on :)
 More details on: https://doc.traefik.io/traefik/contributing/data-collection/
 
-2025-09-16T21:11:01-03:00 INF Starting provider aggregator *aggregator.ProviderAggregator
-2025-09-16T21:11:01-03:00 INF Starting provider *file.Provider
-2025-09-16T21:11:01-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-main
-2025-09-16T21:11:01-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-redirect
-2025-09-16T21:11:01-03:00 WRN HTTP service already configured, skipping filename=microservices-routes.yml providerName=file serviceName=frontend-service
-2025-09-16T21:11:01-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=redirect-to-www providerName=file
-2025-09-16T21:11:01-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=https-redirect providerName=file
-2025-09-16T21:11:01-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=gzip-compress providerName=file
-2025-09-16T21:11:01-03:00 WRN HTTP middleware already configured, skipping filename=security-headers.yml middlewareName=security-headers providerName=file
-2025-09-16T21:11:01-03:00 INF Starting provider *traefik.Provider
-2025-09-16T21:11:01-03:00 INF Starting provider *docker.Provider
-2025-09-16T21:11:01-03:00 INF Starting provider *acme.ChallengeTLSALPN
-2025-09-16T21:11:01-03:00 INF Starting provider *acme.Provider
-2025-09-16T21:11:01-03:00 INF Testing certificate renew... acmeCA=https://acme-v02.api.letsencrypt.org/directory providerName=letsencrypt.acme
-2025-09-16T21:11:01-03:00 ERR Unable to parse certificate /letsencrypt/conexaodesorte.com.br.crt error="unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"
-2025-09-16T21:11:01-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-2025-09-16T21:11:01-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-2025-09-16T21:11:01-03:00 ERR Unable to parse certificate /letsencrypt/conexaodesorte.com.br.crt error="unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"
-2025-09-16T21:11:03-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-2025-09-16T21:11:03-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-2025-09-16T21:11:08-03:00 INF Register... providerName=letsencrypt.acme
-2025-09-16T21:11:09-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["api.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=auth-api@file rule="Host(`api.conexaodesorte.com.br`) && PathPrefix(`/auth`)"
-2025-09-16T21:11:11-03:00 INF Register... providerName=letsencrypt.acme
-2025-09-16T21:11:12-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["conexaodesorte.com.br","www.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=frontend-main@file rule="Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
-2025-09-16T21:11:14-03:00 INF Register... providerName=letsencrypt.acme
-2025-09-16T21:11:16-03:00 ERR Unable to obtain ACME certificate for domains error="cannot get ACME client acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:invalidContact :: Error validating contact(s) :: unable to parse email address" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["traefik.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=traefik-dashboard@file rule=Host(`traefik.conexaodesorte.com.br`)
-2025-09-16T21:11:33-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
-2025-09-16T21:12:03-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
-2025-09-16T21:12:33-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
-2025-09-16T21:13:03-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
-2025-09-16T21:13:33-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
-2025-09-16T21:14:03-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
-2025-09-16T21:14:33-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
-2025-09-16T21:15:03-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://172.17.0.1:8080/actuator/health\": dial tcp 172.17.0.1:8080: connect: connection refused" serviceName=backend-service@file targetURL=http://172.17.0.1:8080
+2025-09-16T22:46:52-03:00 ERR The ACME resolve is skipped from the resolvers list error="unable to get ACME account: permissions 644 for /letsencrypt/acme.json are too open, please use 600" resolver=letsencrypt
+2025-09-16T22:46:52-03:00 INF Starting provider aggregator *aggregator.ProviderAggregator
+2025-09-16T22:46:52-03:00 INF Starting provider *file.Provider
+2025-09-16T22:46:52-03:00 WRN HTTP middleware already configured, skipping filename=security-headers.yml middlewareName=security-headers providerName=file
+2025-09-16T22:46:52-03:00 INF Starting provider *traefik.Provider
+2025-09-16T22:46:52-03:00 INF Starting provider *acme.ChallengeTLSALPN
+2025-09-16T22:46:52-03:00 INF Starting provider *docker.Provider
+2025-09-16T22:46:53-03:00 ERR error="HTTP challenge is not enabled" entryPointName=web routerName=acme-http@internal
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-public-v1@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-resultados@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-horario@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-rest@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-usuarios@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-info@file
+2025-09-16T22:46:53-03:00 ERR error="HTTP challenge is not enabled" entryPointName=web routerName=acme-http@internal
+2025-09-16T22:46:53-03:00 ERR error="error while parsing rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): adding rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): error while adding rule Host: unexpected number of parameters; got 2, expected one of [1]" entryPointName=websecure routerName=frontend-main@docker
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=frontend-main@docker
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-rest@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-resultados@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-usuarios@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-horario@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-info@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-public-v1@file
+2025-09-16T22:47:28-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:47:58-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:48:28-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:48:58-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:49:28-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+root@srv649924:~# docker container ps && docker network ls && docker logs 6931533837e2
+CONTAINER ID   IMAGE                                                         COMMAND                  CREATED          STATUS                     PORTS                                                                                NAMES
+6931533837e2   traefik:v3.5.2                                                "/entrypoint.sh trae…"   4 minutes ago    Up 4 minutes (unhealthy)   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp, 0.0.0.0:8443->443/tcp, [::]:8443->443/tcp   traefik-bridge
+a28975df3c6b   ghcr.io/wibson82/conexao-de-sorte-frontend:16-09-2025-22-35   "dumb-init -- serve …"   14 minutes ago   Up 14 minutes (healthy)    3000/tcp                                                                             conexao-frontend_frontend.1.jiqwmid5eswmwqm1gwoilsymw
+037bafe7e94c   facilita/conexao-de-sorte-backend:30-07-2025-17-01            "dumb-init -- /app/b…"   6 weeks ago      Up 23 hours (unhealthy)    8080/tcp                                                                             backend-prod
+NETWORK ID     NAME                    DRIVER    SCOPE
+975e8747d321   bridge                  bridge    local
+5613ec22796f   conexao-network         bridge    local
+f9ux3ueosu7k   conexao-network-swarm   overlay   swarm
+40d5ada00ff7   docker_gwbridge         bridge    local
+5d72aaa5b47b   host                    host      local
+obweyn7ktrhq   ingress                 overlay   swarm
+e542734a4e9d   none                    null      local
+2025-09-16T22:46:52-03:00 INF Traefik version 3.5.2 built on 2025-09-09T10:17:00Z version=3.5.2
+2025-09-16T22:46:52-03:00 INF
+Stats collection is disabled.
+Help us improve Traefik by turning this feature on :)
+More details on: https://doc.traefik.io/traefik/contributing/data-collection/
+
+2025-09-16T22:46:52-03:00 ERR The ACME resolve is skipped from the resolvers list error="unable to get ACME account: permissions 644 for /letsencrypt/acme.json are too open, please use 600" resolver=letsencrypt
+2025-09-16T22:46:52-03:00 INF Starting provider aggregator *aggregator.ProviderAggregator
+2025-09-16T22:46:52-03:00 INF Starting provider *file.Provider
+2025-09-16T22:46:52-03:00 WRN HTTP middleware already configured, skipping filename=security-headers.yml middlewareName=security-headers providerName=file
+2025-09-16T22:46:52-03:00 INF Starting provider *traefik.Provider
+2025-09-16T22:46:52-03:00 INF Starting provider *acme.ChallengeTLSALPN
+2025-09-16T22:46:52-03:00 INF Starting provider *docker.Provider
+2025-09-16T22:46:53-03:00 ERR error="HTTP challenge is not enabled" entryPointName=web routerName=acme-http@internal
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-public-v1@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-resultados@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-horario@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-rest@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-usuarios@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-info@file
+2025-09-16T22:46:53-03:00 ERR error="HTTP challenge is not enabled" entryPointName=web routerName=acme-http@internal
+2025-09-16T22:46:53-03:00 ERR error="error while parsing rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): adding rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): error while adding rule Host: unexpected number of parameters; got 2, expected one of [1]" entryPointName=websecure routerName=frontend-main@docker
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=frontend-main@docker
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-rest@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-resultados@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-usuarios@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-horario@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-info@file
+2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-public-v1@file
+2025-09-16T22:47:28-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:47:58-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:48:28-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:48:58-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:49:28-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:49:58-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:50:28-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+2025-09-16T22:50:58-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+
+Current runner version: '2.328.0'
+Runner name: 'srv649924'
+Runner group name: 'Default'
+Machine name: 'srv649924'
+GITHUB_TOKEN Permissions
+Secret source: Actions
+Prepare workflow directory
+Prepare all required actions
+Getting action download info
+Download action repository 'actions/checkout@v4.3.0' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+Download action repository 'actions/download-artifact@v4.1.8' (SHA:fa0a91b85d4f404e444e00e005971372dc801d16)
+Complete job name: deploy-selfhosted
+1s
+Run actions/checkout@v4.3.0
+Syncing repository: Wibson82/conexao-de-sorte-traefik-infraestrutura
+Getting Git version info
+Temporarily overriding HOME='/opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/_temp/cc93149b-439c-4257-b6e1-f62b90af75cc' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+/usr/bin/git config --global --add safe.directory /opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura
+/usr/bin/git config --local --get remote.origin.url
+https://github.com/Wibson82/conexao-de-sorte-traefik-infraestrutura
+Removing previously created refs, to avoid conflicts
+/usr/bin/git submodule status
+Cleaning the repository
+Disabling automatic garbage collection
+Setting up auth
+Fetching the repository
+Determining the checkout info
+/usr/bin/git sparse-checkout disable
+/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Checking out the ref
+/usr/bin/git log -1 --format=%H
+ce49a222a71c09616a1512e43aba44418ecbc028
+2s
+Run actions/download-artifact@v4.1.8
+Downloading single artifact
+Preparing to download the following artifacts:
+- traefik-configs (ID: 4030017407, Size: 15853)
+Redirecting to blob download url: https://productionresultssa14.blob.core.windows.net/actions-results/25e56d79-6201-4517-a604-8af826e5f803/workflow-job-run-f1cb48d2-4a2f-54cc-8c71-a3dd312b0101/artifacts/79f6df28388fa0095051f171d314a6f3e2f4b5cf91d775bf6f424a97bf621c62.zip
+Starting download of artifact to: /opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura
+(node:1660279) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Artifact download completed successfully.
+Total of 1 artifact(s) downloaded
+Download artifact has finished successfully
+0s
+Run # Criar secrets Docker se não existirem (ambiente limpo)
+ℹ️  � Criando Docker Secrets obrigatórios para Traefik...
+
+✅ Docker Swarm ativo, prosseguindo com criação de secrets...
+
+ℹ️  Criando secrets CRÍTICOS:
+⚠️  CORS_ALLOWED_ORIGINS: Já existe, pulando criação
+⚠️  SSL_ENABLED: Já existe, pulando criação
+⚠️  SSL_KEYSTORE_PASSWORD: Já existe, pulando criação
+⚠️  JWT_VERIFICATION_KEY: Já existe, pulando criação
+
+ℹ️  Criando secrets OPCIONAIS:
+⚠️  CORS_ALLOW_CREDENTIALS: Já existe, pulando criação
+⚠️  SSL_KEYSTORE_PATH: Já existe, pulando criação
+⚠️  JWT_SIGNING_KEY: Já existe, pulando criação
+
+ℹ️  � Listando todos os secrets criados:
+NAME                     CREATED          UPDATED
+CORS_ALLOWED_ORIGINS     9 minutes ago    9 minutes ago
+CORS_ALLOW_CREDENTIALS   9 minutes ago    9 minutes ago
+JWT_SIGNING_KEY          9 minutes ago    9 minutes ago
+JWT_VERIFICATION_KEY     9 minutes ago    9 minutes ago
+RABBITMQ_PASSWORD        12 minutes ago   12 minutes ago
+RABBITMQ_USERNAME        12 minutes ago   12 minutes ago
+SSL_ENABLED              12 minutes ago   12 minutes ago
+SSL_KEYSTORE_PASSWORD    12 minutes ago   12 minutes ago
+SSL_KEYSTORE_PATH        12 minutes ago   12 minutes ago
+
+✅ � Todos os secrets Docker foram criados com sucesso!
+ℹ️  ✅ Traefik agora pode ser deployado sem erros de secrets
+ℹ️  � Iniciando validação completa de secrets para Traefik...
+
+ℹ️  Validando Docker Secrets críticos para Traefik (OIDC-Only)...
+ℹ️  Verificando secrets CRÍTICOS:
+✅ CORS_ALLOWED_ORIGINS: Disponível
+✅ SSL_ENABLED: Disponível
+✅ SSL_KEYSTORE_PASSWORD: Disponível
+✅ JWT_VERIFICATION_KEY: Disponível
+✅ Todos os secrets críticos para Traefik estão disponíveis
+
+ℹ️  Verificando secrets OPCIONAIS:
+✅ CORS_ALLOW_CREDENTIALS: Disponível (opcional)
+✅ SSL_KEYSTORE_PATH: Disponível (opcional)
+✅ JWT_SIGNING_KEY: Disponível (opcional)
+
+ℹ️  Validando configurações Azure Key Vault...
+✅ AZURE_CLIENT_ID: Configurado
+✅ AZURE_TENANT_ID: Configurado
+✅ AZURE_KEYVAULT_ENDPOINT: Configurado
+✅ Todas as variáveis Azure Key Vault estão configuradas
+
+✅ � Validação de secrets concluída com sucesso!
+ℹ️  ✅ Traefik está pronto para deploy seguro
+0s
+Run chmod +x .github/workflows/scripts/deploy-traefik.sh .github/workflows/scripts/healthcheck-traefik.sh .github/workflows/scripts/connectivity-validation.sh .github/workflows/scripts/connect-backend-to-swarm.sh .github/workflows/scripts/create-docker-secrets.sh .github/workflows/scripts/deploy-traefik-bridge.sh
+1m 2s
+Run echo "� Deployando Traefik Bridge para comunicação com backend-prod..."
+� Deployando Traefik Bridge para comunicação com backend-prod...
+ℹ️  � Iniciando deploy do Traefik Bridge para backend-prod...
+
+✅ Rede conexao-network já existe
+✅ Container backend-prod encontrado e rodando
+✅ backend-prod já está conectado à rede conexao-network
+
+ℹ️  Fazendo deploy do Traefik Bridge...
+time="2025-09-16T22:46:52-03:00" level=warning msg="/opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/docker-compose.bridge.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ Container traefik-bridge  Creating
+ Container traefik-bridge  Created
+ Container traefik-bridge  Starting
+ Container traefik-bridge  Started
+✅ Traefik Bridge deployado com sucesso!
+
+ℹ️  Aguardando Traefik Bridge ficar saudável...
+ℹ️  Traefik Bridge iniciando... (0/60 segundos)
+ℹ️  Traefik Bridge iniciando... (5/60 segundos)
+ℹ️  Traefik Bridge iniciando... (10/60 segundos)
+ℹ️  Traefik Bridge iniciando... (15/60 segundos)
+ℹ️  Traefik Bridge iniciando... (20/60 segundos)
+ℹ️  Traefik Bridge iniciando... (25/60 segundos)
+ℹ️  Traefik Bridge iniciando... (30/60 segundos)
+ℹ️  Traefik Bridge iniciando... (35/60 segundos)
+ℹ️  Traefik Bridge iniciando... (40/60 segundos)
+ℹ️  Traefik Bridge iniciando... (45/60 segundos)
+ℹ️  Traefik Bridge iniciando... (50/60 segundos)
+ℹ️  Traefik Bridge iniciando... (55/60 segundos)
+⚠️  Timeout aguardando Traefik Bridge ficar saudável
+ℹ️  Verificando logs...
+time="2025-09-16T22:47:53-03:00" level=warning msg="/opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/docker-compose.bridge.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+traefik-bridge  | 2025-09-16T22:46:52-03:00 INF Starting provider *traefik.Provider
+traefik-bridge  | 2025-09-16T22:46:52-03:00 INF Starting provider *acme.ChallengeTLSALPN
+traefik-bridge  | 2025-09-16T22:46:52-03:00 INF Starting provider *docker.Provider
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR error="HTTP challenge is not enabled" entryPointName=web routerName=acme-http@internal
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-public-v1@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-resultados@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-horario@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-rest@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-usuarios@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-info@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR error="HTTP challenge is not enabled" entryPointName=web routerName=acme-http@internal
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR error="error while parsing rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): adding rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): error while adding rule Host: unexpected number of parameters; got 2, expected one of [1]" entryPointName=websecure routerName=frontend-main@docker
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=frontend-main@docker
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-rest@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-resultados@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-usuarios@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-horario@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-info@file
+traefik-bridge  | 2025-09-16T22:46:53-03:00 ERR Router uses a nonexistent certificate resolver certificateResolver=letsencrypt routerName=backend-prod-public-v1@file
+traefik-bridge  | 2025-09-16T22:47:28-03:00 WRN Health check failed. error="HTTP request failed: Get \"http://backend-prod:8080/actuator/health\": context deadline exceeded" serviceName=backend-service-bridge@file targetURL=http://backend-prod:8080
+
+ℹ️  � Status final:
+time="2025-09-16T22:47:53-03:00" level=warning msg="/opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/docker-compose.bridge.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+NAME             IMAGE            COMMAND                  SERVICE          CREATED              STATUS                                 PORTS
+traefik-bridge   traefik:v3.5.2   "/entrypoint.sh trae…"   traefik-bridge   About a minute ago   Up About a minute (health: starting)   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp, 0.0.0.0:8443->443/tcp, [::]:8443->443/tcp
+
+✅ � Deploy do Traefik Bridge concluído!
+ℹ️  � Endpoints disponíveis:
+ℹ️    - HTTP: http://localhost:8080 (Bridge)
+ℹ️    - HTTPS: https://localhost:8443 (Bridge)
+ℹ️    - Backend: http://backend-prod:8080 (via Bridge)
+0s
+Run echo "� Conectando backend-prod à rede overlay do Swarm..."
+� Conectando backend-prod à rede overlay do Swarm...
+� Configurando conectividade híbrida para backend-prod...
+✅ Container backend-prod já está conectado à rede conexao-network-swarm
+✅ Container backend-prod já está conectado à rede conexao-network
+� Verificando conectividade...
+⚠️ Sem conectividade externa
+� Redes conectadas ao backend-prod:
+  - conexao-network (172.19.0.3)
+  - conexao-network-swarm (10.0.1.167)
+
+✅ Configuração de conectividade híbrida concluída!
+3m 5s
+Run echo "� Iniciando deploy do Traefik com Docker Swarm..."
+� Iniciando deploy do Traefik com Docker Swarm...
+� Preparing environment for Traefik deploy...
+✅ Usando arquivo especificado: docker-compose.yml
+� Usando Docker Swarm mode com docker-compose.yml
+� Checking Docker Swarm overlay network: conexao-network-swarm
+✅ Network conexao-network-swarm already exists
+mkdir: cannot create directory ‘./logs/traefik’: Permission denied
+� Verificações pré-deploy:
+  - Docker compose file: ✅ docker-compose.yml
+  - Traefik config: ✅ traefik/traefik.yml
+  - Dynamic config dir: ✅ traefik/dynamic
+  - Secrets dir: ✅ secrets
+  - LetsEncrypt dir: ✅ letsencrypt
+  - ACME file: ✅ letsencrypt/acme.json
+� Validando configurações do Swarm para Traefik...
+� Removendo imagens antigas do Traefik...
+ℹ️ Nenhum serviço Traefik existente encontrado, prosseguindo com deploy inicial...
+� Deploying stack conexao-traefik from docker-compose.yml com Swarm
+� Tentativa de deploy #1...
+� Forçando pull da imagem Traefik...
+v3.5.2: Pulling from library/traefik
+Digest: sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54
+Status: Image is up to date for traefik:v3.5.2
+docker.io/library/traefik:v3.5.2
+Ignoring unsupported options: restart
+Since --detach=false was not specified, tasks will be created in the background.
+In a future release, --detach=false will become the default.
+Creating service conexao-traefik_traefik
+✅ Deploy executado com sucesso!
+⏳ Waiting for conexao-traefik service to reach 1/1...
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+⏳ Traefik progress: 0/1
+❌ Traefik did not reach 1/1 in 180s. Service status:
+ID             NAME                      MODE         REPLICAS   IMAGE            PORTS
+bsk2pp27shzz   conexao-traefik_traefik   replicated   0/1        traefik:v3.5.2   *:80->80/tcp, *:443->443/tcp
+� Service inspection:
+ID:		bsk2pp27shzzn8elofhorc439
+Name:		conexao-traefik_traefik
+Labels:
+ com.docker.stack.image=traefik:v3.5.2
+ com.docker.stack.namespace=conexao-traefik
+ org.opencontainers.image.created=2024-01-01
+ org.opencontainers.image.description=Load Balancer e SSL Termination - Consolidated Secure Version
+ org.opencontainers.image.title=Traefik Gateway - Conexão de Sorte
+ org.opencontainers.image.vendor=Conexão de Sorte
+ org.opencontainers.image.version=v3.5.2-consolidated
+ traefik.docker.network=conexao-network-swarm
+ traefik.enable=true
+ traefik.http.routers.api-backend.entrypoints=websecure
+ traefik.http.routers.api-backend.middlewares=cors-api@file,security-headers@file,rate-limit@file
+ traefik.http.routers.api-backend.rule=Host(`api.conexaodesorte.com.br`)
+ traefik.http.routers.api-backend.service=api-backend-service
+ traefik.http.routers.api-backend.tls.certresolver=letsencrypt
+ traefik.http.routers.backend-legacy.entrypoints=websecure
+ traefik.http.routers.backend-legacy.middlewares=security-headers-api@file,cors-api@file
+ traefik.http.routers.backend-legacy.rule=Host(`api.conexaodesorte.com.br`) && PathPrefix(`/legacy`)
+ traefik.http.routers.backend-legacy.service=backend-legacy
+ traefik.http.routers.backend-legacy.tls.certresolver=letsencrypt
+ traefik.http.routers.dashboard-redirect.entrypoints=web
+ traefik.http.routers.dashboard-redirect.middlewares=https-redirect@file
+ traefik.http.routers.dashboard-redirect.rule=Host(`traefik.conexaodesorte.com.br`)
+ traefik.http.routers.dashboard.entrypoints=websecure
+ traefik.http.routers.dashboard.middlewares=dashboard-auth@file,security-headers@file
+ traefik.http.routers.dashboard.rule=Host(`traefik.conexaodesorte.com.br`)
+ traefik.http.routers.dashboard.service=api@internal
+ traefik.http.routers.dashboard.tls.certresolver=letsencrypt
+ traefik.http.services.api-backend-service.loadbalancer.healthcheck.interval=30s
+ traefik.http.services.api-backend-service.loadbalancer.healthcheck.path=/actuator/health
+ traefik.http.services.api-backend-service.loadbalancer.server.port=8080
+ traefik.http.services.backend-legacy.loadbalancer.server.url=http://backend-prod:8080
+Service Mode:	Replicated
+ Replicas:	1
+Placement:
+ Constraints:	[node.role == manager]
+UpdateConfig:
+ Parallelism:	1
+ Delay:		10s
+ On failure:	rollback
+ Monitoring Period: 5s
+ Max failure ratio: 0
+ Update order:      start-first
+RollbackConfig:
+ Parallelism:	1
+ On failure:	pause
+ Monitoring Period: 5s
+ Max failure ratio: 0
+ Rollback order:    stop-first
+ContainerSpec:
+ Image:		traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54
+ Args:		--configFile=/etc/traefik/traefik.yml
+ Env:		AZURE_CLIENT_ID= AZURE_KEYVAULT_ENDPOINT= AZURE_TENANT_ID= TRAEFIK_ACCESSLOG=true TRAEFIK_ACME_EMAIL=facilitaservicos.tec@gmail.com TRAEFIK_API_DASHBOARD=true TRAEFIK_API_INSECURE=false TRAEFIK_LOG_LEVEL=INFO TZ=America/Sao_Paulo
+Mounts:
+ Target:	/var/run/docker.sock
+  Source:	/var/run/docker.sock
+  ReadOnly:	true
+  Type:		bind
+ Target:	/etc/traefik/traefik.yml
+  Source:	/opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/traefik/traefik.yml
+  ReadOnly:	true
+  Type:		bind
+ Target:	/etc/traefik/dynamic
+  Source:	/opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/traefik/dynamic
+  ReadOnly:	true
+  Type:		bind
+ Target:	/letsencrypt
+  Source:	/opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/letsencrypt
+  ReadOnly:	false
+  Type:		bind
+ Target:	/var/log/traefik
+  Source:	/opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/logs/traefik
+  ReadOnly:	false
+  Type:		bind
+ Target:	/secrets
+  Source:	/opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/secrets
+  ReadOnly:	true
+  Type:		bind
+Resources:
+ Reservations:
+  CPU:		0.25
+  Memory:	256MiB
+ Limits:
+  CPU:		0.5
+  Memory:	512MiB
+Networks: conexao-network-swarm
+Endpoint Mode:	vip
+Ports:
+ PublishedPort = 80
+  Protocol = tcp
+  TargetPort = 80
+  PublishMode = ingress
+ PublishedPort = 443
+  Protocol = tcp
+  TargetPort = 443
+  PublishMode = ingress
+ Healthcheck:
+  Interval = 30s
+  Retries = 3
+  StartPeriod =	45s
+  Timeout =	10s
+  Tests:
+	 Test = CMD
+	 Test = traefik
+	 Test = healthcheck
+	 Test = --ping
+� Service tasks:
+ID                          NAME                            IMAGE                                                                                    NODE        DESIRED STATE   CURRENT STATE            ERROR                                                                                                                                                                                                                                     PORTS
+v9kxlte9i2lx9o2zl91u18bs0   conexao-traefik_traefik.1       traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54   srv649924   Shutdown        Rejected 2 minutes ago   "invalid mount config for type "bind": bind source path does not exist: /opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/logs/traefik"
+l36t2v86jvnjepz8fbx1xw5q9    \_ conexao-traefik_traefik.1   traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54   srv649924   Shutdown        Rejected 2 minutes ago   "invalid mount config for type "bind": bind source path does not exist: /opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/logs/traefik"
+ykffkus58bmlpa8kv8u6az29w    \_ conexao-traefik_traefik.1   traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54   srv649924   Shutdown        Rejected 3 minutes ago   "invalid mount config for type "bind": bind source path does not exist: /opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/logs/traefik"
+666w70ix4xeubie6awtmft2ej    \_ conexao-traefik_traefik.1   traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54   srv649924   Shutdown        Rejected 3 minutes ago   "invalid mount config for type "bind": bind source path does not exist: /opt/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura/logs/traefik"
+� Service logs (últimas 100 linhas):
+� Network inspection:
+[
+    {
+        "Name": "conexao-network-swarm",
+        "Id": "f9ux3ueosu7kh6c612ode5ucm",
+        "Created": "2025-09-15T23:58:55.645040174-03:00",
+        "Scope": "swarm",
+        "Driver": "overlay",
+        "EnableIPv4": true,
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "10.0.1.0/24",
+                    "Gateway": "10.0.1.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": true,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "037bafe7e94ca9db8f06a5f794ffa4651dcb15601902deb295cc4d57e58e62e5": {
+                "Name": "backend-prod",
+                "EndpointID": "7cdce200dc9a43f0b88158044897724e3edf361eb35732ed530276b62dadd976",
+                "MacAddress": "02:42:0a:00:01:a7",
+                "IPv4Address": "10.0.1.167/24",
+                "IPv6Address": ""
+            },
+            "a28975df3c6b887311e5dc79e265b225f1e1d5ab81120364bb518ffad144478c": {
+                "Name": "conexao-frontend_frontend.1.jiqwmid5eswmwqm1gwoilsymw",
+                "EndpointID": "c49eb32a7723113df332b93cb276107be0d5f30fa7d85bfa246b797d12ec85ab",
+                "MacAddress": "02:42:0a:00:01:c3",
+                "IPv4Address": "10.0.1.195/24",
+                "IPv6Address": ""
+            },
+            "lb-conexao-network-swarm": {
+                "Name": "conexao-network-swarm-endpoint",
+                "EndpointID": "b68e818c31b0ebf34bbcfe79e4c1c4235290bd16dc6a683d2fdd3f05a67bef41",
+                "MacAddress": "02:42:0a:00:01:d9",
+                "IPv4Address": "10.0.1.217/24",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {
+            "com.docker.network.driver.overlay.vxlanid_list": "4099"
+        },
+        "Labels": {},
+        "Peers": [
+            {
+                "Name": "382d589184cd",
+                "IP": "145.223.31.87"
+            }
+        ]
+    }
+]
+Error: Process completed with exit code 1.

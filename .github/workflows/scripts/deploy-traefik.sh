@@ -61,6 +61,12 @@ if [ ! -f ./letsencrypt/acme.json ]; then
 fi
 chmod 600 ./letsencrypt/acme.json
 
+# Set proper permissions for letsencrypt-bridge acme.json
+if [ ! -f ./letsencrypt-bridge/acme.json ]; then
+    touch ./letsencrypt-bridge/acme.json
+fi
+chmod 600 ./letsencrypt-bridge/acme.json
+
 # Create basic auth file for Traefik dashboard
 if [ ! -f ./secrets/traefik-basicauth ]; then
     echo "🔐 Criando arquivo básico de autenticação..."

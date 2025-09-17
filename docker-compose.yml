@@ -52,22 +52,17 @@ services:
     # 📁 VOLUMES (Segurança Aprimorada)
     # ==========================================================================
     volumes:
-      # Docker socket para service discovery (read-only para segurança)
+      # Docker socket para descoberta de serviços
       - /var/run/docker.sock:/var/run/docker.sock:ro
-
-      # Configuração estática principal
+      
+      # Configuração principal do Traefik
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-
-      # Configurações dinâmicas (read-only para segurança)
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
-
-      # SSL/TLS certificates (persistente)
+      
+      # Certificados Let's Encrypt
       - ./letsencrypt:/letsencrypt
-
-      # Logs (para auditoria e compliance)
-      - ./logs/traefik:/var/log/traefik
-
-      # Secrets para autenticação (read-only)
+      
+      # Secrets para autenticação
       - ./secrets:/secrets:ro
 
     # ==========================================================================

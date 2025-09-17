@@ -34,10 +34,11 @@ providers:
 log:
   level: INFO
 
-accessLog:
-  format: json
-  filePath: "/var/log/traefik/access.log"
-  bufferingSize: 100
+# Remover accessLog para evitar problemas de bind mount no Swarm
+# accessLog:
+#   format: json
+#   filePath: "/var/log/traefik/access.log"
+#   bufferingSize: 100
 
 certificatesResolvers:
   letsencrypt:

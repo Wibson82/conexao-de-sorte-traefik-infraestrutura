@@ -46,6 +46,8 @@ certificatesResolvers:
       storage: /letsencrypt/acme.json
       httpChallenge:
         entryPoint: web
+      # Configuração adicional para resolver problemas de certificado
+      caServer: https://acme-v02.api.letsencrypt.org/directory
 
 ping:
   entryPoint: web

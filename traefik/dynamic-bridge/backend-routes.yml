@@ -80,5 +80,5 @@ http:
         passHostHeader: true
         healthCheck:
           path: /actuator/health
-          interval: "30s"
-          timeout: "5s"
+          interval: "60s"  # Aumentado de 30s para 60s
+          timeout: "15s"   # Aumentado de 5s para 15s

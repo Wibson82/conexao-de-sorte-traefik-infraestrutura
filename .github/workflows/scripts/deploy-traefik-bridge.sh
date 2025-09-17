@@ -44,6 +44,16 @@ deploy_traefik_bridge() {
         log "SUCCESS" "Rede conexao-network já existe"
     fi
     
+    # Garantir que diretórios necessários existam
+    mkdir -p ./letsencrypt-bridge || true
+    mkdir -p ./logs/traefik-bridge || true
+    
+    # Corrigir permissões do acme.json
+    if [ ! -f ./letsencrypt-bridge/acme.json ]; then
+        touch ./letsencrypt-bridge/acme.json
+    fi
+    chmod 600 ./letsencrypt-bridge/acme.json
+    
     # Verificar se o backend-prod está rodando
     if docker ps --filter name="backend-prod" --format "{{.Names}}" | grep -q "^backend-prod$"; then
         log "SUCCESS" "Container backend-prod encontrado e rodando"
