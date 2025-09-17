@@ -74,10 +74,11 @@ if docker network ls | grep -q "conexao-network-swarm"; then
     log_success "Rede conexao-network-swarm existe"
 else
     log_warning "Criando rede conexao-network-swarm..."
-    docker network create --driver overlay conexao-network-swarm || {
-        log_error "Falha ao criar rede"
-        exit 1
-    }
+    if docker network create --driver overlay --attachable conexao-network-swarm 2>/dev/null; then
+        log_success "Rede conexao-network-swarm criada"
+    else
+        log_warning "Rede conexao-network-swarm já existe ou falha na criação"
+    fi
 fi
 
 # =============================================================================
