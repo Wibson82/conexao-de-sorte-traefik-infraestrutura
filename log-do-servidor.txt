@@ -14,7 +14,7 @@ Complete job name: deploy-selfhosted
 Run actions/checkout@v4.3.0
 Syncing repository: Wibson82/conexao-de-sorte-traefik-infraestrutura
 Getting Git version info
-Temporarily overriding HOME='/home/runner/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/_temp/c1b57cdf-0353-4c9d-8979-408c5aa0a89d' before making global git config changes
+Temporarily overriding HOME='/home/runner/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/_temp/58053101-440c-46c4-9adf-bd47989f470c' before making global git config changes
 Adding repository directory to the temporary git global config as a safe directory
 /usr/bin/git config --global --add safe.directory /home/runner/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura
 /usr/bin/git config --local --get remote.origin.url
@@ -30,15 +30,15 @@ Determining the checkout info
 /usr/bin/git config --local --unset-all extensions.worktreeConfig
 Checking out the ref
 /usr/bin/git log -1 --format=%H
-0c7180c1bcc5a72da81a07447338330236d1ea67
+10ee41a9c87ab6247beab32e132e6df8400650d7
 2s
 Run actions/download-artifact@v4.1.8
 Downloading single artifact
 Preparing to download the following artifacts:
-- traefik-configs (ID: 4039134225, Size: 11586)
-Redirecting to blob download url: https://productionresultssa8.blob.core.windows.net/actions-results/506bec6d-140c-4107-83d8-906576f9a327/workflow-job-run-a73cb669-52c8-5399-84ff-3b4904bd8a91/artifacts/79f6df28388fa0095051f171d314a6f3e2f4b5cf91d775bf6f424a97bf621c62.zip
+- traefik-configs (ID: 4039224478, Size: 11397)
+Redirecting to blob download url: https://productionresultssa7.blob.core.windows.net/actions-results/fa4d54c0-4ce5-419b-95be-74119a324682/workflow-job-run-99822d65-0eaf-577a-9438-845784676345/artifacts/79f6df28388fa0095051f171d314a6f3e2f4b5cf91d775bf6f424a97bf621c62.zip
 Starting download of artifact to: /home/runner/actions-runner/conexao-de-sorte-traefik-infraestrutura/_work/conexao-de-sorte-traefik-infraestrutura/conexao-de-sorte-traefik-infraestrutura
-(node:97630) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+(node:106937) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Artifact download completed successfully.
 Total of 1 artifact(s) downloaded
@@ -123,9 +123,9 @@ Updating service conexao-traefik_traefik (id: bsk2pp27shzzn8elofhorc439)
 ✅ Stack conexao-traefik deployed successfully!
 ⏳ Aguardando serviços ficarem prontos...
 � Verificando status do deployment...
-ID                          NAME                            IMAGE                                                                                    NODE        DESIRED STATE   CURRENT STATE                 ERROR                         PORTS
-tkqo19brxtfhbrbl9j3dxeeos   conexao-traefik_traefik.1       traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54   srv649924   Shutdown        Complete about a minute ago
-yw3siryopdjnqi98k9sc842f6    \_ conexao-traefik_traefik.1   traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54   srv649924   Shutdown        Failed 2 hours ago            "task: non-zero exit (255)"
+ID                          NAME                            IMAGE                                                                                    NODE        DESIRED STATE   CURRENT STATE             ERROR                         PORTS
+tkqo19brxtfhbrbl9j3dxeeos   conexao-traefik_traefik.1       traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54   srv649924   Shutdown        Complete 11 minutes ago
+yw3siryopdjnqi98k9sc842f6    \_ conexao-traefik_traefik.1   traefik:v3.5.2@sha256:f0abbbd11ced29754d4d188c29e9320b613481ec162b6ea5d3a8b6bdd8e5fa54   srv649924   Shutdown        Failed 2 hours ago        "task: non-zero exit (255)"
 � Verificando serviços do stack...
 ID             NAME                      MODE         REPLICAS   IMAGE            PORTS
 bsk2pp27shzz   conexao-traefik_traefik   replicated   0/1        traefik:v3.5.2   *:80->80/tcp, *:443->443/tcp
@@ -133,108 +133,6 @@ bsk2pp27shzz   conexao-traefik_traefik   replicated   0/1        traefik:v3.5.2 
 � Traefik Dashboard: https://traefik.conexaodesorte.com.br
 � API: https://api.conexaodesorte.com.br
 0s
-Run .github/workflows/scripts/healthcheck-traefik.sh
-� Validando saúde do serviço conexao-traefik_traefik...
-ℹ️  Réplicas atuais: 0/1
-� Últimos logs do serviço:
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 INF Traefik version 3.5.2 built on 2025-09-09T10:17:00Z version=3.5.2
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 INF
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | Stats collection is disabled.
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | Help us improve Traefik by turning this feature on :)
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | More details on: https://doc.traefik.io/traefik/contributing/data-collection/
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    |
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 INF Starting provider aggregator *aggregator.ProviderAggregator
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 INF Starting provider *file.Provider
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 ERR Error while building configuration (for the first time) error="/etc/traefik/dynamic/backend-routes.yml: http cannot be a standalone element (type *dynamic.HTTPConfiguration)" providerName=file
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 INF Starting provider *traefik.Provider
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 INF Starting provider *docker.Provider
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 INF Starting provider *acme.ChallengeTLSALPN
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 INF Starting provider *acme.Provider
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 INF Testing certificate renew... acmeCA=https://acme-v02.api.letsencrypt.org/directory providerName=letsencrypt.acme
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:02-03:00 ERR error="middleware \"redirect-to-www@file\" does not exist" entryPointName=websecure routerName=frontend-main@docker
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:08-03:00 INF Register... providerName=letsencrypt.acme
-conexao-traefik_traefik.1.yw3siryopdjn@srv649924    | 2025-09-17T15:44:10-03:00 ERR Unable to obtain ACME certificate for domains error="unable to generate a certificate for the domains [conexaodesorte.com.br www.conexaodesorte.com.br]: acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-order :: urn:ietf:params:acme:error:accountDoesNotExist :: Unable to validate JWS :: Account \"https://acme-v02.api.letsencrypt.org/acme/acct/2667496361\" not found" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["conexaodesorte.com.br","www.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=frontend-main@docker rule=Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`)
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:01:58-03:00 ERR error="middleware \"redirect-to-www@file\" does not exist" entryPointName=websecure routerName=frontend-main@docker
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:02:00-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:02:00-03:00 ERR error="error while parsing rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): adding rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): error while adding rule Host: unexpected number of parameters; got 2, expected one of [1]" entryPointName=websecure routerName=frontend-main@docker
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:02:00-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:02:10-03:00 ERR Unable to obtain ACME certificate for domains error="unable to generate a certificate for the domains [api.conexaodesorte.com.br]: error: one or more domains had a problem:\n[api.conexaodesorte.com.br] invalid authorization: acme: error: 400 :: urn:ietf:params:acme:error:dns :: DNS problem: NXDOMAIN looking up A for api.conexaodesorte.com.br - check that a DNS record exists for this domain; DNS problem: NXDOMAIN looking up AAAA for api.conexaodesorte.com.br - check that a DNS record exists for this domain\n" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["api.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=crypto-api@file rule="Host(`api.conexaodesorte.com.br`) && PathPrefix(`/crypto`)"
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:02:10-03:00 ERR Unable to obtain ACME certificate for domains error="unable to generate a certificate for the domains [traefik.conexaodesorte.com.br]: error: one or more domains had a problem:\n[traefik.conexaodesorte.com.br] invalid authorization: acme: error: 400 :: urn:ietf:params:acme:error:dns :: DNS problem: NXDOMAIN looking up A for traefik.conexaodesorte.com.br - check that a DNS record exists for this domain; DNS problem: NXDOMAIN looking up AAAA for traefik.conexaodesorte.com.br - check that a DNS record exists for this domain\n" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["traefik.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=traefik-dashboard@file rule=Host(`traefik.conexaodesorte.com.br`)
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-main
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 WRN HTTP router already configured, skipping filename=microservices-routes.yml providerName=file routerName=frontend-redirect
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 WRN HTTP service already configured, skipping filename=microservices-routes.yml providerName=file serviceName=frontend-service
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=redirect-to-www providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=gzip-compress providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 WRN HTTP middleware already configured, skipping filename=middlewares.yml middlewareName=https-redirect providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 WRN HTTP middleware already configured, skipping filename=security-headers.yml middlewareName=security-headers providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Unable to parse certificate /letsencrypt/conexaodesorte.com.br.crt error="unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 ERR error="error while parsing rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): adding rule Host(`conexaodesorte.com.br`,`www.conexaodesorte.com.br`): error while adding rule Host: unexpected number of parameters; got 2, expected one of [1]" entryPointName=websecure routerName=frontend-main@docker
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:33-03:00 WRN Middleware "ip-allow-local@file" of type IPWhiteList is deprecated, please use IPAllowList instead.
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:35-03:00 ERR error="middleware \"redirect-to-www@file\" does not exist" entryPointName=websecure routerName=frontend-main@docker
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:38-03:00 ERR Unable to obtain ACME certificate for domains error="unable to generate a certificate for the domains [traefik.conexaodesorte.com.br]: error: one or more domains had a problem:\n[traefik.conexaodesorte.com.br] invalid authorization: acme: error: 400 :: urn:ietf:params:acme:error:dns :: DNS problem: NXDOMAIN looking up A for traefik.conexaodesorte.com.br - check that a DNS record exists for this domain; DNS problem: NXDOMAIN looking up AAAA for traefik.conexaodesorte.com.br - check that a DNS record exists for this domain\n" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["traefik.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=traefik-dashboard@file rule=Host(`traefik.conexaodesorte.com.br`)
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:09:39-03:00 ERR Unable to obtain ACME certificate for domains error="unable to generate a certificate for the domains [api.conexaodesorte.com.br]: error: one or more domains had a problem:\n[api.conexaodesorte.com.br] invalid authorization: acme: error: 400 :: urn:ietf:params:acme:error:dns :: DNS problem: NXDOMAIN looking up A for api.conexaodesorte.com.br - check that a DNS record exists for this domain; DNS problem: NXDOMAIN looking up AAAA for api.conexaodesorte.com.br - check that a DNS record exists for this domain\n" ACME CA=https://acme-v02.api.letsencrypt.org/directory acmeCA=https://acme-v02.api.letsencrypt.org/directory domains=["api.conexaodesorte.com.br"] providerName=letsencrypt.acme routerName=observability-api@file rule="Host(`api.conexaodesorte.com.br`) && PathPrefix(`/observability`)"
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:45-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR Error occurred during watcher callback error="/etc/traefik/dynamic/backend-routes.yml: yaml: line 12: did not find expected key" providerName=file
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:31:46-03:00 ERR error="middleware \"redirect-to-www@file\" does not exist" entryPointName=websecure routerName=frontend-main@docker
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:45:07-03:00 INF I have to go...
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:45:07-03:00 INF Stopping server gracefully
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:45:07-03:00 INF Server stopped
-conexao-traefik_traefik.1.tkqo19brxtfh@srv649924    | 2025-09-17T17:45:07-03:00 INF Shutting down
-✅ Healthcheck concluído
 2m 1s
 Run .github/workflows/scripts/connectivity-validation.sh
 � Iniciando validação de conectividade do Traefik...

@@ -83,12 +83,40 @@ else
     exit 1
 fi
 
-# Wait for services to be ready
+# Wait for services to be ready with proper checks
 echo "⏳ Aguardando serviços ficarem prontos..."
-sleep 10
+echo "📋 Aguardando 30 segundos para estabilização inicial..."
+sleep 30
+
+# Wait for service to be created and running
+echo "🔍 Aguardando serviço ser criado..."
+for i in {1..30}; do
+    if docker service ls --filter name="${STACK_NAME}_traefik" --format "{{.Name}}" | grep -q traefik; then
+        echo "✅ Serviço ${STACK_NAME}_traefik criado ($i/30)"
+        break
+    fi
+    echo "⏳ Aguardando serviço... ($i/30)"
+    sleep 2
+done
+
+# Wait for at least one replica to be running
+echo "🔍 Aguardando réplicas ficarem ativas..."
+for i in {1..60}; do
+    REPLICAS=$(docker service ls --filter name="${STACK_NAME}_traefik" --format "{{.Replicas}}" | head -1)
+    echo "📊 Status atual: $REPLICAS ($i/60)"
+
+    if [[ "$REPLICAS" == "1/1" ]]; then
+        echo "✅ Todas as réplicas estão ativas!"
+        break
+    elif [[ "$REPLICAS" == "0/1" ]]; then
+        echo "⚠️  Container ainda inicializando..."
+    fi
+
+    sleep 5
+done
 
 # Verify deployment
-echo "🔍 Verificando status do deployment..."
+echo "🔍 Verificando status final do deployment..."
 docker stack ps "$STACK_NAME" --no-trunc
 
 echo "🌐 Verificando serviços do stack..."
@@ -97,3 +125,6 @@ docker stack services "$STACK_NAME"
 echo "✅ Deploy do Traefik finalizado com sucesso!"
 echo "🌐 Traefik Dashboard: https://traefik.conexaodesorte.com.br"
 echo "🔐 API: https://api.conexaodesorte.com.br"
+echo ""
+echo "ℹ️  IMPORTANTE: Container pode levar alguns minutos adicionais para estar totalmente funcional"
+echo "🔧 Próximos scripts irão validar conectividade HTTP quando container estiver pronto"
