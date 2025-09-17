@@ -72,8 +72,8 @@ services:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 45s  # CONFLITO RESOLVIDO: padronizado em 45s
+      retries: 5
+      start_period: 60s
 
     # ==========================================================================
     # 🚀 COMMAND & DEPLOY (Docker Swarm Optimized)
