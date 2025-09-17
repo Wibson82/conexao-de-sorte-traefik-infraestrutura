@@ -1,53 +1,24 @@
-# ============================================================================# ============================================================================
+# ============================================================================
+# 🌐 BACKEND API ROUTES - DOCKER SWARM ONLY
+# ============================================================================
+# Configurações de roteamento para serviços gerenciados por Docker Swarm
+# Todas as configurações legacy do backend-prod foram removidas
+# ============================================================================
 
-# 🌐 BACKEND API ROUTES - DOCKER SWARM ONLY# 🌐 BACKEND API PUBLIC ENDPOINTS - SWARM ONLY
-
-# ============================================================================# ============================================================================
-
-# Configurações de roteamento para serviços gerenciados por Docker Swarm# Roteamento para serviços Swarm apenas
-
-# Todas as configurações legacy do backend-prod foram removidas# Backend-prod agora é gerenciado pelo Traefik Bridge
-
-
-
-http:# NOTA: Este arquivo agora gerencia apenas serviços Swarm
-
-  routers:# O backend-prod é roteado pelo Traefik Bridge (docker-compose.bridge.yml)
-
+http:
+  routers:
     # Placeholder para futuros serviços Swarm
-
-    # Exemplo de roteamento para serviços Swarm:http:
-
-    # backend-swarm-service:  routers:
-
-    #   rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/api/v2`)"    # Placeholder para futuros serviços Swarm
-
-    #   entrypoints:    # backend-prod foi movido para Traefik Bridge
-
-    #     - websecure
-
-    #   service: backend-swarm-service    # Exemplo de roteamento para serviços Swarm futuros:
-
-    #   tls:    # backend-swarm-service:
-
-    #     certresolver: letsencrypt    #   rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/api/v2`)"
-
+    # Exemplo de roteamento para serviços Swarm:
+    # backend-swarm-service:
+    #   rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/api/v2`)"
     #   entrypoints:
+    #     - websecure
+    #   service: backend-swarm-service
+    #   tls:
+    #     certresolver: letsencrypt
 
-  services:    #     - websecure
-
-    # Placeholder para futuros serviços Swarm    #   service: backend-swarm-service
-
-    # backend-swarm-service:    #   tls:
-
-    #   loadBalancer:    #     certresolver: letsencrypt
-
-    #     servers:
-
-    #       - url: "http://backend-swarm-service:8080"  services:
+  services:
     # Placeholder para futuros serviços Swarm
-    # backend-service foi movido para Traefik Bridge
-
     # Exemplo de serviço Swarm futuro:
     # backend-swarm-service:
     #   loadbalancer:
