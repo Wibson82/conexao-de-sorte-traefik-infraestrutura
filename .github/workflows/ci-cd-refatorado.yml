@@ -669,7 +669,7 @@ jobs:
           echo "📊 Iniciando monitoramento pós-deploy..."
           echo "🔍 Deploy Status: ${{ needs.deploy-selfhosted.result }}"
           echo "⏰ Deploy Time: $(date -u)"
-          
+
           if [ "${{ needs.deploy-selfhosted.result }}" = "success" ]; then
             echo "✅ Deploy executado com sucesso"
             echo "📋 Próximos passos:"
@@ -685,7 +685,7 @@ jobs:
             echo "  3. Restaurar versão anterior"
             echo "  4. Investigar logs de erro"
           fi
-          
+
           echo "📖 Documentação disponível:"
           echo "  - RELATORIO-VALIDACAO.md"
           echo "  - LIMPEZA-EXECUTADA.md"
