@@ -25,11 +25,12 @@ Infraestrutura Traefik robusta e segura para o projeto Conexão de Sorte, implem
 - ⚖️ **Load balancing** inteligente
 
 ### 🛠️ **DevOps & Monitoramento**
-- 📋 **Pipeline CI/CD completo** com validações
+- 📋 **Pipeline CI/CD refatorado** com Azure OIDC e scripts inline
 - 🏥 **Health checks Docker** robustos
 - 🔍 **Validações de conectividade** automatizadas
 - 📊 **Monitoramento contínuo** de saúde
 - 🐳 **Docker Swarm ready** para alta disponibilidade
+- 🔒 **Azure Key Vault integration** para gestão segura de secrets
 
 ## 📋 Pré-requisitos
 
@@ -77,26 +78,35 @@ docker swarm init
 # Criar rede overlay
 docker network create --driver overlay conexao-network-swarm
 
-# Deploy via script automatizado
-./.github/workflows/scripts/deploy-traefik.sh
+# Deploy via GitHub Actions (automático)
+git push origin main  # Aciona o workflow refatorado
+
+# Deploy manual (se necessário)
+docker stack deploy --prune -c docker-compose.yml conexao-traefik
 
 # Verificar status
 docker service ls
 docker service logs conexao-traefik_traefik
 ```
 
-### 4. **Validações de Segurança**
+### 4. **Pipeline Automatizado**
 
-```bash
-# Executar validação de segurança completa
-./.github/workflows/scripts/security-validation.sh
+O deploy agora é totalmente automatizado via **GitHub Actions** com **Azure OIDC**:
 
-# Executar validação de conectividade
-./.github/workflows/scripts/connectivity-validation.sh
-
-# Executar healthcheck
-./.github/workflows/scripts/healthcheck-traefik.sh
+```yaml
+# Workflow: .github/workflows/ci-cd-refatorado.yml
+# ✅ Scripts migrados para inline (eliminando dependências externas)
+# ✅ Azure OIDC authentication (sem credentials hardcoded)
+# ✅ Azure Key Vault integration (gestão segura de secrets)
+# ✅ Validações automáticas (syntax, security, connectivity)
+# ✅ Deploy com rollback automático
 ```
+
+**Processo de Deploy:**
+1. 🔍 **Validação**: Syntax, security headers, SSL certificates
+2. 🏗️ **Preparação**: Secrets do Azure Key Vault, Docker Swarm ready
+3. 🚀 **Deploy**: Stack update com rollback automático
+4. ✅ **Verificação**: Health checks e connectivity validation
 
 ## 🌐 Endpoints & Rotas
 
