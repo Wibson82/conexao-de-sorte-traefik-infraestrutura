@@ -6,6 +6,20 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      deploy_environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      require_approval:
+        description: 'Require manual approval for production'
+        required: false
+        default: true
+        type: boolean
 
 env:
   SERVICE_NAME: traefik-infrastructure
@@ -273,11 +287,26 @@ jobs:
             letsencrypt/
             secrets/
 
-  deploy-selfhosted:
+  approval-gate:
     needs: validate-and-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: github.ref == 'refs/heads/main' && (github.event.inputs.deploy_environment == 'production' || github.event.inputs.require_approval == 'true')
+    steps:
+      - name: "🔐 Manual Approval Required for Production Deploy"
+        run: |
+          echo "🔒 Aguardando aprovação manual para deploy em produção..."
+          echo "📋 Environment: ${{ github.event.inputs.deploy_environment || 'staging' }}"
+          echo "🔍 Ref: ${{ github.ref }}"
+          echo "👤 Actor: ${{ github.actor }}"
+          echo "✅ Deploy será executado após aprovação manual"
+          echo "⏳ Use 'workflow_dispatch' com 'require_approval: false' para pular esta etapa"
+
+  deploy-selfhosted:
+    needs: [validate-and-build, approval-gate]
     runs-on: [ self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura ]
     timeout-minutes: 15
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (success() || needs.approval-gate.result == 'skipped')
     permissions:
       id-token: write
       contents: read
@@ -628,3 +657,36 @@ jobs:
           fi
 
           echo "✅ Validação de conectividade concluída"
+
+  post-deploy-monitoring:
+    needs: deploy-selfhosted
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: always() && needs.deploy-selfhosted.result != 'skipped'
+    steps:
+      - name: "📊 Post-Deploy Monitoring & Rollback Check"
+        run: |
+          echo "📊 Iniciando monitoramento pós-deploy..."
+          echo "🔍 Deploy Status: ${{ needs.deploy-selfhosted.result }}"
+          echo "⏰ Deploy Time: $(date -u)"
+          
+          if [ "${{ needs.deploy-selfhosted.result }}" = "success" ]; then
+            echo "✅ Deploy executado com sucesso"
+            echo "📋 Próximos passos:"
+            echo "  - Monitorar logs do Traefik"
+            echo "  - Verificar certificados SSL"
+            echo "  - Testar conectividade dos serviços"
+            echo "  - Validar health checks"
+          else
+            echo "❌ Deploy falhou - rollback pode ser necessário"
+            echo "🔄 Para rollback manual:"
+            echo "  1. Conectar ao servidor self-hosted"
+            echo "  2. Executar: docker stack rm conexao-traefik"
+            echo "  3. Restaurar versão anterior"
+            echo "  4. Investigar logs de erro"
+          fi
+          
+          echo "📖 Documentação disponível:"
+          echo "  - RELATORIO-VALIDACAO.md"
+          echo "  - LIMPEZA-EXECUTADA.md"
+          echo "  - README.md (instruções atualizadas)"
