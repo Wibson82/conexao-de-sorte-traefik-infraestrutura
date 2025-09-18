@@ -1,122 +1,39 @@
 # =============================================================================
-# 🌐 TRAEFIK MICROSERVICES ROUTING CONFIGURATION
+# 🌐 TRAEFIK MICROSERVICES ROUTING CONFIGURATION - PRODUÇÃO
 # =============================================================================
-# Explicit routes for critical microservices with security and performance settings
+# ARQUITETURA: Internet → Traefik (SSL + Load Balance) → Gateway → Microserviços
+# RESPONSABILIDADE TRAEFIK: SSL termination + roteamento para Gateway único
+# VERSÃO: v2.0 - Integração Gateway-first approach
+# =============================================================================
 
 http:
   routers:
     # ==========================================================================
-    # 🔐 AUTHENTICATION & AUTHORIZATION
+    # 🚪 GATEWAY PRINCIPAL - PONTO ÚNICO DE ENTRADA
     # ==========================================================================
-    auth-api:
-      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/auth`)"
+    # TODO O TRÁFEGO DA API VAI PARA O GATEWAY
+    api-gateway:
+      rule: "Host(`api.conexaodesorte.com.br`)"
       entrypoints:
         - websecure
       middlewares:
-        - auth-stripprefix
-        - rate-limit-auth
         - security-headers-api
-        - cors-api
-      service: auth-service
+        - cors-basic
+        - rate-limit-gateway
+      service: gateway-service
       tls:
         certresolver: letsencrypt
+      priority: 1000
 
-    # ==========================================================================
-    # 👤 USER MANAGEMENT
-    # ==========================================================================
-    user-api:
-      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/users`)"
+    # Redirect HTTP to HTTPS para API
+    api-gateway-redirect:
+      rule: "Host(`api.conexaodesorte.com.br`)"
       entrypoints:
-        - websecure
+        - web
       middlewares:
-        - user-stripprefix
-        - rate-limit-api
-        - security-headers-api
-        - cors-api
-      service: user-service
-      tls:
-        certresolver: letsencrypt
-
-    # ==========================================================================
-    # 🎯 RESULTS & GAMES
-    # ==========================================================================
-    results-api:
-      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/results`)"
-      entrypoints:
-        - websecure
-      middlewares:
-        - results-stripprefix
-        - rate-limit-api
-        - security-headers-api
-        - cors-api
-      service: results-service
-      tls:
-        certresolver: letsencrypt
-
-    # ==========================================================================
-    # 💬 CHAT & COMMUNICATION
-    # ==========================================================================
-    chat-api:
-      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/chat`)"
-      entrypoints:
-        - websecure
-      middlewares:
-        - chat-stripprefix
-        - rate-limit-general
-        - security-headers-api
-        - cors-api
-      service: chat-service
-      tls:
-        certresolver: letsencrypt
-
-    # ==========================================================================
-    # 🔔 NOTIFICATIONS
-    # ==========================================================================
-    notifications-api:
-      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/notifications`)"
-      entrypoints:
-        - websecure
-      middlewares:
-        - notifications-stripprefix
-        - rate-limit-notifications
-        - security-headers-api
-        - cors-api
-      service: notifications-service
-      tls:
-        certresolver: letsencrypt
-
-    # ==========================================================================
-    # 📊 OBSERVABILITY & MONITORING
-    # ==========================================================================
-    observability-api:
-      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/observability`)"
-      entrypoints:
-        - websecure
-      middlewares:
-        - observability-stripprefix
-        - rate-limit-strict
-        - security-headers-api
-        - admin-auth
-      service: observability-service
-      tls:
-        certresolver: letsencrypt
-
-    # ==========================================================================
-    # 🔐 CRYPTO & SECURITY
-    # ==========================================================================
-    crypto-api:
-      rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/crypto`)"
-      entrypoints:
-        - websecure
-      middlewares:
-        - crypto-stripprefix
-        - rate-limit-strict
-        - security-headers-api
-        - crypto-auth
-        - ip-allow-local
-      service: crypto-service
-      tls:
-        certresolver: letsencrypt
+        - https-redirect
+      service: gateway-service
+      priority: 900
 
     # ==========================================================================
     # 🌐 FRONTEND APPLICATION
@@ -161,93 +78,86 @@ http:
   # 🔧 SERVICES CONFIGURATION
   # ============================================================================
   services:
-    # Microservices (to be discovered by Docker provider or configured manually)
-    auth-service:
+    # ==========================================================================
+    # 🚪 GATEWAY SERVICE - PONTO ÚNICO DE ENTRADA PARA APIS
+    # ==========================================================================
+    gateway-service:
       loadBalancer:
         healthCheck:
-          path: "/health"
+          path: "/actuator/health"
           interval: "30s"
-        # Will be auto-discovered by Docker provider when containers are running
+          timeout: "10s"
+          scheme: "http"
+        # SERÁ AUTO-DESCOBERTO pelo Docker provider quando Gateway estiver rodando
+        # Configuração manual: servers: - url: "http://conexao-gateway:8086"
 
-    user-service:
-      loadBalancer:
-        healthCheck:
-          path: "/health"
-          interval: "30s"
-        # Will be auto-discovered by Docker provider when containers are running
-
-    results-service:
-      loadBalancer:
-        healthCheck:
-          path: "/health"
-          interval: "30s"
-        # Will be auto-discovered by Docker provider when containers are running
-
-    chat-service:
-      loadBalancer:
-        healthCheck:
-          path: "/health"
-          interval: "30s"
-        # Will be auto-discovered by Docker provider when containers are running
-
-    notifications-service:
-      loadBalancer:
-        healthCheck:
-          path: "/health"
-          interval: "30s"
-        # Will be auto-discovered by Docker provider when containers are running
-
-    observability-service:
-      loadBalancer:
-        healthCheck:
-          path: "/health"
-          interval: "30s"
-        # Will be auto-discovered by Docker provider when containers are running
-
-    crypto-service:
-      loadBalancer:
-        healthCheck:
-          path: "/health"
-          interval: "30s"
-        # Will be auto-discovered by Docker provider when containers are running
-
+    # ==========================================================================
+    # 🌐 FRONTEND SERVICE
+    # ==========================================================================
     frontend-service:
       loadBalancer:
         healthCheck:
-          path: "/"
+          path: "/health.json"
           interval: "30s"
-        # Will be auto-discovered by Docker provider when containers are running
+          timeout: "10s"
+          scheme: "http"
+        # SERÁ AUTO-DESCOBERTO pelo Docker provider quando Frontend estiver rodando
+        # Configuração manual: servers: - url: "http://conexao-frontend:3000"
 
 # ==============================================================================
-# 📝 CONFIGURATION NOTES
+# 📝 CONFIGURATION NOTES - GATEWAY-FIRST ARCHITECTURE
 # ==============================================================================
 #
-# 🔧 HOW TO USE:
-# 1. This file defines explicit routes for microservices
-# 2. Services will be auto-discovered when containers have proper labels
-# 3. Environment variables can be used for domain configuration
+# 🏗️ ARQUITETURA ATUALIZADA:
+# Internet → Traefik (SSL + Load Balance) → Gateway → Microserviços
 #
-# 🏷️  REQUIRED CONTAINER LABELS:
-# Each microservice container should have these labels:
+# 🔧 RESPONSABILIDADES TRAEFIK:
+# 1. SSL/TLS Termination (Let's Encrypt)
+# 2. Load Balancing básico
+# 3. Roteamento por domínio APENAS
+# 4. Headers de segurança básicos
+#
+# 🚪 RESPONSABILIDADES GATEWAY:
+# 1. Roteamento inteligente por path (/rest/PROJECT/*)
+# 2. Rate limiting avançado por serviço
+# 3. Circuit breaker e retry logic
+# 4. Autenticação/Autorização JWT
+# 5. Observabilidade detalhada
+# 6. Transformação de requests/responses
+#
+# 🏷️ REQUIRED CONTAINER LABELS GATEWAY:
+# Gateway container deve ter:
 #   - traefik.enable=true
-#   - traefik.http.services.<service-name>.loadbalancer.server.port=<port>
+#   - traefik.http.services.gateway-service.loadbalancer.server.port=8086
 #   - traefik.docker.network=conexao-network-swarm
 #
-# 🌐 DOMAIN VARIABLES:
-# - DOMAIN_NAME: Main domain (default: conexaodesorte.com.br)
-# - API_DOMAIN: API subdomain (default: api.conexaodesorte.com.br)
-# - TRAEFIK_DOMAIN: Traefik dashboard domain (default: traefik.conexaodesorte.com.br)
+# 🏷️ REQUIRED CONTAINER LABELS FRONTEND:
+# Frontend container deve ter:
+#   - traefik.enable=true
+#   - traefik.http.services.frontend-service.loadbalancer.server.port=3000
+#   - traefik.docker.network=conexao-network-swarm
+#
+# 🌐 DOMAIN CONFIGURATION:
+# - Frontend: conexaodesorte.com.br + www.conexaodesorte.com.br
+# - API: api.conexaodesorte.com.br → Gateway → Microserviços
+# - Admin: traefik.conexaodesorte.com.br
 #
 # 🔒 SECURITY FEATURES:
-# - All routes use HTTPS with Let's Encrypt certificates
-# - Rate limiting configured per service type
-# - Security headers applied to all routes
-# - Admin routes protected with authentication
-# - Crypto routes restricted to local networks
+# - HTTPS obrigatório com Let's Encrypt
+# - Rate limiting básico no Traefik
+# - Rate limiting avançado no Gateway
+# - Security headers aplicados
 #
 # ⚡ PERFORMANCE FEATURES:
-# - Health checks configured for all services
-# - Compression enabled for frontend
-# - HTTP/3 support available
-# - Circuit breakers and retry policies applied
+# - Health checks para Gateway e Frontend
+# - Compression habilitada
+# - HTTP/3 support
+# - Load balancing automático
+#
+# 🔄 MIDDLEWARES NECESSÁRIOS:
+# Definir em middlewares.yml:
+# - security-headers-api
+# - cors-basic
+# - rate-limit-gateway
+# - https-redirect
 # ==============================================================================

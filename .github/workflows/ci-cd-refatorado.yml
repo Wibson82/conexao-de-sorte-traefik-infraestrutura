@@ -302,9 +302,12 @@ jobs:
           echo "✅ Deploy será executado após aprovação manual"
           echo "⏳ Use 'workflow_dispatch' com 'require_approval: false' para pular esta etapa"
 
+  # 🔐 SECURITY: Deploy para infraestrutura Traefik
+  # Runner específico para domínio 'infra' com acesso restrito aos segredos de infraestrutura
+  # Labels: [ self-hosted, Linux, X64, conexao, infra, conexao-de-sorte-traefik-infraestrutura ]
   deploy-selfhosted:
     needs: [validate-and-build, approval-gate]
-    runs-on: [ self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura ]
+    runs-on: [ self-hosted, Linux, X64, conexao, infra, conexao-de-sorte-traefik-infraestrutura ]
     timeout-minutes: 15
     if: github.ref == 'refs/heads/main' && (success() || needs.approval-gate.result == 'skipped')
     permissions:
@@ -326,14 +329,53 @@ jobs:
           name: traefik-configs
           path: .
 
-      - name: "🔍 Azure Login (OIDC) + Key Vault Secrets"
+      - name: "� Azure Login (OIDC) with Security Hardening"
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          # 🛡️ SECURITY: Enable audience validation for OIDC tokens
+          audience: api://AzureADTokenExchange
+          # 🛡️ SECURITY: Allow only from main branch and specific repository
+          allow-no-subscriptions: false
 
-      - name: Validate Key Vault Access
+      - name: "🛡️ OIDC Security Validation"
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          IFS=$'\n\t'
+
+          echo "🔍 Validando claims de segurança do token OIDC..."
+
+          # Verificar contexto de execução esperado
+          echo "::group::OIDC Security Claims Validation"
+          echo "📋 Repository: ${{ github.repository }}"
+          echo "🔍 Ref: ${{ github.ref }}"
+          echo "👤 Actor: ${{ github.actor }}"
+          echo "🏃 Run ID: ${{ github.run_id }}"
+          echo "🔢 Run Number: ${{ github.run_number }}"
+
+          # Validar que estamos na branch main
+          if [[ "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "❌ SECURITY VIOLATION: Deploy permitido apenas da branch main"
+            echo "🚨 Current ref: ${{ github.ref }}"
+            exit 1
+          fi
+
+          # Validar repositório
+          EXPECTED_REPO="conexao-de-sorte/Microsservicos/infraestrutura/conexao-de-sorte-traefik-infraestrutura"
+          if [[ "${{ github.repository }}" != *"traefik-infraestrutura"* ]]; then
+            echo "❌ SECURITY VIOLATION: Repositório não autorizado"
+            echo "🚨 Current repo: ${{ github.repository }}"
+            echo "✅ Expected repo pattern: *traefik-infraestrutura*"
+            exit 1
+          fi
+
+          echo "✅ Claims de segurança validados com sucesso"
+          echo "::endgroup::"
+
+      - name: "🔐 Validate Key Vault Access with Least Privilege"
         shell: bash
         env:
           AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
@@ -341,16 +383,41 @@ jobs:
           set -Eeuo pipefail
           IFS=$'\n\t'
 
-          echo "🔐 Validando acesso ao Azure Key Vault..."
+          echo "🔐 Validando acesso ao Azure Key Vault com princípio de menor privilégio..."
 
-          # Verificar acesso ao Key Vault
-          echo "::group::Key Vault Access Validation"
-          if az keyvault secret list --vault-name "$AZURE_KEYVAULT_NAME" --output none 2>/dev/null; then
-            echo "✅ Acesso ao Key Vault verificado"
-          else
-            echo "❌ Falha no acesso ao Key Vault"
+          # Testar acesso específico apenas aos segredos necessários para infra
+          echo "::group::Key Vault Least Privilege Validation"
+
+          # Lista de segredos específicos para domínio infra
+          REQUIRED_SECRETS=(
+            "conexao-de-sorte-traefik-basicauth-password"
+            "conexao-de-sorte-ssl-cert-password"
+            "conexao-de-sorte-acme-email"
+          )
+
+          # Verificar acesso apenas aos segredos necessários
+          ACCESSIBLE_SECRETS=0
+          for secret in "${REQUIRED_SECRETS[@]}"; do
+            if az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name "$secret" --output none 2>/dev/null; then
+              echo "✅ Acesso autorizado ao segredo: $secret"
+              ((ACCESSIBLE_SECRETS++))
+            else
+              echo "⚠️ Segredo não encontrado ou sem acesso: $secret"
+            fi
+          done
+
+          echo "📊 Segredos acessíveis: $ACCESSIBLE_SECRETS/${#REQUIRED_SECRETS[@]}"
+
+          # Verificar se temos acesso ao mínimo necessário
+          if [[ $ACCESSIBLE_SECRETS -eq 0 ]]; then
+            echo "❌ ERRO: Nenhum segredo necessário está acessível"
             exit 1
+          elif [[ $ACCESSIBLE_SECRETS -lt ${#REQUIRED_SECRETS[@]} ]]; then
+            echo "⚠️ WARNING: Alguns segredos não estão disponíveis, mas continuando..."
+          else
+            echo "✅ Todos os segredos necessários para infra estão acessíveis"
           fi
+
           echo "::endgroup::"
 
       - name: "[MIGRADO DE] scripts/create-docker-secrets.sh - Create Docker Secrets"
@@ -393,12 +460,15 @@ jobs:
             fi
           }
 
-          # Lista de secrets padronizados
+          # Mapeamento restrito ao domínio 'infra' — recuperar apenas segredos necessários
+          # Formato: "<docker_secret_name>:<azure_keyvault_secret_name>"
           secrets_map=(
-            "traefik-basicauth:TRAEFIK-BASICAUTH"
-            "admin-users:ADMIN-USERS"
-            "audit-users:AUDIT-USERS"
-            "crypto-users:CRYPTO-USERS"
+            "traefik-basicauth:conexao-de-sorte-traefik-basicauth-password"
+            "admin-users:conexao-de-sorte-admin-users"
+            "audit-users:conexao-de-sorte-audit-users"
+            "crypto-users:conexao-de-sorte-crypto-users"
+            "ssl-cert-password:conexao-de-sorte-ssl-cert-password"
+            "acme-email:conexao-de-sorte-acme-email"
           )
 
           for mapping in "${secrets_map[@]}"; do

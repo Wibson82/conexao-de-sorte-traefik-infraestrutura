@@ -28,6 +28,49 @@ http:
         accessControlMaxAge: 86400
         addVaryHeader: true
 
+    # ==========================================================================
+    # MIDDLEWARES PARA GATEWAY-FIRST ARCHITECTURE
+    # ==========================================================================
+    cors-basic:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowOriginList:
+          - https://conexaodesorte.com.br
+          - https://www.conexaodesorte.com.br
+        accessControlAllowHeaders:
+          - "Authorization"
+          - "Content-Type"
+          - "X-Requested-With"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600
+
+    security-headers-api:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customResponseHeaders:
+          X-Content-Type-Options: "nosniff"
+          Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+          X-Frame-Options: "DENY"
+          X-XSS-Protection: "1; mode=block"
+          Content-Security-Policy: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.conexaodesorte.com.br"
+
+    rate-limit-gateway:
+      rateLimit:
+        burst: 100
+        average: 50
+        period: "1m"
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
     redirect-to-https:
       redirectScheme:
         scheme: https
