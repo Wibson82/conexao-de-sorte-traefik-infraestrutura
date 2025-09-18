@@ -1,0 +1,564 @@
+name: "🛡️ Traefik Infrastructure – Hardened CI/CD Pipeline"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  SERVICE_NAME: traefik-infrastructure
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/traefik-config
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # 🔍 ETAPA 1: VALIDAÇÃO DE AMBIENTE
+  # ============================================================================
+  validate-environment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      cache-key: ${{ steps.cache-key.outputs.cache-key }}
+    steps:
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@v4.3.0
+
+      - name: "🔧 Setup cache key"
+        id: cache-key
+        run: |
+          CACHE_KEY="${{ vars.CACHE_KEY_PREFIX || 'traefik' }}-${{ hashFiles('docker-compose.yml', 'traefik/**', '.env.ci') }}"
+          echo "cache-key=$CACHE_KEY" >> "$GITHUB_OUTPUT"
+          echo "📋 Cache key: $CACHE_KEY"
+
+      - name: "📋 Validate required files"
+        run: |
+          echo "🔍 Validando arquivos obrigatórios..."
+
+          required_files=(
+            "docker-compose.yml"
+            "traefik/traefik.yml"
+            "traefik/dynamic/microservices-routes.yml"
+            "traefik/dynamic/frontend-routes.yml"
+            "traefik/dynamic/middlewares.yml"
+            ".env.ci"
+          )
+
+          missing_files=()
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              missing_files+=("$file")
+            fi
+          done
+
+          if [[ ${#missing_files[@]} -gt 0 ]]; then
+            echo "❌ Arquivos obrigatórios faltando:"
+            printf '  - %s\n' "${missing_files[@]}"
+            exit 1
+          fi
+
+          echo "✅ Todos os arquivos obrigatórios encontrados"
+
+      - name: "🔧 Install validation dependencies"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-yaml yamllint
+
+      - name: "🧪 Validate Traefik configurations"
+        run: |
+          echo "🔍 Validando sintaxe YAML..."
+
+          yaml_files=(
+            "docker-compose.yml"
+            "traefik/traefik.yml"
+            "traefik/dynamic/*.yml"
+          )
+
+          for pattern in "${yaml_files[@]}"; do
+            for file in $pattern; do
+              if [[ -f "$file" ]]; then
+                echo "  Validando: $file"
+                yamllint -d '{extends: default, rules: {line-length: {max: 120}}}' "$file"
+              fi
+            done
+          done
+
+          echo "✅ Validação YAML concluída"
+
+      - name: "🛡️ Security validation"
+        run: |
+          echo "🔍 Verificando configurações de segurança..."
+
+          # Verificar se não há senhas hardcoded
+          if grep -r "password\|secret\|key" --include="*.yml" --include="*.yaml" . | grep -v "# "; then
+            echo "⚠️ Possíveis segredos encontrados nos arquivos"
+            echo "🔍 Verificação manual necessária"
+          fi
+
+          # Verificar SSL obrigatório
+          if ! grep -q "entryPoint.*websecure" traefik/dynamic/*.yml; then
+            echo "❌ SSL/HTTPS não está obrigatório"
+            exit 1
+          fi
+
+          echo "✅ Validação de segurança concluída"
+
+      - name: "📦 Upload validated configs"
+        uses: actions/upload-artifact@v4.5.0
+        with:
+          name: traefik-configs-${{ github.run_id }}
+          path: |
+            docker-compose.yml
+            .env.ci
+            traefik/
+            letsencrypt/
+            secrets/
+          retention-days: 1  # Limpeza agressiva
+
+  # ============================================================================
+  # 🧹 ETAPA 2: LIMPEZA INTELIGENTE DO GHCR
+  # ============================================================================
+  cleanup-ghcr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@v4.3.0
+
+      - name: "🔑 Login to GHCR"
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "🧹 Limpeza inteligente do GHCR"
+        env:
+          MAX_VERSIONS_TO_KEEP: ${{ vars.MAX_VERSIONS_TO_KEEP || '3' }}
+          MAX_AGE_DAYS: ${{ vars.MAX_AGE_DAYS || '7' }}
+          PROTECTED_TAGS: ${{ vars.PROTECTED_TAGS || 'latest,main,production' }}
+        shell: bash
+        run: |
+          cleanup_ghcr_safe() {
+            local package_name="$1"
+            local simulate="${2:-false}"
+
+            echo "🧹 Iniciando limpeza do package: $package_name"
+            echo "📊 Configuração:"
+            echo "  - Manter versões: $MAX_VERSIONS_TO_KEEP"
+            echo "  - Idade máxima: $MAX_AGE_DAYS dias"
+            echo "  - Tags protegidas: $PROTECTED_TAGS"
+            echo "  - Modo simulação: $simulate"
+
+            # Converter PROTECTED_TAGS em array
+            IFS=',' read -ra protected_array <<< "$PROTECTED_TAGS"
+
+            # Buscar todas as versões
+            echo "🔍 Buscando versões do package..."
+
+            # Buscar via API do GitHub
+            versions=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/user/packages/container/$package_name/versions" | \
+              jq -r '.[] | select(.metadata.container.tags | length > 0) | {id, tags: .metadata.container.tags, created_at}')
+
+            if [[ -z "$versions" ]] || [[ "$versions" == "null" ]]; then
+              echo "ℹ️ Nenhuma versão encontrada para limpeza"
+              return 0
+            fi
+
+            echo "📋 Versões encontradas:"
+            echo "$versions" | jq -r '"  - ID: \(.id), Tags: \(.tags | join(",")), Created: \(.created_at)"'
+
+            # Calcular data limite
+            cutoff_date=$(date -d "$MAX_AGE_DAYS days ago" -u +"%Y-%m-%dT%H:%M:%SZ")
+            echo "📅 Data limite: $cutoff_date"
+
+            deleted_count=0
+            protected_count=0
+            recent_count=0
+
+            # Processar cada versão
+            echo "$versions" | jq -c '.' | while read -r version; do
+              version_id=$(echo "$version" | jq -r '.id')
+              tags=$(echo "$version" | jq -r '.tags[]' 2>/dev/null || echo "")
+              created_at=$(echo "$version" | jq -r '.created_at')
+
+              # Verificar se é tag protegida
+              is_protected=false
+              for tag in $tags; do
+                for protected in "${protected_array[@]}"; do
+                  if [[ "$tag" == "$protected" ]]; then
+                    is_protected=true
+                    break 2
+                  fi
+                done
+              done
+
+              if [[ "$is_protected" == "true" ]]; then
+                echo "🛡️ Protegida: ID=$version_id, Tags=[$tags]"
+                ((protected_count++))
+                continue
+              fi
+
+              # Verificar idade
+              if [[ "$created_at" > "$cutoff_date" ]]; then
+                echo "⏰ Recente: ID=$version_id, Tags=[$tags], Created=$created_at"
+                ((recent_count++))
+                continue
+              fi
+
+              # Candidata à exclusão
+              if [[ "$simulate" == "false" ]]; then
+                echo "🗑️ Deletando: ID=$version_id, Tags=[$tags], Created=$created_at"
+
+                delete_response=$(curl -s -w "%{http_code}" -o /dev/null \
+                  -X DELETE \
+                  -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                  "https://api.github.com/user/packages/container/$package_name/versions/$version_id")
+
+                if [[ "$delete_response" -eq 204 ]]; then
+                  echo "✅ Deletada com sucesso: ID=$version_id"
+                  ((deleted_count++))
+                else
+                  echo "❌ Erro ao deletar ID=$version_id (HTTP: $delete_response)"
+                fi
+              else
+                echo "🔍 SIMULAÇÃO - Seria deletada: ID=$version_id, Tags=[$tags]"
+                ((deleted_count++))
+              fi
+            done
+
+            # Relatório final
+            echo ""
+            echo "📊 RELATÓRIO DE LIMPEZA:"
+            echo "  🛡️ Versões protegidas: $protected_count"
+            echo "  ⏰ Versões recentes: $recent_count"
+            echo "  🗑️ Versões $([ "$simulate" == "true" ] && echo "que seriam" || echo "") removidas: $deleted_count"
+
+            if [[ "$simulate" == "false" ]] && [[ $deleted_count -gt 0 ]]; then
+              echo "✅ Limpeza concluída com sucesso!"
+            elif [[ "$simulate" == "true" ]]; then
+              echo "🔍 Simulação concluída - nenhuma alteração feita"
+            else
+              echo "ℹ️ Nenhuma limpeza necessária"
+            fi
+          }
+
+          # Extrair nome do package do repository
+          package_name=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]' | sed 's|.*/||')
+
+          # Executar limpeza em modo simulação primeiro
+          echo "🔍 EXECUTANDO SIMULAÇÃO PRIMEIRO:"
+          cleanup_ghcr_safe "$package_name" "true"
+
+          echo ""
+          echo "🚀 EXECUTANDO LIMPEZA REAL:"
+          cleanup_ghcr_safe "$package_name" "false"
+
+  # ============================================================================
+  # 🚀 ETAPA 3: DEPLOY COM OIDC + KEY VAULT SELETIVO
+  # ============================================================================
+  deploy-selfhosted:
+    needs: [validate-environment, cleanup-ghcr]
+    runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
+    timeout-minutes: 20
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      DOCKER_NETWORK_NAME: conexao-network-swarm
+      STACK_NAME: conexao-traefik
+      COMPOSE_FILE: docker-compose.yml
+    steps:
+      - name: "📥 Checkout repository"
+        uses: actions/checkout@v4.3.0
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: "📦 Download validated configs"
+        uses: actions/download-artifact@v4.1.8
+        with:
+          name: traefik-configs-${{ github.run_id }}
+          path: .
+
+      - name: "🔑 Azure OIDC Login"
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: "🔐 Buscar segredos específicos do Key Vault"
+        env:
+          AZURE_KEYVAULT_NAME: ${{ vars.AZURE_KEYVAULT_NAME }}
+        shell: bash
+        run: |
+          echo "🔍 Buscando apenas segredos necessários para Traefik..."
+
+          # Lista específica de segredos necessários
+          required_secrets=(
+            "TRAEFIK-BASICAUTH-USERS"
+            "TRAEFIK-API-DASHBOARD-USER"
+            "TRAEFIK-ACME-EMAIL"
+            "LETSENCRYPT-STAGING"
+          )
+
+          # Buscar apenas os segredos necessários
+          for secret_name in "${required_secrets[@]}"; do
+            echo "🔑 Buscando: $secret_name"
+
+            secret_value=$(az keyvault secret show \
+              --vault-name "$AZURE_KEYVAULT_NAME" \
+              --name "$secret_name" \
+              --query "value" \
+              --output tsv 2>/dev/null)
+
+            if [[ -n "$secret_value" ]] && [[ "$secret_value" != "null" ]]; then
+              # Converter nome para variável de ambiente (- para _)
+              env_var_name=$(echo "$secret_name" | tr '-' '_')
+              echo "✅ Encontrado: $secret_name → $env_var_name"
+
+              # Exportar para uso nos próximos steps (sem mostrar valor)
+              echo "$env_var_name<<EOF" >> $GITHUB_ENV
+              echo "$secret_value" >> $GITHUB_ENV
+              echo "EOF" >> $GITHUB_ENV
+            else
+              echo "❌ Segredo não encontrado: $secret_name"
+              exit 1
+            fi
+          done
+
+          echo "✅ Todos os segredos necessários carregados"
+
+      - name: "🐳 Criar Docker Secrets"
+        shell: bash
+        run: |
+          echo "🔧 Criando Docker Secrets para o Swarm..."
+
+          # Função para criar secret com validação
+          create_docker_secret() {
+            local secret_name="$1"
+            local secret_value="$2"
+
+            if [[ -z "$secret_value" ]]; then
+              echo "❌ Valor vazio para secret: $secret_name"
+              return 1
+            fi
+
+            # Verificar se secret já existe
+            if docker secret ls | grep -q "$secret_name"; then
+              echo "🔄 Removendo secret existente: $secret_name"
+              docker secret rm "$secret_name" || true
+            fi
+
+            # Criar novo secret
+            echo "✅ Criando secret: $secret_name"
+            echo "$secret_value" | docker secret create "$secret_name" - || {
+              echo "❌ Erro ao criar secret: $secret_name"
+              return 1
+            }
+          }
+
+          # Criar todos os secrets necessários
+          create_docker_secret "traefik-basicauth-users" "$TRAEFIK_BASICAUTH_USERS"
+          create_docker_secret "traefik-api-dashboard-user" "$TRAEFIK_API_DASHBOARD_USER"
+          create_docker_secret "traefik-acme-email" "$TRAEFIK_ACME_EMAIL"
+          create_docker_secret "letsencrypt-staging" "$LETSENCRYPT_STAGING"
+
+          echo "✅ Todos os Docker Secrets criados com sucesso"
+
+      - name: "🔧 Preparar ambiente"
+        run: |
+          echo "🔧 Preparando ambiente de deploy..."
+
+          # Usar arquivo de ambiente específico para CI/CD
+          cp .env.ci .env
+
+          # Verificar se rede Swarm existe
+          if ! docker network ls | grep -q "$DOCKER_NETWORK_NAME"; then
+            echo "🌐 Criando rede Docker Swarm: $DOCKER_NETWORK_NAME"
+            docker network create --driver overlay "$DOCKER_NETWORK_NAME"
+          else
+            echo "✅ Rede Docker Swarm já existe: $DOCKER_NETWORK_NAME"
+          fi
+
+          echo "✅ Ambiente preparado"
+
+      - name: "🚀 Deploy Traefik Stack"
+        env:
+          STACK_NAME: conexao-traefik
+          COMPOSE_FILE: docker-compose.yml
+        shell: bash
+        run: |
+          echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
+          echo "📁 Arquivo: $COMPOSE_FILE"
+          echo "🏷️ Stack: $STACK_NAME"
+
+          # Validar arquivo compose
+          if ! docker compose -f "$COMPOSE_FILE" config > /dev/null 2>&1; then
+            echo "❌ Erro na validação do docker-compose.yml"
+            docker compose -f "$COMPOSE_FILE" config
+            exit 1
+          fi
+
+          echo "✅ Arquivo docker-compose válido"
+
+          # Deploy da stack
+          echo "🚀 Executando deploy..."
+          docker stack deploy -c "$COMPOSE_FILE" "$STACK_NAME"
+
+          # Aguardar convergência
+          echo "⏳ Aguardando convergência da stack..."
+          sleep 30
+
+          # Verificar status dos serviços
+          echo "📊 Status dos serviços:"
+          docker stack services "$STACK_NAME"
+
+          echo "✅ Deploy concluído"
+
+      - name: "🏥 Health check"
+        env:
+          STACK_NAME: conexao-traefik
+        shell: bash
+        run: |
+          echo "🏥 Verificando saúde do Traefik..."
+
+          max_attempts=10
+          attempt=1
+
+          while [[ $attempt -le $max_attempts ]]; do
+            echo "🔍 Tentativa $attempt/$max_attempts"
+
+            # Verificar se o serviço está rodando
+            if docker service ps "${STACK_NAME}_traefik" --format "table {{.CurrentState}}" | grep -q "Running"; then
+              echo "✅ Serviço Traefik está rodando"
+
+              # Teste de conectividade local
+              if curl -f -s http://localhost:8080/ping > /dev/null 2>&1; then
+                echo "✅ Traefik respondendo na porta 8080"
+                break
+              else
+                echo "⚠️ Traefik não respondendo ainda na porta 8080"
+              fi
+            else
+              echo "⚠️ Serviço Traefik ainda não está rodando"
+            fi
+
+            if [[ $attempt -eq $max_attempts ]]; then
+              echo "❌ Health check falhou após $max_attempts tentativas"
+              echo "📊 Status detalhado:"
+              docker service ps "${STACK_NAME}_traefik"
+              docker service logs "${STACK_NAME}_traefik" --tail 50
+              exit 1
+            fi
+
+            sleep 10
+            ((attempt++))
+          done
+
+          echo "✅ Health check bem-sucedido"
+
+      - name: "🌐 Connectivity validation"
+        shell: bash
+        run: |
+          echo "🌐 Validando conectividade..."
+
+          # Verificar se as portas estão abertas
+          ports=(80 443 8080)
+
+          for port in "${ports[@]}"; do
+            echo "🔍 Verificando porta $port..."
+
+            if netstat -tln | grep -q ":$port "; then
+              echo "✅ Porta $port está aberta"
+            else
+              echo "⚠️ Porta $port não está aberta"
+            fi
+          done
+
+          # Verificar DNS interno
+          echo "🔍 Verificando resolução DNS interna..."
+
+          if nslookup traefik > /dev/null 2>&1; then
+            echo "✅ DNS interno funcionando"
+          else
+            echo "⚠️ Problema com DNS interno"
+          fi
+
+          echo "✅ Validação de conectividade concluída"
+
+      - name: "🧹 Limpeza pós-deploy"
+        shell: bash
+        run: |
+          echo "🧹 Executando limpeza pós-deploy..."
+
+          # Remover imagens antigas (manter apenas as 2 mais recentes)
+          echo "🗑️ Removendo imagens antigas..."
+          docker image prune -f --filter "until=72h" || true
+
+          # Remover containers parados
+          echo "🗑️ Removendo containers parados..."
+          docker container prune -f || true
+
+          # Remover volumes órfãos (cuidado!)
+          echo "🗑️ Removendo volumes órfãos..."
+          docker volume prune -f || true
+
+          echo "✅ Limpeza concluída"
+
+  # ============================================================================
+  # 🧹 ETAPA 4: LIMPEZA DE ARTEFATOS
+  # ============================================================================
+  cleanup-artifacts:
+    needs: [deploy-selfhosted]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always() && github.ref == 'refs/heads/main'
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: "🧹 Limpar artefatos temporários"
+        shell: bash
+        run: |
+          echo "🧹 Limpando artefatos do workflow atual..."
+
+          # Buscar artefatos do workflow atual
+          artifacts=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" | \
+            jq -r '.artifacts[] | select(.name | startswith("traefik-configs-")) | .id')
+
+          if [[ -n "$artifacts" ]]; then
+            echo "🗑️ Encontrados artefatos para limpeza:"
+
+            for artifact_id in $artifacts; do
+              echo "  - Deletando artifact ID: $artifact_id"
+
+              response=$(curl -s -w "%{http_code}" -o /dev/null \
+                -X DELETE \
+                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/$artifact_id")
+
+              if [[ "$response" -eq 204 ]]; then
+                echo "    ✅ Deletado com sucesso"
+              else
+                echo "    ⚠️ Erro ao deletar (HTTP: $response)"
+              fi
+            done
+          else
+            echo "ℹ️ Nenhum artefato temporário encontrado para limpeza"
+          fi
+
+          echo "✅ Limpeza de artefatos concluída"
