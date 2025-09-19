@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  id-token: write
+  id-token: write    # Necessário para OIDC com Azure (azure/login@v2)
+  contents: read     # Necessário para checkout em jobs
 
 jobs:
   validate:
