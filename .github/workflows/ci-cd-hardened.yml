@@ -351,7 +351,7 @@ jobs:
   # ============================================================================
   deploy-selfhosted:
     needs: [cleanup-ghcr]  # 🔄 LINEAR: Aguarda limpeza GHCR completar
-    runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
+    runs-on: [self-hosted, Linux, X64, srv649924, conexao-de-sorte-traefik-infraestrutura]
     timeout-minutes: 20
     if: github.ref == 'refs/heads/main'
     permissions:
@@ -391,13 +391,13 @@ jobs:
       - name: "🔑 Azure OIDC Login"
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: "🔐 Buscar segredos específicos do Key Vault"
         env:
-          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
+          AZURE_KEYVAULT_NAME: ${{ vars.AZURE_KEYVAULT_NAME }}
         shell: bash
         run: |
           echo "🔍 Buscando apenas segredos necessários para Traefik..."
@@ -419,6 +419,7 @@ jobs:
               --name "$secret_name" \
               --query "value" \
               --output tsv 2>/dev/null)
+            echo "::add-mask::$secret_value"
 
             if [[ -n "$secret_value" ]] && [[ "$secret_value" != "null" ]]; then
               # Converter nome para variável de ambiente (- para _)
