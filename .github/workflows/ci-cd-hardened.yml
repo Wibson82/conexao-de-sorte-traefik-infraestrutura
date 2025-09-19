@@ -224,12 +224,31 @@ jobs:
             echo "🔍 Buscando versões do package..."
 
             # Buscar via API do GitHub
-            versions=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/user/packages/container/$package_name/versions" | \
-              jq -r '.[] | select(.metadata.container.tags | length > 0) | {id, tags: .metadata.container.tags, created_at}')
+            api_response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/user/packages/container/$package_name/versions")
+
+            # Verificar se a resposta é um JSON válido
+            if ! echo "$api_response" | jq empty 2>/dev/null; then
+              echo "⚠️ Resposta da API não é JSON válido:"
+              echo "$api_response"
+              echo "ℹ️ Possíveis causas: package não existe, sem permissões, ou erro da API"
+              echo "🔄 Continuando pipeline sem limpeza GHCR"
+              return 0
+            fi
+
+            # Verificar se não houve erro da API
+            if echo "$api_response" | jq -e '.message' >/dev/null 2>&1; then
+              error_msg=$(echo "$api_response" | jq -r '.message')
+              echo "⚠️ Erro da API GitHub: $error_msg"
+              echo "🔄 Continuando pipeline sem limpeza GHCR"
+              return 0
+            fi
+
+            # Extrair versões com tags
+            versions=$(echo "$api_response" | jq -r '.[] | select(.metadata.container.tags | length > 0) | {id, tags: .metadata.container.tags, created_at}' 2>/dev/null || echo "")
 
             if [[ -z "$versions" ]] || [[ "$versions" == "null" ]]; then
-              echo "ℹ️ Nenhuma versão encontrada para limpeza"
+              echo "ℹ️ Nenhuma versão com tags encontrada para limpeza"
               return 0
             fi
 
