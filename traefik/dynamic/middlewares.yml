@@ -215,17 +215,18 @@ http:
         burst: 60
 
     # Autenticação específica para serviços críticos
-    crypto-auth:
-      basicAuth:
-        users: []  # Configurado dinamicamente via Azure Key Vault
+    # TEMPORARIAMENTE DESABILITADO - arrays vazios causam problemas
+    # crypto-auth:
+    #   basicAuth:
+    #     users: []  # Configurado dinamicamente via Azure Key Vault
 
-    audit-auth:
-      basicAuth:
-        users: []  # Configurado dinamicamente via Azure Key Vault
+    # audit-auth:
+    #   basicAuth:
+    #     users: []  # Configurado dinamicamente via Azure Key Vault
 
-    admin-auth:
-      basicAuth:
-        users: []  # Configurado dinamicamente via Azure Key Vault
+    # admin-auth:
+    #   basicAuth:
+    #     users: []  # Configurado dinamicamente via Azure Key Vault
 
     dashboard-auth:
       basicAuth:

@@ -1,160 +1,24 @@
 # =============================================================================
-# 🌐 FRONTEND ROUTING CONFIGURATION
+# 🌐 FRONTEND MINIMAL ROUTING CONFIGURATION - TESTE
 # =============================================================================
-# Configuração completa para o frontend React com SSL/TLS seguro
+# Configuração mínima para evitar erros de inicialização
+# Remove dependências de serviços frontend até que estejam operacionais
+# =============================================================================
 
 http:
   routers:
     # ==========================================================================
-    # 🌐 FRONTEND PRINCIPAL - HTTPS
+    # 📊 CONFIGURAÇÃO MÍNIMA - SEM DEPENDÊNCIAS EXTERNAS
     # ==========================================================================
-    frontend-main:
-      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
-      entrypoints:
-        - websecure
-      middlewares:
-        - security-headers-frontend
-        - gzip-compress
-        - redirect-to-www
-      service: frontend-service
-      tls:
-        certresolver: letsencrypt
-        domains:
-          - main: "conexaodesorte.com.br"
-            sans:
-              - "www.conexaodesorte.com.br"
-      priority: 1000
+    # Removido temporariamente para diagnóstico
+    # frontend-main será reativado quando o serviço estiver disponível
 
-    # ==========================================================================
-    # 🔄 FRONTEND HTTP -> HTTPS REDIRECT
-    # ==========================================================================
-    frontend-redirect:
-      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
-      entrypoints:
-        - web
-      middlewares:
-        - https-redirect
-      service: frontend-service
-      priority: 900
-
-  # ============================================================================
-  # 🔧 SERVICES CONFIGURATION
-  # ============================================================================
   services:
-    frontend-service:
-      loadBalancer:
-        servers:
-          - url: "http://conexao-frontend:3000"
-        passHostHeader: true
-        healthCheck:
-          path: "/health.json"
-          interval: "30s"
-          timeout: "10s"
-          scheme: "http"
-        sticky:
-          cookie:
-            name: "frontend-session"
-            secure: true
-            httpOnly: true
-
-  # ============================================================================
-  # 🛡️ MIDDLEWARES ESPECÍFICOS PARA FRONTEND
-  # ============================================================================
-  middlewares:
-    security-headers-frontend:
-      headers:
-        browserXssFilter: true
-        contentTypeNosniff: true
-        frameDeny: true
-        referrerPolicy: "strict-origin-when-cross-origin"
-        customResponseHeaders:
-          X-Content-Type-Options: "nosniff"
-          Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
-          Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://api.conexaodesorte.com.br wss://conexaodesorte.com.br wss://www.conexaodesorte.com.br; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';"
-          Permissions-Policy: "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()"
-          X-Frame-Options: "DENY"
-          X-XSS-Protection: "1; mode=block"
-          Cross-Origin-Opener-Policy: "same-origin"
-          Cross-Origin-Resource-Policy: "cross-origin"
-          X-DNS-Prefetch-Control: "on"
-          Cache-Control: "public, max-age=3600, must-revalidate"
-        stsSeconds: 31536000
-        stsIncludeSubdomains: true
-        stsPreload: true
-        forceSTSHeader: true
-        isDevelopment: false
-
-    redirect-to-www:
-      redirectRegex:
-        regex: "^https://conexaodesorte\\.com\\.br/(.*)"
-        replacement: "https://www.conexaodesorte.com.br/${1}"
-        permanent: true
-
-    https-redirect:
-      redirectScheme:
-        scheme: https
-        permanent: true
-        port: "443"
-
-    gzip-compress:
-      compress:
-        excludedContentTypes:
-          - "text/event-stream"
+    # ==========================================================================
+    # 📊 SERVIÇOS MÍNIMOS
+    # ==========================================================================
+    # Removido temporariamente para diagnóstico
 
 # =============================================================================
-# 📝 CONFIGURAÇÃO DE CERTIFICADOS TLS
-# =============================================================================
-tls:
-  certificates:
-    - certFile: "/letsencrypt/conexaodesorte.com.br.crt"
-      keyFile: "/letsencrypt/conexaodesorte.com.br.key"
-  options:
-    frontend-tls:
-      minVersion: "VersionTLS12"
-      maxVersion: "VersionTLS13"
-      cipherSuites:
-        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
-        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
-        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-        - "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
-      curvePreferences:
-        - "CurveP521"
-        - "CurveP384"
-      sniStrict: false
-      alpnProtocols:
-        - "h2"
-        - "http/1.1"
-
-# =============================================================================
-# 📋 TROUBLESHOOTING NOTES
-# =============================================================================
-#
-# 🚨 PROBLEMAS COMUNS E SOLUÇÕES:
-#
-# 1. ERR_CERT_AUTHORITY_INVALID:
-#    - Verifique se o Let's Encrypt está funcionando
-#    - Confirme se os domínios estão apontando para o servidor
-#    - Execute: docker-compose logs traefik | grep -i cert
-#
-# 2. HSTS Error:
-#    - Limpe o cache do navegador
-#    - Use modo incógnito para testar
-#    - Verifique se max-age não está muito alto
-#
-# 3. 404 Not Found:
-#    - Confirme se o container frontend está rodando
-#    - Verifique se a rede conexao-network-swarm existe
-#    - Execute: docker network ls | grep conexao
-#
-# 4. Certificado não renovando:
-#    - Verifique se as portas 80 e 443 estão abertas
-#    - Confirme se o DNS está correto
-#    - Execute: docker-compose exec traefik traefik healthcheck
-#
-# 🔧 COMANDOS DE DEBUG:
-# - docker-compose logs traefik | tail -100
-# - docker-compose exec traefik cat /etc/traefik/traefik.yml
-# - curl -H "Host: www.conexaodesorte.com.br" http://localhost/
-# - openssl s_client -connect conexaodesorte.com.br:443 -servername conexaodesorte.com.br
-#
+# Esta configuração permite que o Traefik inicie sem tentar conectar a serviços inexistentes
 # =============================================================================

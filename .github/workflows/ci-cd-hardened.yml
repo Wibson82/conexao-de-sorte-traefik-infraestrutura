@@ -385,6 +385,25 @@ jobs:
           # Usar arquivo de ambiente específico para CI/CD
           cp .env.ci .env
 
+          # Criar diretórios necessários
+          mkdir -p secrets letsencrypt traefik/dynamic
+
+          # Criar arquivo de autenticação se não existir
+          if [[ ! -f "secrets/traefik-basicauth" ]]; then
+            echo "🔑 Criando arquivo de autenticação básica..."
+            # Usar o secret do Azure Key Vault para criar o arquivo
+            echo "$TRAEFIK_BASICAUTH_USERS" > secrets/traefik-basicauth
+            chmod 600 secrets/traefik-basicauth
+            echo "✅ Arquivo traefik-basicauth criado"
+          fi
+
+          # Configurar acme.json
+          if [[ ! -f "letsencrypt/acme.json" ]]; then
+            echo "{}" > letsencrypt/acme.json
+            chmod 600 letsencrypt/acme.json
+            echo "✅ Arquivo acme.json criado"
+          fi
+
           # Verificar se rede Swarm existe
           if ! docker network ls | grep -q "$DOCKER_NETWORK_NAME"; then
             echo "🌐 Criando rede Docker Swarm: $DOCKER_NETWORK_NAME"

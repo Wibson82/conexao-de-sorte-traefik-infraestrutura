@@ -1,163 +1,25 @@
 # =============================================================================
-# 🌐 TRAEFIK MICROSERVICES ROUTING CONFIGURATION - PRODUÇÃO
+# 🌐 TRAEFIK MINIMAL ROUTING CONFIGURATION - TESTE
 # =============================================================================
-# ARQUITETURA: Internet → Traefik (SSL + Load Balance) → Gateway → Microserviços
-# RESPONSABILIDADE TRAEFIK: SSL termination + roteamento para Gateway único
-# VERSÃO: v2.0 - Integração Gateway-first approach
+# Configuração mínima apenas para testar se o Traefik inicializa corretamente
+# Remove dependências de serviços externos para diagnóstico
 # =============================================================================
 
 http:
   routers:
     # ==========================================================================
-    # 🚪 GATEWAY PRINCIPAL - PONTO ÚNICO DE ENTRADA
+    # 📊 APENAS PING/HEALTH - CONFIGURAÇÃO MÍNIMA
     # ==========================================================================
-    # TODO O TRÁFEGO DA API VAI PARA O GATEWAY
-    api-gateway:
-      rule: "Host(`api.conexaodesorte.com.br`)"
-      entrypoints:
-        - websecure
-      middlewares:
-        - security-headers-api
-        - cors-basic
-        - rate-limit-gateway
-      service: gateway-service
-      tls:
-        certresolver: letsencrypt
-      priority: 1000
+    # Remover todos os routers que dependem de serviços externos
+    # Apenas manter configurações internas do Traefik
 
-    # Redirect HTTP to HTTPS para API
-    api-gateway-redirect:
-      rule: "Host(`api.conexaodesorte.com.br`)"
-      entrypoints:
-        - web
-      middlewares:
-        - https-redirect
-      service: gateway-service
-      priority: 900
-
-    # ==========================================================================
-    # 🌐 FRONTEND APPLICATION
-    # ==========================================================================
-    frontend-main:
-      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
-      entrypoints:
-        - websecure
-      middlewares:
-        - security-headers
-        - gzip-compress
-        - redirect-to-www
-      service: frontend-service
-      tls:
-        certresolver: letsencrypt
-
-    # Frontend HTTP -> HTTPS redirect
-    frontend-redirect:
-      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
-      entrypoints:
-        - web
-      middlewares:
-        - redirect-to-https
-      service: frontend-service
-
-    # ==========================================================================
-    # 🛠️ ADMIN & MANAGEMENT
-    # ==========================================================================
-    traefik-dashboard:
-      rule: "Host(`traefik.conexaodesorte.com.br`)"
-      entrypoints:
-        - websecure
-      middlewares:
-        - admin-auth
-        - security-headers
-        - ip-allow-local
-      service: api@internal
-      tls:
-        certresolver: letsencrypt
-
-  # ============================================================================
-  # 🔧 SERVICES CONFIGURATION
-  # ============================================================================
   services:
     # ==========================================================================
-    # 🚪 GATEWAY SERVICE - PONTO ÚNICO DE ENTRADA PARA APIS
+    # 📊 SERVIÇOS INTERNOS APENAS
     # ==========================================================================
-    gateway-service:
-      loadBalancer:
-        healthCheck:
-          path: "/actuator/health"
-          interval: "30s"
-          timeout: "10s"
-          scheme: "http"
-        # SERÁ AUTO-DESCOBERTO pelo Docker provider quando Gateway estiver rodando
-        # Configuração manual: servers: - url: "http://conexao-gateway:8086"
+    # Remover todos os services que dependem de containers externos
+    # Apenas API interna do Traefik será usada
 
-    # ==========================================================================
-    # 🌐 FRONTEND SERVICE
-    # ==========================================================================
-    frontend-service:
-      loadBalancer:
-        healthCheck:
-          path: "/health.json"
-          interval: "30s"
-          timeout: "10s"
-          scheme: "http"
-        # SERÁ AUTO-DESCOBERTO pelo Docker provider quando Frontend estiver rodando
-        # Configuração manual: servers: - url: "http://conexao-frontend:3000"
-
-# ==============================================================================
-# 📝 CONFIGURATION NOTES - GATEWAY-FIRST ARCHITECTURE
-# ==============================================================================
-#
-# 🏗️ ARQUITETURA ATUALIZADA:
-# Internet → Traefik (SSL + Load Balance) → Gateway → Microserviços
-#
-# 🔧 RESPONSABILIDADES TRAEFIK:
-# 1. SSL/TLS Termination (Let's Encrypt)
-# 2. Load Balancing básico
-# 3. Roteamento por domínio APENAS
-# 4. Headers de segurança básicos
-#
-# 🚪 RESPONSABILIDADES GATEWAY:
-# 1. Roteamento inteligente por path (/rest/PROJECT/*)
-# 2. Rate limiting avançado por serviço
-# 3. Circuit breaker e retry logic
-# 4. Autenticação/Autorização JWT
-# 5. Observabilidade detalhada
-# 6. Transformação de requests/responses
-#
-# 🏷️ REQUIRED CONTAINER LABELS GATEWAY:
-# Gateway container deve ter:
-#   - traefik.enable=true
-#   - traefik.http.services.gateway-service.loadbalancer.server.port=8086
-#   - traefik.docker.network=conexao-network-swarm
-#
-# 🏷️ REQUIRED CONTAINER LABELS FRONTEND:
-# Frontend container deve ter:
-#   - traefik.enable=true
-#   - traefik.http.services.frontend-service.loadbalancer.server.port=3000
-#   - traefik.docker.network=conexao-network-swarm
-#
-# 🌐 DOMAIN CONFIGURATION:
-# - Frontend: conexaodesorte.com.br + www.conexaodesorte.com.br
-# - API: api.conexaodesorte.com.br → Gateway → Microserviços
-# - Admin: traefik.conexaodesorte.com.br
-#
-# 🔒 SECURITY FEATURES:
-# - HTTPS obrigatório com Let's Encrypt
-# - Rate limiting básico no Traefik
-# - Rate limiting avançado no Gateway
-# - Security headers aplicados
-#
-# ⚡ PERFORMANCE FEATURES:
-# - Health checks para Gateway e Frontend
-# - Compression habilitada
-# - HTTP/3 support
-# - Load balancing automático
-#
-# 🔄 MIDDLEWARES NECESSÁRIOS:
-# Definir em middlewares.yml:
-# - security-headers-api
-# - cors-basic
-# - rate-limit-gateway
-# - https-redirect
-# ==============================================================================
+# =============================================================================
+# Esta configuração mínima deve permitir que o Traefik inicie sem erros
+# =============================================================================
