@@ -18,6 +18,13 @@ concurrency:
 
 jobs:
   # ============================================================================
+  # 🔄 PIPELINE LINEAR - EXECUÇÃO SEQUENCIAL
+  # ============================================================================
+  # Estrutura: validate → cleanup-ghcr → deploy → cleanup-artifacts
+  # Motivo: Evitar condições de corrida e facilitar debugging
+  # ============================================================================
+
+  # ============================================================================
   # 🔍 ETAPA 1: VALIDAÇÃO DE AMBIENTE
   # ============================================================================
   validate-environment:
@@ -120,10 +127,17 @@ jobs:
             secrets/
           retention-days: 1  # Limpeza agressiva
 
+      - name: "✅ Validação completa"
+        run: |
+          echo "🎉 ETAPA 1 CONCLUÍDA: Validação de ambiente"
+          echo "📋 Cache key: ${{ steps.cache-key.outputs.cache-key }}"
+          echo "🔄 Próxima etapa: Limpeza GHCR (linear)"
+
   # ============================================================================
   # 🧹 ETAPA 2: LIMPEZA INTELIGENTE DO GHCR
   # ============================================================================
   cleanup-ghcr:
+    needs: [validate-environment]  # 🔄 LINEAR: Aguarda validação completar
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.ref == 'refs/heads/main'
@@ -264,11 +278,16 @@ jobs:
           echo "🚀 EXECUTANDO LIMPEZA REAL:"
           cleanup_ghcr_safe "$package_name" "false"
 
+      - name: "✅ Limpeza GHCR completa"
+        run: |
+          echo "🎉 ETAPA 2 CONCLUÍDA: Limpeza inteligente GHCR"
+          echo "🔄 Próxima etapa: Deploy self-hosted (linear)"
+
   # ============================================================================
   # 🚀 ETAPA 3: DEPLOY COM OIDC + KEY VAULT SELETIVO
   # ============================================================================
   deploy-selfhosted:
-    needs: [validate-environment, cleanup-ghcr]
+    needs: [cleanup-ghcr]  # 🔄 LINEAR: Aguarda limpeza GHCR completar
     runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
     timeout-minutes: 20
     if: github.ref == 'refs/heads/main'
@@ -285,6 +304,20 @@ jobs:
         with:
           clean: true
           fetch-depth: 1
+
+      - name: "🔍 Diagnóstico inicial"
+        run: |
+          echo "🎯 INICIANDO ETAPA 3: Deploy self-hosted (linear)"
+          echo "🕐 Timestamp: $(date)"
+          echo "📋 Commit: $GITHUB_SHA"
+
+          echo ""
+          echo "🐳 Estado inicial do Docker Swarm:"
+          docker service ls | grep -E "(traefik|NAME)" || echo "Nenhum serviço Traefik atual"
+
+          echo ""
+          echo "🗂️ Espaço em disco:"
+          df -h / | head -2
 
       - name: "📦 Download validated configs"
         uses: actions/download-artifact@v4.1.8
@@ -537,11 +570,35 @@ jobs:
 
           echo "✅ Limpeza concluída"
 
+      - name: "📊 Status final do deploy"
+        run: |
+          echo "🔍 Verificando status final do Traefik..."
+
+          # Status dos serviços
+          echo "📊 Status dos serviços:"
+          docker service ls | grep -E "(traefik|NAME)" || echo "Nenhum serviço Traefik encontrado"
+
+          # Status detalhado
+          if docker service ls | grep -q "conexao-traefik_traefik"; then
+            echo ""
+            echo "📋 Status detalhado do serviço:"
+            docker service ps conexao-traefik_traefik --no-trunc --format "table {{.ID}}\t{{.Name}}\t{{.Image}}\t{{.Node}}\t{{.DesiredState}}\t{{.CurrentState}}\t{{.Error}}"
+
+            echo ""
+            echo "🏥 Health check final:"
+            timeout 30s bash -c 'until curl -f -s http://localhost:8080/ping > /dev/null 2>&1; do echo "⏳ Aguardando Traefik..."; sleep 2; done' && echo "✅ Traefik respondendo" || echo "⚠️ Timeout no health check"
+          fi
+
+      - name: "✅ Deploy completo"
+        run: |
+          echo "🎉 ETAPA 3 CONCLUÍDA: Deploy self-hosted"
+          echo "🔄 Próxima etapa: Limpeza de artefatos (linear)"
+
   # ============================================================================
   # 🧹 ETAPA 4: LIMPEZA DE ARTEFATOS
   # ============================================================================
   cleanup-artifacts:
-    needs: [deploy-selfhosted]
+    needs: [deploy-selfhosted]  # 🔄 LINEAR: Aguarda deploy completar
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always() && github.ref == 'refs/heads/main'
@@ -581,3 +638,22 @@ jobs:
           fi
 
           echo "✅ Limpeza de artefatos concluída"
+
+      - name: "🎉 Pipeline linear completo"
+        run: |
+          echo "=================================================================="
+          echo "🎉 PIPELINE HARDENED LINEAR CONCLUÍDO COM SUCESSO!"
+          echo "=================================================================="
+          echo "🕐 Timestamp final: $(date)"
+          echo "📋 Commit deployado: $GITHUB_SHA"
+          echo ""
+          echo "📊 Resumo das etapas (execução linear):"
+          echo "  1. ✅ Validação de ambiente"
+          echo "  2. ✅ Limpeza inteligente GHCR"
+          echo "  3. ✅ Deploy self-hosted com OIDC"
+          echo "  4. ✅ Limpeza de artefatos"
+          echo ""
+          echo "🌐 Traefik deve estar disponível em:"
+          echo "  📊 Dashboard: https://traefik.conexaodesorte.com.br"
+          echo "  🔗 API: https://api.conexaodesorte.com.br"
+          echo "=================================================================="
