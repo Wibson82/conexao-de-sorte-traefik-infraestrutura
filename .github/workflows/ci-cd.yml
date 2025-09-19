@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   validate:
-    runs-on: [ self-hosted, Linux, X64, srv649924, conexao-de-sorte-traefik-infraestrutura ]
+    runs-on: [ self-hosted, Linux, X64, srv649924, conexao, conexao-de-sorte-backend-gateway ]
     timeout-minutes: 12
     permissions:
       contents: read
@@ -76,7 +76,7 @@ jobs:
 
   deploy:
     needs: validate
-    runs-on: [ self-hosted, Linux, X64, srv649924, conexao-de-sorte-traefik-infraestrutura ]
+    runs-on: [ self-hosted, Linux, X64, srv649924, conexao, conexao-de-sorte-backend-gateway ]
     timeout-minutes: 25
     permissions:
       contents: read
@@ -101,30 +101,44 @@ jobs:
           audience: api://AzureADTokenExchange
           allow-no-subscriptions: false
 
-      - name: Get Key Vault secrets (Backend Domain Only)
+      - name: "Get Key Vault secrets (Infra Domain Only - Traefik) via az CLI"
         id: kv
-        uses: azure/get-keyvault-secrets@v1
-        with:
-          keyvault: ${{ secrets.AZURE_KEYVAULT_NAME }}
-          secrets: |
-            conexao-de-sorte-db-host
-            conexao-de-sorte-db-port
-            conexao-de-sorte-db-username
-            conexao-de-sorte-db-password
-            conexao-de-sorte-redis-host
-            conexao-de-sorte-redis-port
-            conexao-de-sorte-redis-password
-            conexao-de-sorte-jwt-secret
-            conexao-de-sorte-api-key
-            conexao-de-sorte-rabbitmq-host
-            conexao-de-sorte-rabbitmq-port
-            conexao-de-sorte-rabbitmq-username
-            conexao-de-sorte-rabbitmq-password
+        shell: bash
+        env:
+          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
+        run: |
+          set -Eeuo pipefail
+          IFS=$'\n\t'
+
+          echo "🔐 Recuperando segredos do Key Vault (infra-only)..."
+
+          declare -A mapping=(
+            [DASHBOARD_SECRET]=conexao-de-sorte-traefik-dashboard-password
+            [ACME_EMAIL]=conexao-de-sorte-letsencrypt-email
+            [SSL_CERT_PASSWORD]=conexao-de-sorte-ssl-cert-password
+            [TRAEFIK_BASICAUTH]=conexao-de-sorte-traefik-basicauth-password
+            [ADMIN_USERS]=conexao-de-sorte-admin-users
+            [AUDIT_USERS]=conexao-de-sorte-audit-users
+            [CRYPTO_USERS]=conexao-de-sorte-crypto-users
+          )
+
+          for var in "${!mapping[@]}"; do
+            secret_name=${mapping[$var]}
+            secret_value=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name "$secret_name" --query value -o tsv 2>/dev/null || true)
+            if [[ -n "$secret_value" ]]; then
+              # Mask value in logs and export to env for next steps
+              echo "::add-mask::$secret_value"
+              echo "$var=$secret_value" >> "$GITHUB_ENV"
+              echo "✅ Recuperado e mascarado: $secret_name -> $var"
+            else
+              echo "⚠️ Segredo não encontrado ou sem acesso: $secret_name"
+            fi
+          done
 
       - name: Prepare secrets and configuration
         env:
-          ACME_EMAIL: ${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}
-          DASHBOARD_SECRET: ${{ steps.kv.outputs.conexao-de-sorte-traefik-dashboard-password }}
+          ACME_EMAIL: ${{ env.ACME_EMAIL }}
+          DASHBOARD_SECRET: ${{ env.DASHBOARD_SECRET }}
         run: |
           set -Eeuo pipefail
           if [[ -z "$DASHBOARD_SECRET" || -z "$ACME_EMAIL" ]]; then
