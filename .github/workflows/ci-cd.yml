@@ -1,0 +1,217 @@
+name: "🛡️ Traefik Infrastructure – CI/CD"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  validate:
+    runs-on: [ self-hosted, Linux, X64, srv649924, conexao-de-sorte-traefik-infraestrutura ]
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.3.0
+        with:
+          fetch-depth: 1
+
+      - name: Validate Azure identifiers (secrets)
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
+        run: |
+          set -Eeuo pipefail
+          missing=()
+          for var in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_KEYVAULT_NAME; do
+            if [[ -z "${!var:-}" ]]; then
+              missing+=("$var")
+            fi
+          done
+          if (( ${#missing[@]} )); then
+            printf '❌ Repository Variables obrigatórias ausentes: %s\n' "${missing[*]}"
+            exit 1
+          fi
+          echo "✅ Identificadores Azure configurados via secrets (seguros)"
+
+      - name: Ensure Python deps
+        run: |
+          set -Eeuo pipefail
+          if ! command -v python3 >/dev/null 2>&1; then
+            echo '❌ python3 não está disponível no runner self-hosted.' >&2
+            exit 1
+          fi
+          python3 -c "import importlib.util, subprocess, sys; import importlib; spec = importlib.util.find_spec('yaml'); subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user', 'PyYAML']) if spec is None else None"
+          echo "✅ Dependências Python disponíveis"
+
+      - name: Validate Backend YAML files
+        run: |
+          set -Eeuo pipefail
+          python3 -c "import pathlib, yaml; paths=[pathlib.Path('docker-compose.yml')]; [yaml.safe_load(p.read_text(encoding='utf-8')) for p in paths]; print('✅ YAML válido para backend:', ', '.join(str(p) for p in paths))"
+
+      - name: Validate Docker Compose
+        run: |
+          set -Eeuo pipefail
+          docker compose -f docker-compose.yml config -q
+          echo "✅ docker-compose.yml válido"
+
+      - name: Security scan (Backend)
+        run: |
+          set -Eeuo pipefail
+          if grep -R "password[[:space:]]*:[[:space:]]*['\"]" --include="*.yml" docker-compose.yml 2>/dev/null | grep -v '\${'; then
+            echo "⚠️ Possível credencial hardcoded detectada"
+            exit 1
+          fi
+          echo "✅ Nenhum segredo hardcoded identificado no backend"
+
+  deploy:
+    needs: validate
+    runs-on: [ self-hosted, Linux, X64, srv649924, conexao-de-sorte-traefik-infraestrutura ]
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      STACK_NAME: conexao-traefik
+      DOCKER_NETWORK_NAME: conexao-network-swarm
+      COMPOSE_FILE: docker-compose.yml
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.3.0
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Azure Login (OIDC) with Security Hardening
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          audience: api://AzureADTokenExchange
+          allow-no-subscriptions: false
+
+      - name: Get Key Vault secrets (Backend Domain Only)
+        id: kv
+        uses: azure/get-keyvault-secrets@v1
+        with:
+          keyvault: ${{ secrets.AZURE_KEYVAULT_NAME }}
+          secrets: |
+            conexao-de-sorte-db-host
+            conexao-de-sorte-db-port
+            conexao-de-sorte-db-username
+            conexao-de-sorte-db-password
+            conexao-de-sorte-redis-host
+            conexao-de-sorte-redis-port
+            conexao-de-sorte-redis-password
+            conexao-de-sorte-jwt-secret
+            conexao-de-sorte-api-key
+            conexao-de-sorte-rabbitmq-host
+            conexao-de-sorte-rabbitmq-port
+            conexao-de-sorte-rabbitmq-username
+            conexao-de-sorte-rabbitmq-password
+
+      - name: Prepare secrets and configuration
+        env:
+          ACME_EMAIL: ${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}
+          DASHBOARD_SECRET: ${{ steps.kv.outputs.conexao-de-sorte-traefik-dashboard-password }}
+        run: |
+          set -Eeuo pipefail
+          if [[ -z "$DASHBOARD_SECRET" || -z "$ACME_EMAIL" ]]; then
+            echo '❌ Segredos obrigatórios não retornados pelo Key Vault'
+            exit 1
+          fi
+          echo "::add-mask::$DASHBOARD_SECRET"
+          echo "::add-mask::$ACME_EMAIL"
+
+          mkdir -p secrets letsencrypt
+          printf '%s\n' "$DASHBOARD_SECRET" > secrets/traefik-basicauth
+          chmod 600 secrets/traefik-basicauth
+
+          if [[ ! -f letsencrypt/acme.json ]]; then
+            printf '{}\n' > letsencrypt/acme.json
+          fi
+          chmod 600 letsencrypt/acme.json
+
+          cp .env.ci .env
+          python3 - <<'PY'
+            import os
+            import pathlib
+
+            acme_email = os.environ['ACME_EMAIL']
+            env_path = pathlib.Path('.env')
+            lines = env_path.read_text(encoding='utf-8').splitlines()
+            seen_acme = False
+            seen_staging = False
+            with env_path.open('w', encoding='utf-8') as handle:
+                for line in lines:
+                    if line.startswith('TRAEFIK_ACME_EMAIL='):
+                        handle.write(f'TRAEFIK_ACME_EMAIL={acme_email}\n')
+                        seen_acme = True
+                    elif line.startswith('LETSENCRYPT_STAGING='):
+                        handle.write('LETSENCRYPT_STAGING=false\n')
+                        seen_staging = True
+                    else:
+                        handle.write(line + '\n')
+                if not seen_acme:
+                    handle.write(f'TRAEFIK_ACME_EMAIL={acme_email}\n')
+                if not seen_staging:
+                    handle.write('LETSENCRYPT_STAGING=false\n')
+          PY
+
+      - name: Ensure Docker network
+        run: |
+          set -Eeuo pipefail
+          if ! docker network ls | grep -q "$DOCKER_NETWORK_NAME"; then
+            echo "🌐 Criando rede $DOCKER_NETWORK_NAME"
+            docker network create --driver overlay "$DOCKER_NETWORK_NAME"
+          else
+            echo "✅ Rede $DOCKER_NETWORK_NAME já existe"
+          fi
+
+      - name: Deploy Backend Gateway stack
+        run: |
+          set -Eeuo pipefail
+          docker compose -f "$COMPOSE_FILE" config -q
+          docker stack deploy -c "$COMPOSE_FILE" "$STACK_NAME"
+          echo "⏳ Aguardando estabilização do backend..."
+          sleep 30
+
+      - name: Health check (Backend)
+        run: |
+          set -Eeuo pipefail
+          service="${STACK_NAME}_backend"
+          attempts=12
+          for attempt in $(seq 1 "$attempts"); do
+            echo "🔍 Tentativa $attempt/$attempts - Verificando backend"
+            container=$(docker ps --filter "name=${service}" -q | head -n1)
+            if [[ -n "$container" ]]; then
+              # Health check específico para backend (ajuste conforme necessário)
+              if docker exec "$container" curl -f http://localhost:8080/health >/dev/null 2>&1; then
+                echo "✅ Backend respondendo corretamente"
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+
+          echo "❌ Health check do backend falhou"
+          docker service ps "$service" || true
+          docker service logs "$service" --tail 50 || true
+          exit 1
+
+      - name: Post-deploy summary (Backend)
+        run: |
+          set -Eeuo pipefail
+          docker service ls | grep -E "(backend|gateway|NAME)" || true
+          echo "✅ Deploy do Backend Gateway concluído"

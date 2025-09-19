@@ -21,6 +21,9 @@ services:
     image: traefik:v3.5.2
     # CONFLITO RESOLVIDO: container_name removido para compatibilidade Swarm
     restart: unless-stopped
+    user: "999:999"
+    init: true
+    stop_grace_period: 60s
 
     # ==========================================================================
     # 🌐 NETWORK & PORTS
@@ -45,9 +48,6 @@ services:
       - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-INFO}
       - TRAEFIK_ACCESSLOG=${ACCESS_LOG_ENABLED:-true}
       # Azure Integration
-      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
-      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
-      - AZURE_KEYVAULT_ENDPOINT=${AZURE_KEYVAULT_ENDPOINT}
 
     # ==========================================================================
     # 📁 VOLUMES (Segurança Aprimorada)
@@ -65,6 +65,13 @@ services:
 
       # Secrets para autenticação
       - ./secrets:/secrets:ro
+
+    # ==========================================================================
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
     # ==========================================================================
     # 🏥 HEALTH CHECK (Padronizado e Otimizado)
