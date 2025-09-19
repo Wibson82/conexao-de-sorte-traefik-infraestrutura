@@ -27,7 +27,8 @@ providers:
     exposedByDefault: false
     watch: true
     network: conexao-network-swarm
-    # SwarmMode é detectado automaticamente no Traefik 3.x quando Docker está em modo Swarm
+    # SwarmMode é detectado automaticamente no Traefik 3.x quando
+    # Docker está em modo Swarm
   file:
     directory: "/etc/traefik/dynamic"
     watch: true

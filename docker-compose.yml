@@ -132,14 +132,19 @@ services:
         # ===================================================================
         # 🔀 API BACKEND PROXY (Consolidado) - COMENTADO TEMPORARIAMENTE
         # ===================================================================
-        # - traefik.http.routers.api-backend.rule=Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`)
+        # - >-
+        #   traefik.http.routers.api-backend.rule=Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`)
         # - traefik.http.routers.api-backend.entrypoints=websecure
         # - traefik.http.routers.api-backend.tls.certresolver=letsencrypt
         # - traefik.http.routers.api-backend.service=api-backend-service
-        # - traefik.http.routers.api-backend.middlewares=cors-api@file,security-headers@file,rate-limit@file
-        # - traefik.http.services.api-backend-service.loadbalancer.server.port=${BACKEND_PORT:-8080}
-        # - traefik.http.services.api-backend-service.loadbalancer.healthcheck.path=/actuator/health
-        # - traefik.http.services.api-backend-service.loadbalancer.healthcheck.interval=30s
+        # - >-
+        #   traefik.http.routers.api-backend.middlewares=cors-api@file,security-headers@file,rate-limit@file
+        # - >-
+        #   traefik.http.services.api-backend-service.loadbalancer.server.port=${BACKEND_PORT:-8080}
+        # - >-
+        #   traefik.http.services.api-backend-service.loadbalancer.healthcheck.path=/actuator/health
+        # - >-
+        #   traefik.http.services.api-backend-service.loadbalancer.healthcheck.interval=30s
 
         # ===================================================================
         # 🔄 BACKEND LEGACY (Compatibilidade)

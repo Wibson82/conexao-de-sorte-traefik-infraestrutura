@@ -9,11 +9,13 @@ http:
         referrerPolicy: "no-referrer"
         customResponseHeaders:
           X-Content-Type-Options: "nosniff"
-          Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
+          Strict-Transport-Security: >-
+            max-age=31536000; includeSubDomains; preload
           Content-Security-Policy: >-
             default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval';
             style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;
-            font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';
+            font-src 'self' data:; connect-src 'self' https:;
+            frame-ancestors 'none';
           Permissions-Policy: >-
             geolocation=(), microphone=(), camera=(), payment=(), usb=(),
             magnetometer=(), gyroscope=()
@@ -48,7 +50,8 @@ http:
         referrerPolicy: "no-referrer"
         customResponseHeaders:
           X-Content-Type-Options: "nosniff"
-          Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
+          Strict-Transport-Security: >-
+            max-age=31536000; includeSubDomains; preload
           Content-Security-Policy: "default-src 'none'; connect-src 'self' https:; frame-ancestors 'none';"
           X-Frame-Options: "DENY"
           X-XSS-Protection: "1; mode=block"

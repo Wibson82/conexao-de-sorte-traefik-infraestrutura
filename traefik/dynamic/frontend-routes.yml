@@ -8,7 +8,7 @@
 
 http:
   routers:
-# ==========================================================================
+    # ======================================================================
 # 📊 CONFIGURAÇÃO MÍNIMA - SEM DEPENDÊNCIAS EXTERNAS
 # ==========================================================================
 # Removido temporariamente para diagnóstico
@@ -21,5 +21,6 @@ http:
 # Removido temporariamente para diagnóstico
 
 # =============================================================================
-# Esta configuração permite que o Traefik inicie sem tentar conectar a serviços inexistentes
+# Esta configuração permite que o Traefik inicie sem tentar conectar a
+# serviços inexistentes
 # =============================================================================

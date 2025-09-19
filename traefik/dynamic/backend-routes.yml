@@ -8,7 +8,7 @@
 
 http:
   routers:
-# Placeholder para futuros serviços Swarm
+    # Placeholder para futuros serviços Swarm
     # Exemplo de roteamento para serviços Swarm:
     # backend-swarm-service:
     #   rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/api/v2`)"

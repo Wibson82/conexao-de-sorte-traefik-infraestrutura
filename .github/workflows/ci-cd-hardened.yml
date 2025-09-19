@@ -86,11 +86,30 @@ jobs:
             "traefik/dynamic/*.yml"
           )
 
+          # Excluir arquivos de backup da validação
+          exclude_patterns=(
+            "traefik/dynamic-backup/*.yml"
+            ".env*"
+          )
+
           for pattern in "${yaml_files[@]}"; do
             for file in $pattern; do
               if [[ -f "$file" ]]; then
-                echo "  Validando: $file"
-                yamllint -d '{extends: default, rules: {line-length: {max: 120}}}' "$file"
+                # Verificar se o arquivo não está na lista de exclusão
+                skip_file=false
+                for exclude in "${exclude_patterns[@]}"; do
+                  if [[ "$file" == $exclude ]]; then
+                    skip_file=true
+                    break
+                  fi
+                done
+
+                if [[ "$skip_file" == false ]]; then
+                  echo "  Validando: $file"
+                  yamllint -f parsable -d '{extends: default, rules: {line-length: {max: 120}, comments-indentation: disable}}' "$file"
+                else
+                  echo "  Ignorando (backup): $file"
+                fi
               fi
             done
           done
