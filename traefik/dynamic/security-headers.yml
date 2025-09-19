@@ -1,3 +1,4 @@
+---
 http:
   middlewares:
     security-headers:
@@ -9,8 +10,13 @@ http:
         customResponseHeaders:
           X-Content-Type-Options: "nosniff"
           Strict-Transport-Security: "max-age=31536000; includeSubDomains; preload"
-          Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';"
-          Permissions-Policy: "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()"
+          Content-Security-Policy: >-
+            default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval';
+            style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;
+            font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';
+          Permissions-Policy: >-
+            geolocation=(), microphone=(), camera=(), payment=(), usb=(),
+            magnetometer=(), gyroscope=()
           X-Frame-Options: "DENY"
           X-XSS-Protection: "1; mode=block"
           X-Permitted-Cross-Domain-Policies: "none"
@@ -20,11 +26,19 @@ http:
           Referrer-Policy: "strict-origin-when-cross-origin"
           X-DNS-Prefetch-Control: "off"
           Expect-CT: "max-age=86400, enforce"
-          Feature-Policy: "accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none'; battery 'none'; camera 'none'; display-capture 'none'; document-domain 'none'; encrypted-media 'none'; execution-while-not-rendered 'none'; execution-while-out-of-viewport 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; layout-animations 'none'; legacy-image-formats 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; navigation-override 'none'; payment 'none'; picture-in-picture 'none'; publickey-credentials-get 'none'; sync-xhr 'none'; usb 'none'; wake-lock 'none'; xr-spatial-tracking 'none'"
+          Feature-Policy: >-
+            accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none';
+            battery 'none'; camera 'none'; display-capture 'none'; document-domain 'none';
+            encrypted-media 'none'; execution-while-not-rendered 'none';
+            execution-while-out-of-viewport 'none'; fullscreen 'self'; geolocation 'none';
+            gyroscope 'none'; layout-animations 'none'; legacy-image-formats 'none';
+            magnetometer 'none'; microphone 'none'; midi 'none'; navigation-override 'none';
+            payment 'none'; picture-in-picture 'none'; publickey-credentials-get 'none';
+            sync-xhr 'none'; usb 'none'; wake-lock 'none'; xr-spatial-tracking 'none'
         stsSeconds: 31536000
         stsIncludeSubdomains: true
         stsPreload: true
-    
+
     # Middleware de segurança avançada para APIs
     security-headers-api:
       headers:
@@ -45,7 +59,7 @@ http:
         stsSeconds: 31536000
         stsIncludeSubdomains: true
         stsPreload: true
-    
+
     # Middleware para proteção contra ataques de injeção
     injection-protection:
       headers:
