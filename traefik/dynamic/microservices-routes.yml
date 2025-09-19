@@ -1,3 +1,4 @@
+---
 # =============================================================================
 # 🌐 TRAEFIK MINIMAL ROUTING CONFIGURATION - TESTE
 # =============================================================================
@@ -7,18 +8,18 @@
 
 http:
   routers:
-    # ==========================================================================
-    # 📊 APENAS PING/HEALTH - CONFIGURAÇÃO MÍNIMA
-    # ==========================================================================
-    # Remover todos os routers que dependem de serviços externos
-    # Apenas manter configurações internas do Traefik
+# ==========================================================================
+# 📊 APENAS PING/HEALTH - CONFIGURAÇÃO MÍNIMA
+# ==========================================================================
+# Remover todos os routers que dependem de serviços externos
+# Apenas manter configurações internas do Traefik
 
   services:
-    # ==========================================================================
-    # 📊 SERVIÇOS INTERNOS APENAS
-    # ==========================================================================
-    # Remover todos os services que dependem de containers externos
-    # Apenas API interna do Traefik será usada
+# ==========================================================================
+# 📊 SERVIÇOS INTERNOS APENAS
+# ==========================================================================
+# Remover todos os services que dependem de containers externos
+# Apenas API interna do Traefik será usada
 
 # =============================================================================
 # Esta configuração mínima deve permitir que o Traefik inicie sem erros

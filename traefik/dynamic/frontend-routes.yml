@@ -1,3 +1,4 @@
+---
 # =============================================================================
 # 🌐 FRONTEND MINIMAL ROUTING CONFIGURATION - TESTE
 # =============================================================================
@@ -7,17 +8,17 @@
 
 http:
   routers:
-    # ==========================================================================
-    # 📊 CONFIGURAÇÃO MÍNIMA - SEM DEPENDÊNCIAS EXTERNAS
-    # ==========================================================================
-    # Removido temporariamente para diagnóstico
-    # frontend-main será reativado quando o serviço estiver disponível
+# ==========================================================================
+# 📊 CONFIGURAÇÃO MÍNIMA - SEM DEPENDÊNCIAS EXTERNAS
+# ==========================================================================
+# Removido temporariamente para diagnóstico
+# frontend-main será reativado quando o serviço estiver disponível
 
   services:
-    # ==========================================================================
-    # 📊 SERVIÇOS MÍNIMOS
-    # ==========================================================================
-    # Removido temporariamente para diagnóstico
+# ==========================================================================
+# 📊 SERVIÇOS MÍNIMOS
+# ==========================================================================
+# Removido temporariamente para diagnóstico
 
 # =============================================================================
 # Esta configuração permite que o Traefik inicie sem tentar conectar a serviços inexistentes
