@@ -50,7 +50,7 @@ essential_count=$((essential_count + 1))
 
 # Simular segredo encontrado  
 echo "✅ conexao-de-sorte-traefik-dashboard-password obtido"
-export CONEXAO-DE-SORTE-TRAEFIK-DASHBOARD-PASSWORD="test-password"
+export CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD="${TEST_DASHBOARD_PASSWORD:-$(openssl rand -base64 32)}"
 essential_count=$((essential_count + 1))
 
 echo "📊 Total de segredos essenciais obtidos: $essential_count/2"

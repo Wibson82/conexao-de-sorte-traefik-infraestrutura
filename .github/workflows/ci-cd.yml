@@ -296,21 +296,21 @@ jobs:
         run: |
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
           
-          # Configurar variáveis com valores dos segredos ou padrões de desenvolvimento
+          # Configurar variáveis com valores dos segredos
           if [[ -n "$CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL" ]]; then
             LETSENCRYPT_EMAIL="$CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL"
             echo "✅ Email Let's Encrypt configurado"
           else
-            LETSENCRYPT_EMAIL="dev@localhost"
-            echo "⚠️ Email Let's Encrypt não configurado (modo desenvolvimento)"
+            echo "❌ Email Let's Encrypt não configurado - deploy cancelado"
+            exit 1
           fi
           
           if [[ -n "$CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD" ]]; then
             DASHBOARD_PASSWORD="$CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD"
             echo "✅ Senha do dashboard configurada"
           else
-            DASHBOARD_PASSWORD="dev123"
-            echo "⚠️ Senha do dashboard não configurada (modo desenvolvimento)"
+            echo "❌ Senha do dashboard não configurada - deploy cancelado"
+            exit 1
           fi
           
           # Exportar variáveis para o ambiente

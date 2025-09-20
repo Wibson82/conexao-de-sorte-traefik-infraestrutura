@@ -96,25 +96,25 @@ echo "✅ Testes de segurança concluídos"
 echo ""
 echo "🔍 Testando estrutura de deploy (padrão RabbitMQ)..."
 
-# Simular segredos do Key Vault
-export conexao_de_sorte_letsencrypt_email="facilitaservicos.tec@gmail.com"
-export conexao_de_sorte_traefik_dashboard_password="PLvBqeqv0zu7s4E6MPcIOY4U"
+# Simular segredos do Key Vault (usar valores de ambiente ou gerar aleatórios)
+export conexao_de_sorte_letsencrypt_email="${TEST_LETSENCRYPT_EMAIL:-test@example.com}"
+export conexao_de_sorte_traefik_dashboard_password="${TEST_DASHBOARD_PASSWORD:-$(openssl rand -base64 32)}"
 
-# Configurar variáveis com valores dos segredos ou padrões de desenvolvimento
+# Configurar variáveis com valores dos segredos
 if [[ -n "${conexao_de_sorte_letsencrypt_email:-}" ]]; then
   LETSENCRYPT_EMAIL="${conexao_de_sorte_letsencrypt_email}"
   echo "✅ Email Let's Encrypt configurado"
 else
-  LETSENCRYPT_EMAIL="dev@localhost"
-  echo "⚠️ Email Let's Encrypt não configurado (modo desenvolvimento)"
+  echo "❌ Email Let's Encrypt não configurado - teste falhou"
+  exit 1
 fi
 
 if [[ -n "${conexao_de_sorte_traefik_dashboard_password:-}" ]]; then
   DASHBOARD_PASSWORD="${conexao_de_sorte_traefik_dashboard_password}"
   echo "✅ Senha do dashboard configurada"
 else
-  DASHBOARD_PASSWORD="dev123"
-  echo "⚠️ Senha do dashboard não configurada (modo desenvolvimento)"
+  echo "❌ Senha do dashboard não configurada - teste falhou"
+  exit 1
 fi
 
 # Exportar variáveis para o ambiente
