@@ -189,6 +189,14 @@ jobs:
             echo "✅ No ports exposed - maximum security (overlay network only)"
           fi
 
+      - name: 🔐 Azure Login (OIDC) para Key Vault
+        if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: 🔐 Get secrets from Azure Key Vault (OIDC)
         id: get-secrets
         if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
@@ -196,6 +204,13 @@ jobs:
         with:
           azcliversion: 2.76.0
           inlineScript: |
+            # Verificar autenticação Azure antes de prosseguir
+            echo "🔍 Verificando autenticação Azure..."
+            if ! az account show >/dev/null 2>&1; then
+              echo "❌ Azure CLI não autenticado - execute o login Azure OIDC primeiro"
+              exit 1
+            fi
+            
             # Obter nome do Key Vault (com correção automática)
             KEYVAULT_NAME="${{ secrets.AZURE_KEYVAULT_NAME }}"
             if [[ "$KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
@@ -203,13 +218,30 @@ jobs:
             fi
             
             echo "🔍 Conectando ao Key Vault: $KEYVAULT_NAME"
-            echo "🔍 Service Principal atual: $(az account show --query user.name -o tsv)"
+            
+            # Debug: Verificar autenticação Azure
+            echo "🔍 Verificando autenticação Azure..."
+            echo "🔍 Subscription atual: $(az account show --query id -o tsv 2>/dev/null || echo 'N/A')"
+            echo "🔍 Tenant atual: $(az account show --query tenantId -o tsv 2>/dev/null || echo 'N/A')"
+            echo "🔍 Service Principal atual: $(az account show --query user.name -o tsv 2>/dev/null || echo 'N/A')"
+            
+            # Debug: Verificar disponibilidade do Key Vault
+            echo "🔍 Verificando disponibilidade do Key Vault..."
+            if ! az keyvault list --query "[?name=='$KEYVAULT_NAME'].name" -o tsv | grep -q "$KEYVAULT_NAME"; then
+              echo "❌ Key Vault '$KEYVAULT_NAME' não encontrado na subscription atual"
+              echo "🔍 Key Vaults disponíveis na subscription:"
+              az keyvault list --query "[].name" -o tsv || echo "Nenhum Key Vault encontrado"
+              exit 1
+            fi
             
             # Validar conexão com Key Vault
-            if az keyvault show --name "$KEYVAULT_NAME" >/dev/null 2>&1; then
+            echo "🔍 Testando conexão com Key Vault..."
+            if az keyvault show --name "$KEYVAULT_NAME" --output table 2>/dev/null; then
               echo "✅ Conexão com Key Vault estabelecida"
             else
-              echo "❌ Falha ao conectar ao Key Vault"
+              echo "❌ Falha ao conectar ao Key Vault: $KEYVAULT_NAME"
+              echo "🔍 Verificando detalhes do erro..."
+              az keyvault show --name "$KEYVAULT_NAME" --debug 2>&1 | head -20 || true
               exit 1
             fi
             
