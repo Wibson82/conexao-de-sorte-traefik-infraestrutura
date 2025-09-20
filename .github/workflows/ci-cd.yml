@@ -384,15 +384,15 @@ jobs:
         run: |
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
           
-          # Configurar variáveis com valores dos segredos
+          # Configurar variáveis com valores dos segredos (docker-compose.yml compatible)
           if [[ -n "$CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL" ]]; then
-            LETSENCRYPT_EMAIL="$CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL"
+            TRAEFIK_ACME_EMAIL="$CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL"
             echo "✅ Email Let's Encrypt configurado"
           else
             echo "❌ Email Let's Encrypt não configurado - deploy cancelado"
             exit 1
           fi
-          
+
           if [[ -n "$CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD" ]]; then
             DASHBOARD_PASSWORD="$CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD"
             echo "✅ Senha do dashboard configurada"
@@ -400,9 +400,9 @@ jobs:
             echo "❌ Senha do dashboard não configurada - deploy cancelado"
             exit 1
           fi
-          
-          # Exportar variáveis para o ambiente
-          export LETSENCRYPT_EMAIL
+
+          # Exportar variáveis para o ambiente (nomes corretos para docker-compose.yml)
+          export TRAEFIK_ACME_EMAIL
           export DASHBOARD_PASSWORD
 
           # Criar rede se não existir
