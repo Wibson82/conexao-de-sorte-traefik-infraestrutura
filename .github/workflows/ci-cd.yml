@@ -213,8 +213,8 @@ jobs:
             
             # Obter nome do Key Vault (com correção automática)
             # Obter nome do Key Vault do GitHub Secret
-            ORIGINAL_KEYVAULT_NAME="${{ secrets.AZURE_KEYVAULT_NAME }}"
-            KEYVAULT_NAME="$ORIGINAL_KEYVAULT_NAME"
+            AZURE_KEYVAULT_NAME_SECRET="${{ secrets.AZURE_KEYVAULT_NAME }}"
+            KEYVAULT_NAME="$AZURE_KEYVAULT_NAME_SECRET"
             
             echo "🔍 Iniciando conexão com Key Vault..."
             
@@ -235,20 +235,22 @@ jobs:
                 KEYVAULT_NAME="$KNOWN_GOOD_NAME"
               else
                 echo "⚠️ Key Vault não encontrado com nome conhecido, tentando com nome original..."
-                # Se não encontrar com o nome conhecido, tentar com o nome original
-                if az keyvault list --query "[].name" -o tsv | grep -Fx "$ORIGINAL_KEYVAULT_NAME" >/dev/null 2>&1; then
-                  echo "✅ Key Vault encontrado com nome original"
-                  KEYVAULT_NAME="$ORIGINAL_KEYVAULT_NAME"
-                else
-                  echo "❌ Key Vault não encontrado com nenhum dos nomes testados"
-                  echo "🔍 Nomes testados: '$KNOWN_GOOD_NAME' e '$ORIGINAL_KEYVAULT_NAME'"
-                  exit 1
-                fi
+                 # Se não encontrar com o nome conhecido, tentar com o nome original
+                 if az keyvault list --query "[].name" -o tsv | grep -Fx "$AZURE_KEYVAULT_NAME_SECRET" >/dev/null 2>&1; then
+                   echo "✅ Key Vault encontrado com nome original"
+                   KEYVAULT_NAME="$AZURE_KEYVAULT_NAME_SECRET"
+                 else
+                   echo "❌ Key Vault não encontrado com nenhum dos nomes testados"
+                   echo "🔍 Nomes testados: '$KNOWN_GOOD_NAME' e '$AZURE_KEYVAULT_NAME_SECRET'"
+                   exit 1
+                 fi
               fi
             else
-              echo "❌ AZURE_KEYVAULT_NAME não está definido no GitHub Secrets"
-              exit 1
-            fi
+               echo "❌ AZURE_KEYVAULT_NAME não está definido no GitHub Secrets"
+               exit 1
+             fi
+             
+             echo "🔍 Conectando ao Key Vault: $KEYVAULT_NAME"
             
             echo "🔍 Conectando ao Key Vault: $KEYVAULT_NAME"
             
