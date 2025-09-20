@@ -212,12 +212,17 @@ jobs:
             fi
             
             # Obter nome do Key Vault (com correção automática)
-            KEYVAULT_NAME="${{ secrets.AZURE_KEYVAULT_NAME }}"
-            if [[ "$KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
+            ORIGINAL_KEYVAULT_NAME="${{ secrets.AZURE_KEYVAULT_NAME }}"
+            KEYVAULT_NAME="$ORIGINAL_KEYVAULT_NAME"
+            
+            # Aplicar correção automática se necessário
+            if [[ "$ORIGINAL_KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
               KEYVAULT_NAME="kv-conexao-de-sorte"
+              echo "🔍 Nome do Key Vault corrigido: $ORIGINAL_KEYVAULT_NAME → $KEYVAULT_NAME"
             fi
             
             echo "🔍 Conectando ao Key Vault: $KEYVAULT_NAME"
+            echo "🔍 Nome original do Key Vault: $ORIGINAL_KEYVAULT_NAME"
             
             # Debug: Verificar autenticação Azure
             echo "🔍 Verificando autenticação Azure..."
@@ -227,17 +232,47 @@ jobs:
             
             # Debug: Verificar disponibilidade do Key Vault
             echo "🔍 Verificando disponibilidade do Key Vault..."
+            echo "🔍 Procurando Key Vault com nome: $KEYVAULT_NAME"
+            
+            # Listar todos os Key Vaults disponíveis para debug
+            echo "🔍 Key Vaults disponíveis na subscription:"
+            az keyvault list --query "[].name" -o tsv || echo "Nenhum Key Vault encontrado"
+            
+            # Verificar se o Key Vault específico existe
             if ! az keyvault list --query "[?name=='$KEYVAULT_NAME'].name" -o tsv | grep -q "$KEYVAULT_NAME"; then
               echo "❌ Key Vault '$KEYVAULT_NAME' não encontrado na subscription atual"
-              echo "🔍 Key Vaults disponíveis na subscription:"
-              az keyvault list --query "[].name" -o tsv || echo "Nenhum Key Vault encontrado"
-              exit 1
+              echo "🔍 Verificando se existe com o nome original: $ORIGINAL_KEYVAULT_NAME"
+              if az keyvault list --query "[?name=='$ORIGINAL_KEYVAULT_NAME'].name" -o tsv | grep -q "$ORIGINAL_KEYVAULT_NAME"; then
+                echo "✅ Key Vault encontrado com nome original: $ORIGINAL_KEYVAULT_NAME"
+                echo "🔍 Atualizando KEYVAULT_NAME para usar o nome original..."
+                KEYVAULT_NAME="$ORIGINAL_KEYVAULT_NAME"
+              else
+                echo "❌ Key Vault também não encontrado com o nome original"
+                exit 1
+              fi
             fi
             
             # Validar conexão com Key Vault
             echo "🔍 Testando conexão com Key Vault..."
             if az keyvault show --name "$KEYVAULT_NAME" --output table 2>/dev/null; then
               echo "✅ Conexão com Key Vault estabelecida"
+              
+              # Verificar permissões do Service Principal no Key Vault
+              echo "🔍 Verificando permissões no Key Vault..."
+              CURRENT_SP=$(az account show --query user.name -o tsv 2>/dev/null)
+              if [[ -n "$CURRENT_SP" ]]; then
+                echo "🔍 Service Principal atual: $CURRENT_SP"
+                echo "🔍 Verificando acesso aos segredos..."
+                
+                # Testar acesso a um secret (lista de secrets)
+                if az keyvault secret list --vault-name "$KEYVAULT_NAME" --maxresults 1 >/dev/null 2>&1; then
+                  echo "✅ Service Principal tem acesso aos segredos do Key Vault"
+                else
+                  echo "⚠️ Service Principal pode não ter permissões de leitura nos segredos"
+                  echo "🔍 Verificando políticas de acesso do Key Vault..."
+                  az keyvault show --name "$KEYVAULT_NAME" --query "properties.accessPolicies" --output table || echo "Não foi possível verificar políticas"
+                fi
+              fi
             else
               echo "❌ Falha ao conectar ao Key Vault: $KEYVAULT_NAME"
               echo "🔍 Verificando detalhes do erro..."
