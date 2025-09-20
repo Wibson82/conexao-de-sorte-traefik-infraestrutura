@@ -215,14 +215,29 @@ jobs:
             ORIGINAL_KEYVAULT_NAME="${{ secrets.AZURE_KEYVAULT_NAME }}"
             KEYVAULT_NAME="$ORIGINAL_KEYVAULT_NAME"
             
-            # Aplicar correção automática se necessário
-            if [[ "$ORIGINAL_KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
+            # Debug: Verificar se o secret está definido (mesmo que mascarado)
+            if [[ -z "$ORIGINAL_KEYVAULT_NAME" || "$ORIGINAL_KEYVAULT_NAME" == "***" ]]; then
+              echo "❌ AZURE_KEYVAULT_NAME não está definido no GitHub Secrets ou está mascarado"
+              echo "🔍 Verifique se o secret AZURE_KEYVAULT_NAME foi configurado corretamente"
+              exit 1
+            fi
+            
+            # Debug: Verificar se o secret está definido (mesmo que mascarado)
+            if [[ -z "$ORIGINAL_KEYVAULT_NAME" || "$ORIGINAL_KEYVAULT_NAME" == "***" ]]; then
+              echo "❌ AZURE_KEYVAULT_NAME não está definido no GitHub Secrets ou está mascarado"
+              echo "🔍 Verifique se o secret AZURE_KEYVAULT_NAME foi configurado corretamente"
+              exit 1
+            fi
+            
+            # Aplicar correção automática se necessário (mas não para valores mascarados)
+            if [[ "$ORIGINAL_KEYVAULT_NAME" != "***" && "$ORIGINAL_KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
               KEYVAULT_NAME="kv-conexao-de-sorte"
               echo "🔍 Nome do Key Vault corrigido: $ORIGINAL_KEYVAULT_NAME → $KEYVAULT_NAME"
+            elif [[ "$ORIGINAL_KEYVAULT_NAME" != "***" ]]; then
+              echo "🔍 Usando nome original do Key Vault: $ORIGINAL_KEYVAULT_NAME"
             fi
             
             echo "🔍 Conectando ao Key Vault: $KEYVAULT_NAME"
-            echo "🔍 Nome original do Key Vault: $ORIGINAL_KEYVAULT_NAME"
             
             # Debug: Verificar autenticação Azure
             echo "🔍 Verificando autenticação Azure..."
@@ -239,16 +254,35 @@ jobs:
             az keyvault list --query "[].name" -o tsv || echo "Nenhum Key Vault encontrado"
             
             # Verificar se o Key Vault específico existe
-            if ! az keyvault list --query "[?name=='$KEYVAULT_NAME'].name" -o tsv | grep -q "$KEYVAULT_NAME"; then
+            # Usar grep com -F para comparar strings literais (evita problemas com mascaramento)
+            if ! az keyvault list --query "[].name" -o tsv | grep -Fx "$KEYVAULT_NAME" >/dev/null 2>&1; then
               echo "❌ Key Vault '$KEYVAULT_NAME' não encontrado na subscription atual"
               echo "🔍 Verificando se existe com o nome original: $ORIGINAL_KEYVAULT_NAME"
-              if az keyvault list --query "[?name=='$ORIGINAL_KEYVAULT_NAME'].name" -o tsv | grep -q "$ORIGINAL_KEYVAULT_NAME"; then
+              
+              # Tentar com o nome original (sem correção)
+              if az keyvault list --query "[].name" -o tsv | grep -Fx "$ORIGINAL_KEYVAULT_NAME" >/dev/null 2>&1; then
                 echo "✅ Key Vault encontrado com nome original: $ORIGINAL_KEYVAULT_NAME"
                 echo "🔍 Atualizando KEYVAULT_NAME para usar o nome original..."
                 KEYVAULT_NAME="$ORIGINAL_KEYVAULT_NAME"
               else
                 echo "❌ Key Vault também não encontrado com o nome original"
-                exit 1
+                echo "🔍 Verificando se a correção automática deve ser aplicada..."
+                
+                # Se o nome original for conexao-de-sorte-keyvault, aplicar correção
+                if [[ "$ORIGINAL_KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
+                  CORRECTED_NAME="kv-conexao-de-sorte"
+                  echo "🔍 Tentando com nome corrigido: $CORRECTED_NAME"
+                  if az keyvault list --query "[].name" -o tsv | grep -Fx "$CORRECTED_NAME" >/dev/null 2>&1; then
+                    echo "✅ Key Vault encontrado com nome corrigido: $CORRECTED_NAME"
+                    KEYVAULT_NAME="$CORRECTED_NAME"
+                  else
+                    echo "❌ Key Vault não encontrado com nenhum dos nomes testados"
+                    exit 1
+                  fi
+                else
+                  echo "❌ Key Vault não encontrado e não há correção automática disponível"
+                  exit 1
+                fi
               fi
             fi
             
