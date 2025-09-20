@@ -284,3 +284,89 @@ http:
       redirectRegex:
         regex: "^https://conexaodesorte.com.br/(.*)"
         replacement: "https://www.conexaodesorte.com.br/${1}"
+
+    # ==========================================================================
+    # API STRIPPREFIX MIDDLEWARES - /rest/NOME-DO-PROJETO/
+    # ==========================================================================
+
+    api-strip-prefix-gateway:
+      stripPrefix:
+        prefixes:
+          - "/rest/gateway"
+
+    api-strip-prefix-autenticacao:
+      stripPrefix:
+        prefixes:
+          - "/rest/autenticacao"
+
+    api-strip-prefix-usuario:
+      stripPrefix:
+        prefixes:
+          - "/rest/usuario"
+
+    api-strip-prefix-resultados:
+      stripPrefix:
+        prefixes:
+          - "/rest/resultados"
+
+    api-strip-prefix-batepapo:
+      stripPrefix:
+        prefixes:
+          - "/rest/batepapo"
+
+    api-strip-prefix-chatbot:
+      stripPrefix:
+        prefixes:
+          - "/rest/chatbot"
+
+    api-strip-prefix-financeiro:
+      stripPrefix:
+        prefixes:
+          - "/rest/financeiro"
+
+    api-strip-prefix-notificacoes:
+      stripPrefix:
+        prefixes:
+          - "/rest/notificacoes"
+
+    api-strip-prefix-scheduler:
+      stripPrefix:
+        prefixes:
+          - "/rest/scheduler"
+
+    api-strip-prefix-auditoria:
+      stripPrefix:
+        prefixes:
+          - "/rest/auditoria"
+
+    api-strip-prefix-criptografia:
+      stripPrefix:
+        prefixes:
+          - "/rest/criptografia"
+
+    api-strip-prefix-observabilidade:
+      stripPrefix:
+        prefixes:
+          - "/rest/observabilidade"
+
+    # ==========================================================================
+    # CORS FRONTEND MIDDLEWARE
+    # ==========================================================================
+
+    cors-frontend:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowOriginList:
+          - https://conexaodesorte.com.br
+          - https://www.conexaodesorte.com.br
+        accessControlAllowHeaders:
+          - "Authorization"
+          - "Content-Type"
+          - "X-Requested-With"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600

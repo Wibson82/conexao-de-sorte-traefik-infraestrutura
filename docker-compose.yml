@@ -21,7 +21,7 @@ services:
     image: traefik:v3.5.2
     # CONFLITO RESOLVIDO: container_name removido para compatibilidade Swarm
     restart: unless-stopped
-    user: "999:999"
+    # Sem user específico - Docker Swarm gerencia automaticamente
     init: true
     stop_grace_period: 60s
 
@@ -53,8 +53,8 @@ services:
     # 📁 VOLUMES (Segurança Aprimorada)
     # ==========================================================================
     volumes:
-      # Docker socket para descoberta de serviços
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Docker socket para descoberta de serviços (com permissões corretas)
+      - /var/run/docker.sock:/var/run/docker.sock:rw
 
       # Configuração principal do Traefik
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro

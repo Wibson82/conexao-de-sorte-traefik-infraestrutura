@@ -1,26 +1,41 @@
 ---
 # =============================================================================
-# 🌐 TRAEFIK MINIMAL ROUTING CONFIGURATION - TESTE
+# 🌐 TRAEFIK MINIMAL ROUTING CONFIGURATION - INFRAESTRUTURA FASE
 # =============================================================================
-# Configuração mínima apenas para testar se o Traefik inicializa corretamente
-# Remove dependências de serviços externos para diagnóstico
+# Configuração mínima para fase de infraestrutura
+# Apenas serviços internos e ping para evitar 404s
 # =============================================================================
 
 http:
   routers:
     # ====================================================================
-# 📊 APENAS PING/HEALTH - CONFIGURAÇÃO MÍNIMA
-# ==========================================================================
-# Remover todos os routers que dependem de serviços externos
-# Apenas manter configurações internas do Traefik
+    # 📊 PING/HEALTH INTERNO - EVITA 404s
+    # ====================================================================
+    api-ping:
+      rule: "PathPrefix(`/ping`) || PathPrefix(`/api/ping`)"
+      service: "api@internal"
+      entrypoints:
+        - web
+        - websecure
+
+    # Fallback para evitar 404s em desenvolvimento
+    fallback-router:
+      rule: "HostRegexp(`{host:.+}`)"
+      service: "fallback-service"
+      entrypoints:
+        - web
+        - websecure
+      priority: 1
 
   services:
-# ==========================================================================
-# 📊 SERVIÇOS INTERNOS APENAS
-# ==========================================================================
-# Remover todos os services que dependem de containers externos
-# Apenas API interna do Traefik será usada
+    # ==========================================================================
+    # 📊 SERVIÇO FALLBACK PARA EVITAR 404s
+    # ==========================================================================
+    fallback-service:
+      loadbalancer:
+        servers:
+          - url: "http://httpbin.org/status/503"
 
 # =============================================================================
-# Esta configuração mínima deve permitir que o Traefik inicie sem erros
+# Esta configuração evita 404s durante a fase de infraestrutura
 # =============================================================================

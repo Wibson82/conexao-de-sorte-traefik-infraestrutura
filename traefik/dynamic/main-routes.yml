@@ -1,0 +1,102 @@
+---
+# =============================================================================
+# 🌐 CONEXÃO DE SORTE - ROTEAMENTO INFRAESTRUTURA
+# =============================================================================
+# FASE INFRAESTRUTURA: Apenas rotas que não dependem de serviços externos
+# - Dashboard Traefik: traefik.conexaodesorte.com.br
+# - Fallback para evitar 404s
+# - Preparado para expansão futura
+# =============================================================================
+
+http:
+  routers:
+    # ==========================================================================
+    # 📋 FALLBACK PARA EVITAR 404s (FASE INFRAESTRUTURA)
+    # ==========================================================================
+    # Durante a fase de infraestrutura, evitamos 404s com um fallback
+    conexaodesorte-fallback:
+      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
+      entrypoints:
+        - web
+        - websecure
+      service: fallback-service
+      tls:
+        certresolver: letsencrypt
+      middlewares:
+        - security-headers@file
+      priority: 1
+
+    # ==========================================================================
+    # 🚀 ROTAS FUTURAS (COMENTADAS - SERÃO ATIVADAS COM OS SERVIÇOS)
+    # ==========================================================================
+    #
+    # FRONTEND:
+    # frontend-main: conexaodesorte.com.br + www.conexaodesorte.com.br
+    #
+    # APIs REST:
+    # api-gateway: /rest/gateway/
+    # api-autenticacao: /rest/autenticacao/
+    # api-usuario: /rest/usuario/
+    # api-resultados: /rest/resultados/
+    # api-batepapo: /rest/batepapo/
+    # api-chatbot: /rest/chatbot/
+    # api-financeiro: /rest/financeiro/
+    # api-notificacoes: /rest/notificacoes/
+    # api-scheduler: /rest/scheduler/
+    # api-auditoria: /rest/auditoria/
+    # api-criptografia: /rest/criptografia/
+    # api-observabilidade: /rest/observabilidade/
+
+  # ==========================================================================
+  # 🎯 SERVIÇOS (Load Balancers) - FASE INFRAESTRUTURA
+  # ==========================================================================
+  services:
+    # Serviço fallback para evitar 404s durante desenvolvimento
+    fallback-service:
+      loadbalancer:
+        servers:
+          - url: "http://httpbin.org/status/503"
+        healthcheck:
+          path: "/status/503"
+          interval: "60s"
+          timeout: "10s"
+
+    # ==========================================================================
+    # 🚀 SERVIÇOS FUTUROS (SERÃO ATIVADOS COM OS DEPLOYMENTS)
+    # ==========================================================================
+    #
+    # frontend-service: conexao-frontend_frontend:3000
+    # gateway-service: conexao-gateway_gateway:8080
+    # autenticacao-service: conexao-autenticacao_autenticacao:8080
+    # usuario-service: conexao-usuario_usuario:8080
+    # resultados-service: conexao-resultados_resultados:8080
+    # batepapo-service: conexao-batepapo_batepapo:8080
+    # chatbot-service: conexao-chatbot_chatbot:8080
+    # financeiro-service: conexao-financeiro_financeiro:8080
+    # notificacoes-service: conexao-notificacoes_notificacoes:8080
+    # scheduler-service: conexao-scheduler_scheduler:8080
+    # auditoria-service: conexao-auditoria_auditoria:8080
+    # criptografia-service: conexao-criptografia_criptografia:8080
+    # observabilidade-service: conexao-observabilidade_observabilidade:8080
+
+# =============================================================================
+# 📋 CONFIGURAÇÃO DE ROTEAMENTO
+# =============================================================================
+# Frontend:
+#   - https://conexaodesorte.com.br
+#   - https://www.conexaodesorte.com.br
+#
+# APIs REST:
+#   - https://conexaodesorte.com.br/rest/gateway/
+#   - https://conexaodesorte.com.br/rest/autenticacao/
+#   - https://conexaodesorte.com.br/rest/usuario/
+#   - https://conexaodesorte.com.br/rest/resultados/
+#   - https://conexaodesorte.com.br/rest/batepapo/
+#   - https://conexaodesorte.com.br/rest/chatbot/
+#   - https://conexaodesorte.com.br/rest/financeiro/
+#   - https://conexaodesorte.com.br/rest/notificacoes/
+#   - https://conexaodesorte.com.br/rest/scheduler/
+#   - https://conexaodesorte.com.br/rest/auditoria/
+#   - https://conexaodesorte.com.br/rest/criptografia/
+#   - https://conexaodesorte.com.br/rest/observabilidade/
+# =============================================================================
