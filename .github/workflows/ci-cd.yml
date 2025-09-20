@@ -176,6 +176,29 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Verificar conectividade Azure
+        if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
+        run: |
+          echo "🔍 Verificando conectividade Azure..."
+
+          if ACCOUNT_INFO=$(az account show --query "{name: name, id: id}" -o json 2>/dev/null); then
+            echo "✅ Login Azure confirmado:"
+            echo "$ACCOUNT_INFO" | jq -r '"  Subscription: \(.name) (\(.id))"'
+          else
+            echo "❌ Falha login Azure"
+            exit 1
+          fi
+
+      - name: Ensure Docker network
+        run: |
+          set -Eeuo pipefail
+          if ! docker network ls | grep -q "$DOCKER_NETWORK_NAME"; then
+            echo "🌐 Criando rede $DOCKER_NETWORK_NAME"
+            docker network create --driver overlay "$DOCKER_NETWORK_NAME"
+          else
+            echo "✅ Rede $DOCKER_NETWORK_NAME já existe"
+          fi
+
       - name: Get Key Vault secrets (Traefik)
         id: kv
         if: ${{ steps.check_secrets.outputs.has_keyvault == 'true' }}
