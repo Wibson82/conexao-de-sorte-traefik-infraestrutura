@@ -215,19 +215,23 @@ jobs:
             
             # Buscar segredos essenciais
             echo "🔍 Buscando segredos essenciais..."
+            essential_secrets=(conexao-de-sorte-letsencrypt-email conexao-de-sorte-traefik-dashboard-password)
             essential_count=0
-            for secret in conexao-de-sorte-letsencrypt-email conexao-de-sorte-traefik-dashboard-password; do
+            for secret in "${essential_secrets[@]}"; do
               echo "🔍 Tentando obter: $secret"
-              if value=$(az keyvault secret show --vault-name "$KEYVAULT_NAME" --name "$secret" --query "value" -o tsv 2>&1); then
+              # Tenta obter o valor (silenciando stderr para capturar apenas falhas reais)
+              if value=$(az keyvault secret show --vault-name "$KEYVAULT_NAME" --name "$secret" --query "value" -o tsv 2>/dev/null); then
                 if [[ -n "$value" ]]; then
-                  echo "$secret=$value" >> $GITHUB_ENV
-                  echo "✅ $secret obtido (comprimento: ${#value})"
+                  # Converte o nome do secret para variável de ambiente (UPPERCASE + _)
+                  var_name=$(echo "$secret" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+                  echo "$var_name=$value" >> "$GITHUB_ENV"
+                  echo "✅ $secret obtido (len=${#value}) => exportado como $var_name"
                   essential_count=$((essential_count + 1))
                 else
                   echo "⚠️ $secret retornou vazio"
                 fi
               else
-                echo "❌ Erro ao obter $secret: $value"
+                echo "❌ Erro ao obter $secret"
               fi
             done
             
@@ -266,10 +270,10 @@ jobs:
           echo "🔍 Validando segredos essenciais obtidos via OIDC..."
           
           missing=()
-          if [[ -z "${CONEXAO-DE-SORTE-LETSENCRYPT-EMAIL:-}" ]]; then
+          if [[ -z "${CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL:-}" ]]; then
             missing+=("conexao-de-sorte-letsencrypt-email")
           fi
-          if [[ -z "${CONEXAO-DE-SORTE-TRAEFIK-DASHBOARD-PASSWORD:-}" ]]; then
+          if [[ -z "${CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD:-}" ]]; then
             missing+=("conexao-de-sorte-traefik-dashboard-password")
           fi
           
@@ -281,8 +285,8 @@ jobs:
           fi
           
           echo "✅ Todos os segredos essenciais foram obtidos com sucesso via OIDC"
-          echo "📧 Email Let's Encrypt: ${CONEXAO-DE-SORTE-LETSENCRYPT-EMAIL:0:3}***${CONEXAO-DE-SORTE-LETSENCRYPT-EMAIL##*@}"
-          echo "🔐 Senha Dashboard: $(echo $CONEXAO-DE-SORTE-TRAEFIK-DASHBOARD-PASSWORD | wc -c) caracteres"
+          echo "📧 Email Let's Encrypt: ${CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL:0:3}***${CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL##*@}"
+          echo "🔐 Senha Dashboard: $(echo $CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD | wc -c) caracteres"
 
       - name: 🚀 Deploy Traefik Stack (OIDC)
         env:
@@ -293,16 +297,16 @@ jobs:
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
           
           # Configurar variáveis com valores dos segredos ou padrões de desenvolvimento
-          if [[ -n "${{ env.conexao-de-sorte-letsencrypt-email }}" ]]; then
-            LETSENCRYPT_EMAIL="${{ env.conexao-de-sorte-letsencrypt-email }}"
+          if [[ -n "$CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL" ]]; then
+            LETSENCRYPT_EMAIL="$CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL"
             echo "✅ Email Let's Encrypt configurado"
           else
             LETSENCRYPT_EMAIL="dev@localhost"
             echo "⚠️ Email Let's Encrypt não configurado (modo desenvolvimento)"
           fi
           
-          if [[ -n "${{ env.conexao-de-sorte-traefik-dashboard-password }}" ]]; then
-            DASHBOARD_PASSWORD="${{ env.conexao-de-sorte-traefik-dashboard-password }}"
+          if [[ -n "$CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD" ]]; then
+            DASHBOARD_PASSWORD="$CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD"
             echo "✅ Senha do dashboard configurada"
           else
             DASHBOARD_PASSWORD="dev123"
