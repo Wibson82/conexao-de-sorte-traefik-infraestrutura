@@ -80,13 +80,12 @@ jobs:
           fi
           echo "✅ Identificadores Azure configurados via secrets"
           echo "has_azure_creds=true" >> "$GITHUB_OUTPUT"
-          # Key Vault obrigatório para Traefik (certificados SSL)
+          # Key Vault opcional para Traefik (modo desenvolvimento)
           if [[ -n "${AZURE_KEYVAULT_NAME:-}" ]]; then
             echo "has_keyvault=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_keyvault=false" >> "$GITHUB_OUTPUT"
-            echo '❌ Key Vault obrigatório para Traefik (certificados SSL)'
-            exit 1
+            echo 'ℹ️ Key Vault não configurado (Traefik usará modo desenvolvimento)'
           fi
           if [[ -z "${AZURE_KEYVAULT_ENDPOINT:-}" ]]; then
             echo 'ℹ️ AZURE_KEYVAULT_ENDPOINT não definido (usando endpoint padrão)'
@@ -152,93 +151,80 @@ jobs:
           clean: true
           fetch-depth: 1
 
-      - name: Load Azure credentials
-        id: check_secrets
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
-        run: |
-          set -Eeuo pipefail
-          if [[ -n "${AZURE_KEYVAULT_NAME:-}" ]]; then
-            echo "has_keyvault=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_keyvault=false" >> "$GITHUB_OUTPUT"
-          fi
-          echo "✅ Ambiente de deploy confirmado"
-
-      - name: 🔐 Azure Login (OIDC)
+      - name: 🔐 Azure Login (OIDC) - Opcional
         if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        continue-on-error: true
 
-      - name: Verificar conectividade Azure
-        if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
+      - name: Get Key Vault secrets via Azure CLI (Método recomendado)
+        id: kv
+        if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            set -euo pipefail
+            echo "🔍 Buscando segredos do Key Vault via Azure CLI..."
+
+            # Buscar email Let's Encrypt
+            if ACME_EMAIL=$(az keyvault secret show --name conexao-de-sorte-letsencrypt-email --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
+              echo "::add-mask::$ACME_EMAIL"
+              echo "ACME_EMAIL=$ACME_EMAIL" >> $GITHUB_ENV
+              echo "✅ Email Let's Encrypt obtido"
+            else
+              echo "⚠️ Email Let's Encrypt não encontrado"
+              echo "ACME_EMAIL=" >> $GITHUB_ENV
+            fi
+
+            # Buscar senha dashboard
+            if DASHBOARD_PASSWORD=$(az keyvault secret show --name conexao-de-sorte-traefik-dashboard-password --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
+              echo "::add-mask::$DASHBOARD_PASSWORD"
+              echo "DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD" >> $GITHUB_ENV
+              echo "✅ Senha dashboard obtida"
+            else
+              echo "⚠️ Senha dashboard não encontrada"
+              echo "DASHBOARD_PASSWORD=" >> $GITHUB_ENV
+            fi
+
+            echo "✅ Busca de segredos concluída"
+        continue-on-error: true
+
+      - name: Validar secrets obrigatórios para produção
         run: |
-          echo "🔍 Verificando conectividade Azure..."
+          set -Eeuo pipefail
 
-          if ACCOUNT_INFO=$(az account show --query "{name: name, id: id}" -o json 2>/dev/null); then
-            echo "✅ Login Azure confirmado:"
-            echo "$ACCOUNT_INFO" | jq -r '"  Subscription: \(.name) (\(.id))"'
-          else
-            echo "❌ Falha login Azure"
+          echo "🔍 Validando secrets obrigatórios para deploy em produção..."
+
+          # Verificar se conseguiu secrets essenciais via Azure CLI
+          missing_secrets=()
+
+          if [[ -z "${ACME_EMAIL:-}" ]]; then
+            missing_secrets+=("conexao-de-sorte-letsencrypt-email")
+          fi
+
+          if [[ -z "${DASHBOARD_PASSWORD:-}" ]]; then
+            missing_secrets+=("conexao-de-sorte-traefik-dashboard-password")
+          fi
+
+          if [[ ${#missing_secrets[@]} -gt 0 ]]; then
+            echo "❌ Secrets obrigatórios ausentes no Key Vault:"
+            printf '   - %s\n' "${missing_secrets[@]}"
+            echo ""
+            echo "💡 Para resolver:"
+            echo "   1. Verifique se os secrets existem no Key Vault: ${{ secrets.AZURE_KEYVAULT_NAME }}"
+            echo "   2. Verifique permissões RBAC (Key Vault Secrets User)"
+            echo "   3. Verifique configuração OIDC do GitHub"
+            echo ""
+            echo "❌ Deploy cancelado - secrets obrigatórios ausentes"
             exit 1
           fi
 
-      - name: Ensure Docker network
-        run: |
-          set -Eeuo pipefail
-          if ! docker network ls | grep -q "$DOCKER_NETWORK_NAME"; then
-            echo "🌐 Criando rede $DOCKER_NETWORK_NAME"
-            docker network create --driver overlay "$DOCKER_NETWORK_NAME"
-          else
-            echo "✅ Rede $DOCKER_NETWORK_NAME já existe"
-          fi
-
-      - name: Get Key Vault secrets (Traefik)
-        id: kv
-        if: ${{ steps.check_secrets.outputs.has_keyvault == 'true' }}
-        uses: azure/get-keyvault-secrets@v1
-        with:
-          keyvault: ${{ secrets.AZURE_KEYVAULT_NAME }}
-          secrets: |
-            conexao-de-sorte-letsencrypt-email
-            conexao-de-sorte-traefik-dashboard-password
-        continue-on-error: true
-
-      - name: Preparar secrets do Traefik
-        run: |
-          set -Eeuo pipefail
-
-          # Verificar se Key Vault funcionou
-          if [[ "${{ steps.kv.outcome }}" == "success" ]]; then
-            acme_email="${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}"
-            dashboard_password="${{ steps.kv.outputs.conexao-de-sorte-traefik-dashboard-password }}"
-
-            if [[ -n "$acme_email" && -n "$dashboard_password" ]]; then
-              echo '✅ Segredos do Traefik obtidos do Key Vault'
-              echo "DEPLOY_MODE=production" >> "$GITHUB_ENV"
-              echo "ACME_EMAIL=$acme_email" >> "$GITHUB_ENV"
-              echo "DASHBOARD_PASSWORD=$dashboard_password" >> "$GITHUB_ENV"
-            else
-              echo '⚠️ Segredos parciais do Key Vault - usando fallback'
-              echo "DEPLOY_MODE=development" >> "$GITHUB_ENV"
-            fi
-          else
-            echo '⚠️ Key Vault indisponível - usando modo desenvolvimento'
-            echo "DEPLOY_MODE=development" >> "$GITHUB_ENV"
-          fi
-
-          # Fallback para desenvolvimento
-          if [[ "${DEPLOY_MODE:-}" == "development" ]]; then
-            echo "ACME_EMAIL=admin@example.com" >> "$GITHUB_ENV"
-            echo "DASHBOARD_PASSWORD=dev_password_$(date +%s)" >> "$GITHUB_ENV"
-            echo '🔧 Modo desenvolvimento: usando valores padrão seguros'
-          fi
+          echo "✅ Todos os secrets obrigatórios estão disponíveis"
+          echo "✅ SSL automático: Let's Encrypt configurado"
+          echo "✅ Dashboard: Autenticação segura configurada"
 
       - name: 🚀 Deploy Traefik Stack (Swarm-Only)
         env:
@@ -246,6 +232,14 @@ jobs:
           COMPOSE_FILE: docker-compose.yml
         run: |
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
+
+          # Criar rede se não existir
+          if ! docker network ls | grep -q "conexao-network-swarm"; then
+            echo "🌐 Criando rede conexao-network-swarm"
+            docker network create --driver overlay conexao-network-swarm
+          else
+            echo "✅ Rede conexao-network-swarm já existe"
+          fi
 
           # Remover stack existente se houver
           if docker stack ls | grep -q "$STACK_NAME"; then
@@ -260,6 +254,7 @@ jobs:
 
           echo "⏰ Aguardando estabilização dos serviços Traefik..."
           sleep 35
+
 
       - name: Healthcheck Traefik (Multi-método)
         env:
