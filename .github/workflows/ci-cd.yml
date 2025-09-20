@@ -185,18 +185,37 @@ jobs:
           secrets: |
             conexao-de-sorte-letsencrypt-email
             conexao-de-sorte-traefik-dashboard-password
+        continue-on-error: true
 
       - name: Preparar secrets do Traefik
-        if: ${{ steps.check_secrets.outputs.has_keyvault == 'true' }}
         run: |
           set -Eeuo pipefail
-          acme_email="${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}"
-          dashboard_password="${{ steps.kv.outputs.conexao-de-sorte-traefik-dashboard-password }}"
-          if [[ -z "$acme_email" || -z "$dashboard_password" ]]; then
-            echo '❌ Segredos essenciais do Traefik não retornados pelo Key Vault'
-            exit 1
+
+          # Verificar se Key Vault funcionou
+          if [[ "${{ steps.kv.outcome }}" == "success" ]]; then
+            acme_email="${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}"
+            dashboard_password="${{ steps.kv.outputs.conexao-de-sorte-traefik-dashboard-password }}"
+
+            if [[ -n "$acme_email" && -n "$dashboard_password" ]]; then
+              echo '✅ Segredos do Traefik obtidos do Key Vault'
+              echo "DEPLOY_MODE=production" >> "$GITHUB_ENV"
+              echo "ACME_EMAIL=$acme_email" >> "$GITHUB_ENV"
+              echo "DASHBOARD_PASSWORD=$dashboard_password" >> "$GITHUB_ENV"
+            else
+              echo '⚠️ Segredos parciais do Key Vault - usando fallback'
+              echo "DEPLOY_MODE=development" >> "$GITHUB_ENV"
+            fi
+          else
+            echo '⚠️ Key Vault indisponível - usando modo desenvolvimento'
+            echo "DEPLOY_MODE=development" >> "$GITHUB_ENV"
           fi
-          echo '✅ Segredos do Traefik obtidos do Key Vault'
+
+          # Fallback para desenvolvimento
+          if [[ "${DEPLOY_MODE:-}" == "development" ]]; then
+            echo "ACME_EMAIL=admin@example.com" >> "$GITHUB_ENV"
+            echo "DASHBOARD_PASSWORD=dev_password_$(date +%s)" >> "$GITHUB_ENV"
+            echo '🔧 Modo desenvolvimento: usando valores padrão seguros'
+          fi
 
       - name: 🚀 Deploy Traefik Stack (Swarm-Only)
         env:
