@@ -55,14 +55,14 @@ jobs:
             echo "✅ No hardcoded passwords found"
           fi
 
-      - name: Validate Required Secrets
+      - name: Validate Required Variables
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_KEYVAULT_NAME: ${{ vars.AZURE_KEYVAULT_NAME }}
         run: |
-          required_secrets=(
+          required_vars=(
             "AZURE_CLIENT_ID"
             "AZURE_TENANT_ID" 
             "AZURE_SUBSCRIPTION_ID"
@@ -70,18 +70,18 @@ jobs:
           )
           
           missing=()
-          for secret in "${required_secrets[@]}"; do
-            if [[ -z "${!secret:-}" ]]; then
-              missing+=("$secret")
+          for var in "${required_vars[@]}"; do
+            if [[ -z "${!var:-}" ]]; then
+              missing+=("$var")
             fi
           done
           
           if [[ ${#missing[@]} -gt 0 ]]; then
-            printf '❌ GitHub Secrets obrigatórios ausentes: %s\n' "${missing[*]}"
+            printf '❌ GitHub Variables obrigatórios ausentes: %s\n' "${missing[*]}"
             exit 1
           fi
           
-          echo "✅ All required secrets are present"
+          echo "✅ All required variables are present"
 
       - name: Validate YAML files
         run: |
@@ -155,9 +155,9 @@ jobs:
       - name: Azure Login (OIDC) with Security Hardening
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           audience: api://AzureADTokenExchange
           allow-no-subscriptions: false
 
@@ -165,52 +165,99 @@ jobs:
         id: kv
         shell: bash
         env:
-          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
+          AZURE_KEYVAULT_NAME: ${{ vars.AZURE_KEYVAULT_NAME }}
         run: |
           set -Eeuo pipefail
           IFS=$'\n\t'
 
           echo "🔐 Recuperando segredos do Key Vault (infra-only)..."
 
-          declare -A mapping=(
-            [DASHBOARD_SECRET]=conexao-de-sorte-traefik-dashboard-password
+          # Buscar apenas segredos essenciais para o Traefik
+          declare -A essential_mapping=(
             [ACME_EMAIL]=conexao-de-sorte-letsencrypt-email
-            [SSL_CERT_PASSWORD]=conexao-de-sorte-ssl-cert-password
-            [TRAEFIK_BASICAUTH]=conexao-de-sorte-traefik-basicauth-password
-            [ADMIN_USERS]=conexao-de-sorte-admin-users
-            [AUDIT_USERS]=conexao-de-sorte-audit-users
-            [CRYPTO_USERS]=conexao-de-sorte-crypto-users
+            [DASHBOARD_SECRET]=conexao-de-sorte-traefik-dashboard-password
           )
 
-          for var in "${!mapping[@]}"; do
-            secret_name=${mapping[$var]}
+          # Buscar segredos opcionais (não críticos)
+          declare -A optional_mapping=(
+            [SSL_CERT_PASSWORD]=conexao-de-sorte-ssl-cert-password
+            [TRAEFIK_BASICAUTH]=conexao-de-sorte-traefik-basicauth-password
+          )
+
+          essential_missing=()
+          optional_missing=()
+
+          # Processar segredos essenciais
+          for var in "${!essential_mapping[@]}"; do
+            secret_name=${essential_mapping[$var]}
             secret_value=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name "$secret_name" --query value -o tsv 2>/dev/null || true)
             if [[ -n "$secret_value" ]]; then
-              # Mask value in logs and export to env for next steps
               echo "::add-mask::$secret_value"
               echo "$var=$secret_value" >> "$GITHUB_ENV"
               echo "✅ Recuperado e mascarado: $secret_name -> $var"
             else
-              echo "⚠️ Segredo não encontrado ou sem acesso: $secret_name"
+              essential_missing+=("$secret_name")
             fi
           done
+
+          # Processar segredos opcionais
+          for var in "${!optional_mapping[@]}"; do
+            secret_name=${optional_mapping[$var]}
+            secret_value=$(az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name "$secret_name" --query value -o tsv 2>/dev/null || true)
+            if [[ -n "$secret_value" ]]; then
+              echo "::add-mask::$secret_value"
+              echo "$var=$secret_value" >> "$GITHUB_ENV"
+              echo "✅ Recuperado e mascarado: $secret_name -> $var"
+            else
+              optional_missing+=("$secret_name")
+              echo "⚠️ Segredo opcional não encontrado: $secret_name"
+            fi
+          done
+
+          # Validar se segredos essenciais foram encontrados
+          if [[ ${#essential_missing[@]} -gt 0 ]]; then
+            echo "❌ Segredos essenciais ausentes: ${essential_missing[*]}"
+            exit 1
+          fi
+
+          echo "✅ Todos os segredos essenciais foram recuperados"
 
       - name: Prepare secrets and configuration
         env:
           ACME_EMAIL: ${{ env.ACME_EMAIL }}
           DASHBOARD_SECRET: ${{ env.DASHBOARD_SECRET }}
+          SSL_CERT_PASSWORD: ${{ env.SSL_CERT_PASSWORD }}
+          TRAEFIK_BASICAUTH: ${{ env.TRAEFIK_BASICAUTH }}
         run: |
           set -Eeuo pipefail
+          
+          # Validar segredos essenciais
           if [[ -z "$DASHBOARD_SECRET" || -z "$ACME_EMAIL" ]]; then
-            echo '❌ Segredos obrigatórios não retornados pelo Key Vault'
+            echo '❌ Segredos essenciais não retornados pelo Key Vault'
+            echo "DASHBOARD_SECRET: $([ -n "$DASHBOARD_SECRET" ] && echo "✅ Presente" || echo "❌ Ausente")"
+            echo "ACME_EMAIL: $([ -n "$ACME_EMAIL" ] && echo "✅ Presente" || echo "❌ Ausente")"
             exit 1
           fi
+          
           echo "::add-mask::$DASHBOARD_SECRET"
           echo "::add-mask::$ACME_EMAIL"
+          
+          # Mascarar segredos opcionais se presentes
+          [[ -n "${SSL_CERT_PASSWORD:-}" ]] && echo "::add-mask::$SSL_CERT_PASSWORD"
+          [[ -n "${TRAEFIK_BASICAUTH:-}" ]] && echo "::add-mask::$TRAEFIK_BASICAUTH"
 
           mkdir -p secrets letsencrypt
+          
+          # Criar arquivo de basic auth apenas com o segredo essencial
           printf '%s\n' "$DASHBOARD_SECRET" > secrets/traefik-basicauth
           chmod 600 secrets/traefik-basicauth
+          
+          # Adicionar auth opcional se disponível
+          if [[ -n "${TRAEFIK_BASICAUTH:-}" ]]; then
+            printf '%s\n' "$TRAEFIK_BASICAUTH" > secrets/traefik-optional-auth
+            chmod 600 secrets/traefik-optional-auth
+            echo "✅ Auth opcional adicionado"
+          fi
 
           if [[ ! -f letsencrypt/acme.json ]]; then
             printf '{}\n' > letsencrypt/acme.json
@@ -244,6 +291,8 @@ jobs:
                   if not seen_staging:
                       handle.write('LETSENCRYPT_STAGING=false\n')
           "
+          
+          echo "✅ Configuração de segredos concluída"
 
       - name: Ensure Docker network
         run: |
