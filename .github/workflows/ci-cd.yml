@@ -405,6 +405,26 @@ jobs:
           export TRAEFIK_ACME_EMAIL
           export DASHBOARD_PASSWORD
 
+          # 🔍 DEBUG: Verificar arquivos necessários para Traefik
+          echo "🔍 Verificando arquivos necessários para Traefik..."
+          for required_file in "traefik/traefik.yml" "docker-compose.yml"; do
+            if [[ -f "$required_file" ]]; then
+              echo "✅ $required_file encontrado"
+            else
+              echo "❌ $required_file NÃO encontrado"
+            fi
+          done
+
+          # 🔍 DEBUG: Verificar diretórios necessários
+          for required_dir in "traefik" "traefik/dynamic" "letsencrypt" "secrets"; do
+            if [[ -d "$required_dir" ]]; then
+              echo "✅ Diretório $required_dir existe"
+            else
+              echo "⚠️ Diretório $required_dir não existe - criando..."
+              mkdir -p "$required_dir"
+            fi
+          done
+
           # Criar rede se não existir
           if ! docker network ls | grep -q "conexao-network-swarm"; then
             echo "🌐 Criando rede conexao-network-swarm"
@@ -425,7 +445,16 @@ jobs:
           docker stack deploy -c "$COMPOSE_FILE" "$STACK_NAME"
 
           echo "⏰ Aguardando estabilização dos serviços Traefik..."
-          sleep 35
+          sleep 15
+
+          # 🔍 DEBUG: Verificar status do serviço imediatamente após deploy
+          echo "🔍 DEBUG: Status do serviço Traefik após deploy..."
+          docker service ls --filter name="${STACK_NAME}_traefik" --format "table {{.Name}}\t{{.Replicas}}\t{{.Image}}\t{{.Mode}}"
+
+          echo "🔍 DEBUG: Tasks do serviço Traefik..."
+          docker service ps "${STACK_NAME}_traefik" --no-trunc || echo "Serviço ainda não existe"
+
+          sleep 20
 
 
       - name: Healthcheck Traefik (Multi-método)
