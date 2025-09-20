@@ -220,7 +220,7 @@ jobs:
             
             # Lógica de correção automática - SEMPRE tentar aplicar quando apropriado
             # Isso funciona mesmo com valores mascarados porque usamos a lógica, não a comparação
-            if [[ -n "$ORIGINAL_KEYVAULT_NAME" ]]; then
+            if [[ -n "$AZURE_KEYVAULT_NAME_SECRET" ]]; then
               # Se o nome parece ser o padrão antigo, aplicar correção
               # Isso funciona mesmo que esteja mascarado como ***
               echo "🔍 Aplicando lógica de correção automática..."
