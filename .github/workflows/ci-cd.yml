@@ -152,6 +152,7 @@ jobs:
           fetch-depth: 1
 
       - name: 🔐 Azure Login (OIDC) - Opcional
+        id: azure-login
         if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
         uses: azure/login@v2
         with:
@@ -160,16 +161,49 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         continue-on-error: true
 
+      - name: Verificar status do login Azure
+        if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
+        run: |
+          echo "🔍 Verificando status do login Azure..."
+          
+          # Verificar se o login foi bem-sucedido
+          if az account show >/dev/null 2>&1; then
+            echo "✅ Login Azure realizado com sucesso"
+            echo "AZURE_LOGIN_SUCCESS=true" >> $GITHUB_ENV
+            echo "Conta atual: $(az account show --query name -o tsv)"
+            echo "Subscription ID: $(az account show --query id -o tsv)"
+          else
+            echo "⚠️ Login Azure não realizado ou falhou"
+            echo "AZURE_LOGIN_SUCCESS=false" >> $GITHUB_ENV
+            echo "Os segredos do Key Vault não serão buscados devido à falta de autenticação"
+          fi
+
       - name: Get Key Vault secrets via Azure CLI (Método recomendado)
         id: kv
-        if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
+        if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' && env.AZURE_LOGIN_SUCCESS == 'true' }}
         uses: azure/CLI@v1
         with:
           inlineScript: |
             set -euo pipefail
             echo "🔍 Buscando segredos do Key Vault via Azure CLI..."
+            echo "Key Vault: ${{ secrets.AZURE_KEYVAULT_NAME }}"
+            echo "Tenant ID: ${{ secrets.AZURE_TENANT_ID }}"
+
+            # Verificar conectividade com Key Vault
+            echo "🔍 Testando conectividade com Key Vault..."
+            if az keyvault show --name ${{ secrets.AZURE_KEYVAULT_NAME }} --query name -o tsv >/dev/null 2>&1; then
+              echo "✅ Conectividade com Key Vault estabelecida"
+            else
+              echo "❌ Não foi possível conectar ao Key Vault: ${{ secrets.AZURE_KEYVAULT_NAME }}"
+              echo "Verifique:"
+              echo "  1. Se o Key Vault existe"
+              echo "  2. Permissões RBAC (Key Vault Secrets User)"
+              echo "  3. Configuração do Federated Identity Credential"
+              exit 1
+            fi
 
             # Buscar email Let's Encrypt
+            echo "🔍 Buscando conexao-de-sorte-letsencrypt-email..."
             if ACME_EMAIL=$(az keyvault secret show --name conexao-de-sorte-letsencrypt-email --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
               echo "::add-mask::$ACME_EMAIL"
               echo "ACME_EMAIL=$ACME_EMAIL" >> $GITHUB_ENV
@@ -180,6 +214,7 @@ jobs:
             fi
 
             # Buscar senha dashboard
+            echo "🔍 Buscando conexao-de-sorte-traefik-dashboard-password..."
             if DASHBOARD_PASSWORD=$(az keyvault secret show --name conexao-de-sorte-traefik-dashboard-password --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
               echo "::add-mask::$DASHBOARD_PASSWORD"
               echo "DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD" >> $GITHUB_ENV
@@ -287,6 +322,14 @@ jobs:
 
           echo "🔍 Validando secrets obrigatórios para deploy em produção..."
 
+          # Verificar se o login Azure foi bem-sucedido
+          if [[ "${AZURE_LOGIN_SUCCESS:-false}" == "false" ]]; then
+            echo "⚠️ Login Azure não realizado ou falhou"
+            echo "ℹ️ O deploy continuará sem os segredos do Key Vault (modo desenvolvimento)"
+            echo "ℹ️ Para usar SSL automático, configure o login Azure OIDC corretamente"
+            exit 0
+          fi
+
           # Verificar se conseguiu secrets essenciais via Azure CLI
           missing_secrets=()
 
@@ -319,8 +362,25 @@ jobs:
         env:
           STACK_NAME: conexao-traefik
           COMPOSE_FILE: docker-compose.yml
+          ACME_EMAIL: ${{ env.ACME_EMAIL }}
+          DASHBOARD_PASSWORD: ${{ env.DASHBOARD_PASSWORD }}
         run: |
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
+          
+          # Configurar variáveis de ambiente para o Traefik
+          if [[ -n "${ACME_EMAIL:-}" ]]; then
+            export ACME_EMAIL="$ACME_EMAIL"
+            echo "✅ Email Let's Encrypt configurado: ${ACME_EMAIL:0:3}***${ACME_EMAIL##*@}"
+          else
+            echo "⚠️ Email Let's Encrypt não configurado (modo desenvolvimento)"
+          fi
+          
+          if [[ -n "${DASHBOARD_PASSWORD:-}" ]]; then
+            export DASHBOARD_PASSWORD="$DASHBOARD_PASSWORD"
+            echo "✅ Senha do dashboard configurada (mascarada)"
+          else
+            echo "⚠️ Senha do dashboard não configurada (modo desenvolvimento)"
+          fi
 
           # Criar rede se não existir
           if ! docker network ls | grep -q "conexao-network-swarm"; then
