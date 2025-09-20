@@ -58,14 +58,14 @@ jobs:
             echo "✅ No hardcoded passwords found"
           fi
 
-      - name: 🔎 Validar identificadores Azure (vars)
+      - name: 🔎 Validar identificadores Azure (temporário em secrets)
         id: check_secrets
         env:
-          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          AZURE_KEYVAULT_NAME: ${{ vars.AZURE_KEYVAULT_NAME }}
-          AZURE_KEYVAULT_ENDPOINT: ${{ vars.AZURE_KEYVAULT_ENDPOINT }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
+          AZURE_KEYVAULT_ENDPOINT: ${{ secrets.AZURE_KEYVAULT_ENDPOINT }}
         run: |
           set -Eeuo pipefail
           missing=()
@@ -75,10 +75,10 @@ jobs:
             fi
           done
           if (( ${#missing[@]} )); then
-            printf '❌ GitHub Variables obrigatórios ausentes: %s\n' "${missing[*]}"
+            printf '❌ GitHub Secrets obrigatórios ausentes: %s\n' "${missing[*]}"
             exit 1
           fi
-          echo "✅ Identificadores Azure configurados via variables"
+          echo "✅ Identificadores Azure configurados via secrets"
           echo "has_azure_creds=true" >> "$GITHUB_OUTPUT"
           # Key Vault opcional para Traefik (modo desenvolvimento)
           if [[ -n "${AZURE_KEYVAULT_NAME:-}" ]]; then
@@ -155,9 +155,9 @@ jobs:
         if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
         uses: azure/login@v2
         with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         continue-on-error: true
 
       - name: Get Key Vault secrets via Azure CLI (Método recomendado)
@@ -170,7 +170,7 @@ jobs:
             echo "🔍 Buscando segredos do Key Vault via Azure CLI..."
 
             # Buscar email Let's Encrypt
-            if ACME_EMAIL=$(az keyvault secret show --name conexao-de-sorte-letsencrypt-email --vault-name ${{ vars.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
+            if ACME_EMAIL=$(az keyvault secret show --name conexao-de-sorte-letsencrypt-email --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
               echo "::add-mask::$ACME_EMAIL"
               echo "ACME_EMAIL=$ACME_EMAIL" >> $GITHUB_ENV
               echo "✅ Email Let's Encrypt obtido"
@@ -180,7 +180,7 @@ jobs:
             fi
 
             # Buscar senha dashboard
-            if DASHBOARD_PASSWORD=$(az keyvault secret show --name conexao-de-sorte-traefik-dashboard-password --vault-name ${{ vars.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
+            if DASHBOARD_PASSWORD=$(az keyvault secret show --name conexao-de-sorte-traefik-dashboard-password --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
               echo "::add-mask::$DASHBOARD_PASSWORD"
               echo "DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD" >> $GITHUB_ENV
               echo "✅ Senha dashboard obtida"
@@ -214,7 +214,7 @@ jobs:
             printf '   - %s\n' "${missing_secrets[@]}"
             echo ""
             echo "💡 Para resolver:"
-            echo "   1. Verifique se os secrets existem no Key Vault: ${{ vars.AZURE_KEYVAULT_NAME }}"
+            echo "   1. Verifique se os secrets existem no Key Vault: ${{ secrets.AZURE_KEYVAULT_NAME }}"
             echo "   2. Verifique permissões RBAC (Key Vault Secrets User)"
             echo "   3. Verifique configuração OIDC do GitHub"
             echo ""
