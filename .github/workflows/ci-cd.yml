@@ -192,6 +192,95 @@ jobs:
             echo "✅ Busca de segredos concluída"
         continue-on-error: true
 
+      - name: Verificar segredos específicos do Traefik Infrastructure
+        id: verify-traefik-secrets
+        if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            set -euo pipefail
+            echo "🔍 Verificando segredos específicos do Traefik Infrastructure..."
+            
+            # Lista de segredos a verificar
+            secrets_to_check=(
+              "conexao-de-sorte-traefik-admin-password"
+              "conexao-de-sorte-traefik-audit-password"
+              "conexao-de-sorte-traefik-crypto-password"
+              "conexao-de-sorte-traefik-dashboard-password"
+              "conexao-de-sorte-webhook-secret"
+              "conexao-de-sorte-zookeeper-client-port"
+            )
+            
+            missing_secrets=()
+            invalid_secrets=()
+            valid_secrets=()
+            
+            for secret_name in "${secrets_to_check[@]}"; do
+              echo "🔍 Verificando: $secret_name"
+              
+              # Buscar o segredo do Key Vault
+              if secret_value=$(az keyvault secret show --name "$secret_name" --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
+                
+                # Validar se não está vazio
+                if [[ -z "$secret_value" ]]; then
+                  echo "  ⚠️ Segredo encontrado mas VAZIO"
+                  invalid_secrets+=("$secret_name (vazio)")
+                  continue
+                fi
+                
+                # Validar comprimento mínimo (exceto para porta que pode ser numérica)
+                if [[ "$secret_name" == *"zookeeper-client-port"* ]]; then
+                  # Para porta, verificar se é numérico e dentro da faixa válida
+                  if [[ "$secret_value" =~ ^[0-9]+$ ]] && [[ "$secret_value" -ge 1 ]] && [[ "$secret_value" -le 65535 ]]; then
+                    echo "  ✅ Porta válida: $secret_value"
+                    valid_secrets+=("$secret_name")
+                    echo "${secret_name^^}=$secret_value" >> $GITHUB_ENV
+                  else
+                    echo "  ⚠️ Porta inválida: $secret_value"
+                    invalid_secrets+=("$secret_name (porta inválida: $secret_value)")
+                  fi
+                else
+                  # Para senhas, verificar comprimento mínimo
+                  secret_length=${#secret_value}
+                  if [[ $secret_length -ge 8 ]]; then
+                    echo "  ✅ Senha válida (${secret_length} caracteres)"
+                    valid_secrets+=("$secret_name")
+                    echo "::add-mask::$secret_value"
+                    echo "${secret_name^^}=$secret_value" >> $GITHUB_ENV
+                  else
+                    echo "  ⚠️ Senha muito curta (${secret_length} caracteres)"
+                    invalid_secrets+=("$secret_name (muito curta: ${secret_length} caracteres)")
+                  fi
+                fi
+                
+              else
+                echo "  ❌ Segredo NÃO ENCONTRADO"
+                missing_secrets+=("$secret_name")
+              fi
+            done
+            
+            # Resumo da verificação
+            echo ""
+            echo "📊 RESUMO DA VERIFICAÇÃO DE SEGREDOS:"
+            echo "✅ Válidos: ${#valid_secrets[@]}"
+            printf '   - %s\n' "${valid_secrets[@]}" 2>/dev/null || true
+            
+            echo ""
+            echo "⚠️ Inválidos: ${#invalid_secrets[@]}"
+            printf '   - %s\n' "${invalid_secrets[@]}" 2>/dev/null || true
+            
+            echo ""
+            echo "❌ Ausentes: ${#missing_secrets[@]}"
+            printf '   - %s\n' "${missing_secrets[@]}" 2>/dev/null || true
+            
+            # Salvar contagens para steps posteriores
+            echo "VALID_SECRETS_COUNT=${#valid_secrets[@]}" >> $GITHUB_ENV
+            echo "INVALID_SECRETS_COUNT=${#invalid_secrets[@]}" >> $GITHUB_ENV
+            echo "MISSING_SECRETS_COUNT=${#missing_secrets[@]}" >> $GITHUB_ENV
+            
+            echo "✅ Verificação de segredos específicos concluída"
+        continue-on-error: true
+
       - name: Validar secrets obrigatórios para produção
         run: |
           set -Eeuo pipefail
