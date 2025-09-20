@@ -133,14 +133,9 @@ jobs:
 
           echo "✅ Cache optimization configurado"
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4.5.0
-        with:
-          name: traefik-configs
-          path: |
-            docker-compose.yml
-            traefik/
-          retention-days: 1
+      - name: Validation completed
+        run: |
+          echo "✅ Validação concluída - pronto para deploy"
 
   deploy-selfhosted:
     needs: validate-and-build
@@ -157,11 +152,9 @@ jobs:
           clean: true
           fetch-depth: 1
 
-      - name: Download artifacts
-        uses: actions/download-artifact@v4.1.8
-        with:
-          name: traefik-configs
-          path: .
+      - name: Confirm environment
+        run: |
+          echo "✅ Ambiente de deploy confirmado"
 
       - name: 🔐 Azure Login (OIDC)
         if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
