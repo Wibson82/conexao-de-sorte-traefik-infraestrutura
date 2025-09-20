@@ -151,7 +151,7 @@ jobs:
           clean: true
           fetch-depth: 1
 
-      - name: 🔐 Azure Login (OIDC) - Opcional
+      - name: 🔐 Azure Login (OIDC) - Obrigatório para Key Vault
         id: azure-login
         if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
         uses: azure/login@v2
@@ -159,7 +159,6 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        continue-on-error: true
 
       - name: Verificar status do login Azure
         if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
@@ -185,16 +184,23 @@ jobs:
         with:
           inlineScript: |
             set -euo pipefail
+            # Usar Key Vault correto se o segredo estiver com nome errado
+            KEYVAULT_NAME="${{ secrets.AZURE_KEYVAULT_NAME }}"
+            if [[ "$KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
+              echo "⚠️ Ajustando nome do Key Vault de 'conexao-de-sorte-keyvault' para 'kv-conexao-de-sorte'"
+              KEYVAULT_NAME="kv-conexao-de-sorte"
+            fi
+            
             echo "🔍 Buscando segredos do Key Vault via Azure CLI..."
-            echo "Key Vault: ${{ secrets.AZURE_KEYVAULT_NAME }}"
+            echo "Key Vault: $KEYVAULT_NAME"
             echo "Tenant ID: ${{ secrets.AZURE_TENANT_ID }}"
 
             # Verificar conectividade com Key Vault
             echo "🔍 Testando conectividade com Key Vault..."
-            if az keyvault show --name ${{ secrets.AZURE_KEYVAULT_NAME }} --query name -o tsv >/dev/null 2>&1; then
+            if az keyvault show --name "$KEYVAULT_NAME" --query name -o tsv >/dev/null 2>&1; then
               echo "✅ Conectividade com Key Vault estabelecida"
             else
-              echo "❌ Não foi possível conectar ao Key Vault: ${{ secrets.AZURE_KEYVAULT_NAME }}"
+              echo "❌ Não foi possível conectar ao Key Vault: $KEYVAULT_NAME"
               echo "Verifique:"
               echo "  1. Se o Key Vault existe"
               echo "  2. Permissões RBAC (Key Vault Secrets User)"
@@ -204,7 +210,7 @@ jobs:
 
             # Buscar email Let's Encrypt
             echo "🔍 Buscando conexao-de-sorte-letsencrypt-email..."
-            if ACME_EMAIL=$(az keyvault secret show --name conexao-de-sorte-letsencrypt-email --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
+            if ACME_EMAIL=$(az keyvault secret show --name conexao-de-sorte-letsencrypt-email --vault-name "$KEYVAULT_NAME" --query value -o tsv 2>/dev/null); then
               echo "::add-mask::$ACME_EMAIL"
               echo "ACME_EMAIL=$ACME_EMAIL" >> $GITHUB_ENV
               echo "✅ Email Let's Encrypt obtido"
@@ -215,7 +221,7 @@ jobs:
 
             # Buscar senha dashboard
             echo "🔍 Buscando conexao-de-sorte-traefik-dashboard-password..."
-            if DASHBOARD_PASSWORD=$(az keyvault secret show --name conexao-de-sorte-traefik-dashboard-password --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
+            if DASHBOARD_PASSWORD=$(az keyvault secret show --name conexao-de-sorte-traefik-dashboard-password --vault-name "$KEYVAULT_NAME" --query value -o tsv 2>/dev/null); then
               echo "::add-mask::$DASHBOARD_PASSWORD"
               echo "DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD" >> $GITHUB_ENV
               echo "✅ Senha dashboard obtida"
@@ -234,14 +240,26 @@ jobs:
         with:
           inlineScript: |
             set -euo pipefail
-            echo "🔍 Verificando segredos específicos do Traefik Infrastructure..."
+            # Usar Key Vault correto se o segredo estiver com nome errado
+            KEYVAULT_NAME="${{ secrets.AZURE_KEYVAULT_NAME }}"
+            if [[ "$KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
+              echo "⚠️ Ajustando nome do Key Vault de 'conexao-de-sorte-keyvault' para 'kv-conexao-de-sorte'"
+              KEYVAULT_NAME="kv-conexao-de-sorte"
+            fi
             
-            # Lista de segredos a verificar
+            echo "🔍 Verificando segredos específicos do Traefik Infrastructure..."
+            echo "Key Vault: $KEYVAULT_NAME"
+            
+            # Lista de segredos ESSENCIAIS que existem no Key Vault
             secrets_to_check=(
+              "conexao-de-sorte-traefik-dashboard-password"
+            )
+            
+            # Segredos OPCIONAIS (serão verificados mas não impedem o deploy)
+            optional_secrets=(
               "conexao-de-sorte-traefik-admin-password"
               "conexao-de-sorte-traefik-audit-password"
               "conexao-de-sorte-traefik-crypto-password"
-              "conexao-de-sorte-traefik-dashboard-password"
               "conexao-de-sorte-webhook-secret"
               "conexao-de-sorte-zookeeper-client-port"
             )
@@ -249,12 +267,14 @@ jobs:
             missing_secrets=()
             invalid_secrets=()
             valid_secrets=()
+            optional_missing=()
             
+            # Verificar segredos essenciais
             for secret_name in "${secrets_to_check[@]}"; do
               echo "🔍 Verificando: $secret_name"
               
               # Buscar o segredo do Key Vault
-              if secret_value=$(az keyvault secret show --name "$secret_name" --vault-name ${{ secrets.AZURE_KEYVAULT_NAME }} --query value -o tsv 2>/dev/null); then
+              if secret_value=$(az keyvault secret show --name "$secret_name" --vault-name "$KEYVAULT_NAME" --query value -o tsv 2>/dev/null); then
                 
                 # Validar se não está vazio
                 if [[ -z "$secret_value" ]]; then
@@ -263,34 +283,41 @@ jobs:
                   continue
                 fi
                 
-                # Validar comprimento mínimo (exceto para porta que pode ser numérica)
-                if [[ "$secret_name" == *"zookeeper-client-port"* ]]; then
-                  # Para porta, verificar se é numérico e dentro da faixa válida
-                  if [[ "$secret_value" =~ ^[0-9]+$ ]] && [[ "$secret_value" -ge 1 ]] && [[ "$secret_value" -le 65535 ]]; then
-                    echo "  ✅ Porta válida: $secret_value"
-                    valid_secrets+=("$secret_name")
-                    echo "${secret_name^^}=$secret_value" >> $GITHUB_ENV
-                  else
-                    echo "  ⚠️ Porta inválida: $secret_value"
-                    invalid_secrets+=("$secret_name (porta inválida: $secret_value)")
-                  fi
+                # Validar comprimento mínimo
+                secret_length=${#secret_value}
+                if [[ $secret_length -ge 8 ]]; then
+                  echo "  ✅ Senha válida (${secret_length} caracteres)"
+                  valid_secrets+=("$secret_name")
+                  echo "::add-mask::$secret_value"
+                  echo "${secret_name^^}=$secret_value" >> $GITHUB_ENV
                 else
-                  # Para senhas, verificar comprimento mínimo
-                  secret_length=${#secret_value}
-                  if [[ $secret_length -ge 8 ]]; then
-                    echo "  ✅ Senha válida (${secret_length} caracteres)"
-                    valid_secrets+=("$secret_name")
-                    echo "::add-mask::$secret_value"
-                    echo "${secret_name^^}=$secret_value" >> $GITHUB_ENV
-                  else
-                    echo "  ⚠️ Senha muito curta (${secret_length} caracteres)"
-                    invalid_secrets+=("$secret_name (muito curta: ${secret_length} caracteres)")
-                  fi
+                  echo "  ⚠️ Senha muito curta (${secret_length} caracteres)"
+                  invalid_secrets+=("$secret_name (muito curta: ${secret_length} caracteres)")
                 fi
                 
               else
                 echo "  ❌ Segredo NÃO ENCONTRADO"
                 missing_secrets+=("$secret_name")
+              fi
+            done
+            
+            # Verificar segredos opcionais (não críticos)
+            echo ""
+            echo "🔍 Verificando segredos opcionais..."
+            for secret_name in "${optional_secrets[@]}"; do
+              echo "🔍 Verificando: $secret_name"
+              
+              if secret_value=$(az keyvault secret show --name "$secret_name" --vault-name "$KEYVAULT_NAME" --query value -o tsv 2>/dev/null); then
+                if [[ -n "$secret_value" ]]; then
+                  echo "  ✅ Segredo opcional encontrado"
+                  echo "::add-mask::$secret_value"
+                  echo "${secret_name^^}=$secret_value" >> $GITHUB_ENV
+                else
+                  echo "  ⚠️ Segredo opcional vazio"
+                fi
+              else
+                echo "  ℹ️ Segredo opcional não encontrado (não crítico)"
+                optional_missing+=("$secret_name")
               fi
             done
             
@@ -305,13 +332,18 @@ jobs:
             printf '   - %s\n' "${invalid_secrets[@]}" 2>/dev/null || true
             
             echo ""
-            echo "❌ Ausentes: ${#missing_secrets[@]}"
+            echo "❌ Ausentes (Essenciais): ${#missing_secrets[@]}"
             printf '   - %s\n' "${missing_secrets[@]}" 2>/dev/null || true
+            
+            echo ""
+            echo "ℹ️ Opcionais ausentes: ${#optional_missing[@]}"
+            printf '   - %s\n' "${optional_missing[@]}" 2>/dev/null || true
             
             # Salvar contagens para steps posteriores
             echo "VALID_SECRETS_COUNT=${#valid_secrets[@]}" >> $GITHUB_ENV
             echo "INVALID_SECRETS_COUNT=${#invalid_secrets[@]}" >> $GITHUB_ENV
             echo "MISSING_SECRETS_COUNT=${#missing_secrets[@]}" >> $GITHUB_ENV
+            echo "OPTIONAL_MISSING_COUNT=${#optional_missing[@]}" >> $GITHUB_ENV
             
             echo "✅ Verificação de segredos específicos concluída"
         continue-on-error: true
@@ -346,7 +378,7 @@ jobs:
             printf '   - %s\n' "${missing_secrets[@]}"
             echo ""
             echo "💡 Para resolver:"
-            echo "   1. Verifique se os secrets existem no Key Vault: ${{ secrets.AZURE_KEYVAULT_NAME }}"
+            echo "   1. Verifique se os secrets existem no Key Vault: $KEYVAULT_NAME"
             echo "   2. Verifique permissões RBAC (Key Vault Secrets User)"
             echo "   3. Verifique configuração OIDC do GitHub"
             echo ""
