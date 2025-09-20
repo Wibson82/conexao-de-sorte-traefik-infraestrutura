@@ -152,8 +152,20 @@ jobs:
           clean: true
           fetch-depth: 1
 
-      - name: Confirm environment
+      - name: Load Azure credentials
+        id: check_secrets
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
         run: |
+          set -Eeuo pipefail
+          if [[ -n "${AZURE_KEYVAULT_NAME:-}" ]]; then
+            echo "has_keyvault=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_keyvault=false" >> "$GITHUB_OUTPUT"
+          fi
           echo "✅ Ambiente de deploy confirmado"
 
       - name: 🔐 Azure Login (OIDC)
@@ -166,18 +178,16 @@ jobs:
 
       - name: Get Key Vault secrets (Traefik)
         id: kv
-        if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
+        if: ${{ steps.check_secrets.outputs.has_keyvault == 'true' }}
         uses: azure/get-keyvault-secrets@v1
         with:
           keyvault: ${{ secrets.AZURE_KEYVAULT_NAME }}
           secrets: |
             conexao-de-sorte-letsencrypt-email
             conexao-de-sorte-traefik-dashboard-password
-            conexao-de-sorte-ssl-cert-password
-            conexao-de-sorte-traefik-basicauth-password
 
       - name: Preparar secrets do Traefik
-        if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
+        if: ${{ steps.check_secrets.outputs.has_keyvault == 'true' }}
         run: |
           set -Eeuo pipefail
           acme_email="${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}"
