@@ -57,30 +57,30 @@ jobs:
 
       - name: Validate Required Variables
         env:
-          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-          AZURE_KEYVAULT_NAME: ${{ vars.AZURE_KEYVAULT_NAME }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
         run: |
           required_vars=(
             "AZURE_CLIENT_ID"
-            "AZURE_TENANT_ID" 
+            "AZURE_TENANT_ID"
             "AZURE_SUBSCRIPTION_ID"
             "AZURE_KEYVAULT_NAME"
           )
-          
+
           missing=()
           for var in "${required_vars[@]}"; do
             if [[ -z "${!var:-}" ]]; then
               missing+=("$var")
             fi
           done
-          
+
           if [[ ${#missing[@]} -gt 0 ]]; then
             printf '❌ GitHub Variables obrigatórios ausentes: %s\n' "${missing[*]}"
             exit 1
           fi
-          
+
           echo "✅ All required variables are present"
 
       - name: Validate YAML files
@@ -88,13 +88,13 @@ jobs:
           python3 -c "
           import yaml
           import pathlib
-          
+
           # Validar arquivos YAML principais
           yaml_files = [
               'docker-compose.yml',
               'traefik/traefik.yml'
           ]
-          
+
           for file_path in yaml_files:
               if pathlib.Path(file_path).exists():
                   try:
@@ -111,15 +111,15 @@ jobs:
           # Configurar ambiente de cache inteligente
           CACHE_DIR="/tmp/.traefik-cache"
           mkdir -p "$CACHE_DIR"/{configs,secrets,compose}
-          
+
           # Gerar chaves de cache baseadas em hash dos arquivos
           CONFIG_HASH=$(find traefik/ -name "*.yml" -o -name "*.yaml" | sort | xargs sha256sum | sha256sum | cut -d' ' -f1 | head -c 12)
           COMPOSE_HASH=$(sha256sum docker-compose.yml | cut -d' ' -f1 | head -c 12)
-          
+
           echo "CONFIG_CACHE_KEY=traefik-config-${CONFIG_HASH}" >> $GITHUB_ENV
           echo "COMPOSE_CACHE_KEY=traefik-compose-${COMPOSE_HASH}" >> $GITHUB_ENV
           echo "CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
-          
+
           echo "✅ Cache optimization configurado"
 
       - name: Upload artifacts
@@ -155,9 +155,9 @@ jobs:
       - name: Azure Login (OIDC) with Security Hardening
         uses: azure/login@v2
         with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           audience: api://AzureADTokenExchange
           allow-no-subscriptions: false
 
@@ -165,7 +165,7 @@ jobs:
         id: kv
         shell: bash
         env:
-          AZURE_KEYVAULT_NAME: ${{ vars.AZURE_KEYVAULT_NAME }}
+          AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
         run: |
           set -Eeuo pipefail
           IFS=$'\n\t'
@@ -230,7 +230,7 @@ jobs:
           TRAEFIK_BASICAUTH: ${{ env.TRAEFIK_BASICAUTH }}
         run: |
           set -Eeuo pipefail
-          
+
           # Validar segredos essenciais
           if [[ -z "$DASHBOARD_SECRET" || -z "$ACME_EMAIL" ]]; then
             echo '❌ Segredos essenciais não retornados pelo Key Vault'
@@ -238,20 +238,20 @@ jobs:
             echo "ACME_EMAIL: $([ -n "$ACME_EMAIL" ] && echo "✅ Presente" || echo "❌ Ausente")"
             exit 1
           fi
-          
+
           echo "::add-mask::$DASHBOARD_SECRET"
           echo "::add-mask::$ACME_EMAIL"
-          
+
           # Mascarar segredos opcionais se presentes
           [[ -n "${SSL_CERT_PASSWORD:-}" ]] && echo "::add-mask::$SSL_CERT_PASSWORD"
           [[ -n "${TRAEFIK_BASICAUTH:-}" ]] && echo "::add-mask::$TRAEFIK_BASICAUTH"
 
           mkdir -p secrets letsencrypt
-          
+
           # Criar arquivo de basic auth apenas com o segredo essencial
           printf '%s\n' "$DASHBOARD_SECRET" > secrets/traefik-basicauth
           chmod 600 secrets/traefik-basicauth
-          
+
           # Adicionar auth opcional se disponível
           if [[ -n "${TRAEFIK_BASICAUTH:-}" ]]; then
             printf '%s\n' "$TRAEFIK_BASICAUTH" > secrets/traefik-optional-auth
@@ -271,7 +271,7 @@ jobs:
 
           acme_email = os.environ['ACME_EMAIL']
           env_path = pathlib.Path('.env')
-          
+
           if env_path.exists():
               lines = env_path.read_text(encoding='utf-8').splitlines()
               seen_acme = False
@@ -291,7 +291,7 @@ jobs:
                   if not seen_staging:
                       handle.write('LETSENCRYPT_STAGING=false\n')
           "
-          
+
           echo "✅ Configuração de segredos concluída"
 
       - name: Ensure Docker network
