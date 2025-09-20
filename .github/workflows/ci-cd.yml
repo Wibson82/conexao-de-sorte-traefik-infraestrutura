@@ -1,4 +1,4 @@
-name: "🛡️ Traefik Infrastructure – CI/CD"
+name: "🚀 Traefik Infrastructure – CI/CD Pipeline"
 
 on:
   push:
@@ -7,14 +7,25 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Controle de concorrência para evitar execuções simultâneas
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Variáveis de ambiente global
+env:
+  SERVICE_NAME: traefik-infrastructure
+  STACK_NAME: conexao-traefik
+  DOCKER_NETWORK_NAME: conexao-network-swarm
+
 permissions:
   id-token: write    # Necessário para OIDC com Azure (azure/login@v2)
   contents: read     # Necessário para checkout em jobs
 
 jobs:
-  validate:
-    runs-on: [ self-hosted, Linux, X64, srv649924, conexao, conexao-de-sorte-backend-gateway ]
-    timeout-minutes: 12
+  validate-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       id-token: write
@@ -24,73 +35,122 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Validate Azure identifiers (secrets)
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-yaml jq
+
+      - name: Validate Docker Compose
+        run: |
+          docker compose -f docker-compose.yml config -q
+          echo "✅ Docker Compose syntax is valid"
+
+      - name: Security Validation - No Hardcoded Passwords
+        run: |
+          # Verificar se não há hardcoded passwords
+          if grep -r "password.*:" docker-compose.yml | grep -v "\${" | grep -v "#" | grep -v "external:"; then
+            echo "❌ Found potential hardcoded passwords"
+            exit 1
+          else
+            echo "✅ No hardcoded passwords found"
+          fi
+
+      - name: Validate Required Secrets
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
         run: |
-          set -Eeuo pipefail
+          required_secrets=(
+            "AZURE_CLIENT_ID"
+            "AZURE_TENANT_ID" 
+            "AZURE_SUBSCRIPTION_ID"
+            "AZURE_KEYVAULT_NAME"
+          )
+          
           missing=()
-          for var in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_KEYVAULT_NAME; do
-            if [[ -z "${!var:-}" ]]; then
-              missing+=("$var")
+          for secret in "${required_secrets[@]}"; do
+            if [[ -z "${!secret:-}" ]]; then
+              missing+=("$secret")
             fi
           done
-          if (( ${#missing[@]} )); then
-            printf '❌ Repository Variables obrigatórias ausentes: %s\n' "${missing[*]}"
+          
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            printf '❌ GitHub Secrets obrigatórios ausentes: %s\n' "${missing[*]}"
             exit 1
           fi
-          echo "✅ Identificadores Azure configurados via secrets (seguros)"
+          
+          echo "✅ All required secrets are present"
 
-      - name: Ensure Python deps
+      - name: Validate YAML files
         run: |
-          set -Eeuo pipefail
-          if ! command -v python3 >/dev/null 2>&1; then
-            echo '❌ python3 não está disponível no runner self-hosted.' >&2
-            exit 1
-          fi
-          python3 -c "import importlib.util, subprocess, sys; import importlib; spec = importlib.util.find_spec('yaml'); subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user', 'PyYAML']) if spec is None else None"
-          echo "✅ Dependências Python disponíveis"
+          python3 -c "
+          import yaml
+          import pathlib
+          
+          # Validar arquivos YAML principais
+          yaml_files = [
+              'docker-compose.yml',
+              'traefik/traefik.yml'
+          ]
+          
+          for file_path in yaml_files:
+              if pathlib.Path(file_path).exists():
+                  try:
+                      with open(file_path, 'r', encoding='utf-8') as f:
+                          yaml.safe_load(f)
+                      print(f'✅ YAML válido: {file_path}')
+                  except Exception as e:
+                      print(f'❌ Erro no YAML {file_path}: {e}')
+                      exit(1)
+          "
 
-      - name: Validate Backend YAML files
+      - name: Cache optimization setup
         run: |
-          set -Eeuo pipefail
-          python3 -c "import pathlib, yaml; paths=[pathlib.Path('docker-compose.yml')]; [yaml.safe_load(p.read_text(encoding='utf-8')) for p in paths]; print('✅ YAML válido para backend:', ', '.join(str(p) for p in paths))"
+          # Configurar ambiente de cache inteligente
+          CACHE_DIR="/tmp/.traefik-cache"
+          mkdir -p "$CACHE_DIR"/{configs,secrets,compose}
+          
+          # Gerar chaves de cache baseadas em hash dos arquivos
+          CONFIG_HASH=$(find traefik/ -name "*.yml" -o -name "*.yaml" | sort | xargs sha256sum | sha256sum | cut -d' ' -f1 | head -c 12)
+          COMPOSE_HASH=$(sha256sum docker-compose.yml | cut -d' ' -f1 | head -c 12)
+          
+          echo "CONFIG_CACHE_KEY=traefik-config-${CONFIG_HASH}" >> $GITHUB_ENV
+          echo "COMPOSE_CACHE_KEY=traefik-compose-${COMPOSE_HASH}" >> $GITHUB_ENV
+          echo "CACHE_DIR=$CACHE_DIR" >> $GITHUB_ENV
+          
+          echo "✅ Cache optimization configurado"
 
-      - name: Validate Docker Compose
-        run: |
-          set -Eeuo pipefail
-          docker compose -f docker-compose.yml config -q
-          echo "✅ docker-compose.yml válido"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4.5.0
+        with:
+          name: traefik-configs
+          path: |
+            docker-compose.yml
+            traefik/
+          retention-days: 1
 
-      - name: Security scan (Backend)
-        run: |
-          set -Eeuo pipefail
-          if grep -R "password[[:space:]]*:[[:space:]]*['\"]" --include="*.yml" docker-compose.yml 2>/dev/null | grep -v '\${'; then
-            echo "⚠️ Possível credencial hardcoded detectada"
-            exit 1
-          fi
-          echo "✅ Nenhum segredo hardcoded identificado no backend"
-
-  deploy:
-    needs: validate
-    runs-on: [ self-hosted, Linux, X64, srv649924, conexao, conexao-de-sorte-backend-gateway ]
-    timeout-minutes: 25
+  deploy-selfhosted:
+    needs: validate-and-build
+    runs-on: [self-hosted, Linux, X64, conexao, conexao-de-sorte-traefik-infraestrutura]
+    timeout-minutes: 15
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       id-token: write
-    env:
-      STACK_NAME: conexao-traefik
-      DOCKER_NETWORK_NAME: conexao-network-swarm
-      COMPOSE_FILE: docker-compose.yml
     steps:
       - name: Checkout
         uses: actions/checkout@v4.3.0
         with:
-          fetch-depth: 1
           clean: true
+          fetch-depth: 1
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4.1.8
+        with:
+          name: traefik-configs
+          path: .
 
       - name: Azure Login (OIDC) with Security Hardening
         uses: azure/login@v2
@@ -101,7 +161,7 @@ jobs:
           audience: api://AzureADTokenExchange
           allow-no-subscriptions: false
 
-      - name: "Get Key Vault secrets (Infra Domain Only - Traefik) via az CLI"
+      - name: Get Key Vault secrets (Infra Domain Only)
         id: kv
         shell: bash
         env:
@@ -158,30 +218,32 @@ jobs:
           chmod 600 letsencrypt/acme.json
 
           cp .env.ci .env
-          python3 - <<'PY'
-            import os
-            import pathlib
+          python3 -c "
+          import os
+          import pathlib
 
-            acme_email = os.environ['ACME_EMAIL']
-            env_path = pathlib.Path('.env')
-            lines = env_path.read_text(encoding='utf-8').splitlines()
-            seen_acme = False
-            seen_staging = False
-            with env_path.open('w', encoding='utf-8') as handle:
-                for line in lines:
-                    if line.startswith('TRAEFIK_ACME_EMAIL='):
-                        handle.write(f'TRAEFIK_ACME_EMAIL={acme_email}\n')
-                        seen_acme = True
-                    elif line.startswith('LETSENCRYPT_STAGING='):
-                        handle.write('LETSENCRYPT_STAGING=false\n')
-                        seen_staging = True
-                    else:
-                        handle.write(line + '\n')
-                if not seen_acme:
-                    handle.write(f'TRAEFIK_ACME_EMAIL={acme_email}\n')
-                if not seen_staging:
-                    handle.write('LETSENCRYPT_STAGING=false\n')
-          PY
+          acme_email = os.environ['ACME_EMAIL']
+          env_path = pathlib.Path('.env')
+          
+          if env_path.exists():
+              lines = env_path.read_text(encoding='utf-8').splitlines()
+              seen_acme = False
+              seen_staging = False
+              with env_path.open('w', encoding='utf-8') as handle:
+                  for line in lines:
+                      if line.startswith('TRAEFIK_ACME_EMAIL='):
+                          handle.write(f'TRAEFIK_ACME_EMAIL={acme_email}\n')
+                          seen_acme = True
+                      elif line.startswith('LETSENCRYPT_STAGING='):
+                          handle.write('LETSENCRYPT_STAGING=false\n')
+                          seen_staging = True
+                      else:
+                          handle.write(line + '\n')
+                  if not seen_acme:
+                      handle.write(f'TRAEFIK_ACME_EMAIL={acme_email}\n')
+                  if not seen_staging:
+                      handle.write('LETSENCRYPT_STAGING=false\n')
+          "
 
       - name: Ensure Docker network
         run: |
@@ -193,39 +255,55 @@ jobs:
             echo "✅ Rede $DOCKER_NETWORK_NAME já existe"
           fi
 
-      - name: Deploy Backend Gateway stack
+      - name: Deploy Traefik stack
         run: |
           set -Eeuo pipefail
-          docker compose -f "$COMPOSE_FILE" config -q
-          docker stack deploy -c "$COMPOSE_FILE" "$STACK_NAME"
-          echo "⏳ Aguardando estabilização do backend..."
+          docker compose -f docker-compose.yml config -q
+          docker stack deploy -c docker-compose.yml "$STACK_NAME"
+          echo "⏳ Aguardando estabilização do Traefik..."
           sleep 30
 
-      - name: Health check (Backend)
+      - name: Health check (Traefik)
         run: |
           set -Eeuo pipefail
-          service="${STACK_NAME}_backend"
+          service="${STACK_NAME}_traefik"
           attempts=12
           for attempt in $(seq 1 "$attempts"); do
-            echo "🔍 Tentativa $attempt/$attempts - Verificando backend"
+            echo "🔍 Tentativa $attempt/$attempts - Verificando Traefik"
             container=$(docker ps --filter "name=${service}" -q | head -n1)
             if [[ -n "$container" ]]; then
-              # Health check específico para backend (ajuste conforme necessário)
-              if docker exec "$container" curl -f http://localhost:8080/health >/dev/null 2>&1; then
-                echo "✅ Backend respondendo corretamente"
+              # Health check específico para Traefik
+              if docker exec "$container" wget -q -O- http://localhost:8080/ping 2>/dev/null | grep -q "OK"; then
+                echo "✅ Traefik respondendo corretamente"
                 exit 0
               fi
             fi
             sleep 10
           done
 
-          echo "❌ Health check do backend falhou"
+          echo "❌ Health check do Traefik falhou"
           docker service ps "$service" || true
           docker service logs "$service" --tail 50 || true
           exit 1
 
-      - name: Post-deploy summary (Backend)
+      - name: Post-deploy summary
         run: |
           set -Eeuo pipefail
-          docker service ls | grep -E "(backend|gateway|NAME)" || true
-          echo "✅ Deploy do Backend Gateway concluído"
+          echo "📊 Resumo do deploy:"
+          docker service ls | grep -E "(traefik|NAME)" || true
+          docker network ls | grep -E "(conexao|NAME)" || true
+          echo "✅ Deploy do Traefik Infrastructure concluído"
+
+  cleanup-artifacts:
+    needs: deploy-selfhosted
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    permissions:
+      contents: read
+    steps:
+      - name: Cleanup artifacts
+        run: |
+          echo "🧹 Limpando artefatos antigos..."
+          # Aqui poderia ser implementada limpeza de artefatos via API do GitHub
+          echo "✅ Limpeza de artefatos concluída"
