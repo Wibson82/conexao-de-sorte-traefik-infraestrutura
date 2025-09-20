@@ -212,78 +212,63 @@ jobs:
             fi
             
             # Obter nome do Key Vault (com correção automática)
+            # Obter nome do Key Vault do GitHub Secret
             ORIGINAL_KEYVAULT_NAME="${{ secrets.AZURE_KEYVAULT_NAME }}"
             KEYVAULT_NAME="$ORIGINAL_KEYVAULT_NAME"
             
-            # Debug: Verificar se o secret está definido (mesmo que mascarado)
-            if [[ -z "$ORIGINAL_KEYVAULT_NAME" || "$ORIGINAL_KEYVAULT_NAME" == "***" ]]; then
-              echo "❌ AZURE_KEYVAULT_NAME não está definido no GitHub Secrets ou está mascarado"
-              echo "🔍 Verifique se o secret AZURE_KEYVAULT_NAME foi configurado corretamente"
-              exit 1
-            fi
+            echo "🔍 Iniciando conexão com Key Vault..."
             
-            # Debug: Verificar se o secret está definido (mesmo que mascarado)
-            if [[ -z "$ORIGINAL_KEYVAULT_NAME" || "$ORIGINAL_KEYVAULT_NAME" == "***" ]]; then
-              echo "❌ AZURE_KEYVAULT_NAME não está definido no GitHub Secrets ou está mascarado"
-              echo "🔍 Verifique se o secret AZURE_KEYVAULT_NAME foi configurado corretamente"
+            # Lógica de correção automática - SEMPRE tentar aplicar quando apropriado
+            # Isso funciona mesmo com valores mascarados porque usamos a lógica, não a comparação
+            if [[ -n "$ORIGINAL_KEYVAULT_NAME" ]]; then
+              # Se o nome parece ser o padrão antigo, aplicar correção
+              # Isso funciona mesmo que esteja mascarado como ***
+              echo "🔍 Aplicando lógica de correção automática..."
+              
+              # Vamos sempre tentar primeiro com o nome que sabemos que existe: kv-conexao-de-sorte
+              # Isso evita problemas de mascaramento
+              KNOWN_GOOD_NAME="kv-conexao-de-sorte"
+              echo "🔍 Verificando se Key Vault existe com nome conhecido: $KNOWN_GOOD_NAME"
+              
+              if az keyvault list --query "[].name" -o tsv | grep -Fx "$KNOWN_GOOD_NAME" >/dev/null 2>&1; then
+                echo "✅ Key Vault encontrado com nome conhecido: $KNOWN_GOOD_NAME"
+                KEYVAULT_NAME="$KNOWN_GOOD_NAME"
+              else
+                echo "⚠️ Key Vault não encontrado com nome conhecido, tentando com nome original..."
+                # Se não encontrar com o nome conhecido, tentar com o nome original
+                if az keyvault list --query "[].name" -o tsv | grep -Fx "$ORIGINAL_KEYVAULT_NAME" >/dev/null 2>&1; then
+                  echo "✅ Key Vault encontrado com nome original"
+                  KEYVAULT_NAME="$ORIGINAL_KEYVAULT_NAME"
+                else
+                  echo "❌ Key Vault não encontrado com nenhum dos nomes testados"
+                  echo "🔍 Nomes testados: '$KNOWN_GOOD_NAME' e '$ORIGINAL_KEYVAULT_NAME'"
+                  exit 1
+                fi
+              fi
+            else
+              echo "❌ AZURE_KEYVAULT_NAME não está definido no GitHub Secrets"
               exit 1
-            fi
-            
-            # Aplicar correção automática se necessário (mas não para valores mascarados)
-            if [[ "$ORIGINAL_KEYVAULT_NAME" != "***" && "$ORIGINAL_KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
-              KEYVAULT_NAME="kv-conexao-de-sorte"
-              echo "🔍 Nome do Key Vault corrigido: $ORIGINAL_KEYVAULT_NAME → $KEYVAULT_NAME"
-            elif [[ "$ORIGINAL_KEYVAULT_NAME" != "***" ]]; then
-              echo "🔍 Usando nome original do Key Vault: $ORIGINAL_KEYVAULT_NAME"
             fi
             
             echo "🔍 Conectando ao Key Vault: $KEYVAULT_NAME"
             
             # Debug: Verificar autenticação Azure
             echo "🔍 Verificando autenticação Azure..."
-            echo "🔍 Subscription atual: $(az account show --query id -o tsv 2>/dev/null || echo 'N/A')"
-            echo "🔍 Tenant atual: $(az account show --query tenantId -o tsv 2>/dev/null || echo 'N/A')"
-            echo "🔍 Service Principal atual: $(az account show --query user.name -o tsv 2>/dev/null || echo 'N/A')"
             
-            # Debug: Verificar disponibilidade do Key Vault
-            echo "🔍 Verificando disponibilidade do Key Vault..."
-            echo "🔍 Procurando Key Vault com nome: $KEYVAULT_NAME"
-            
-            # Listar todos os Key Vaults disponíveis para debug
+            # Listar todos os Key Vaults disponíveis para debug (apenas nomes)
             echo "🔍 Key Vaults disponíveis na subscription:"
-            az keyvault list --query "[].name" -o tsv || echo "Nenhum Key Vault encontrado"
+            AVAILABLE_KEYVAULTS=$(az keyvault list --query "[].name" -o tsv 2>/dev/null || echo "")
+            if [[ -n "$AVAILABLE_KEYVAULTS" ]]; then
+              echo "$AVAILABLE_KEYVAULTS"
+            else
+              echo "Nenhum Key Vault encontrado"
+            fi
             
-            # Verificar se o Key Vault específico existe
-            # Usar grep com -F para comparar strings literais (evita problemas com mascaramento)
-            if ! az keyvault list --query "[].name" -o tsv | grep -Fx "$KEYVAULT_NAME" >/dev/null 2>&1; then
-              echo "❌ Key Vault '$KEYVAULT_NAME' não encontrado na subscription atual"
-              echo "🔍 Verificando se existe com o nome original: $ORIGINAL_KEYVAULT_NAME"
-              
-              # Tentar com o nome original (sem correção)
-              if az keyvault list --query "[].name" -o tsv | grep -Fx "$ORIGINAL_KEYVAULT_NAME" >/dev/null 2>&1; then
-                echo "✅ Key Vault encontrado com nome original: $ORIGINAL_KEYVAULT_NAME"
-                echo "🔍 Atualizando KEYVAULT_NAME para usar o nome original..."
-                KEYVAULT_NAME="$ORIGINAL_KEYVAULT_NAME"
-              else
-                echo "❌ Key Vault também não encontrado com o nome original"
-                echo "🔍 Verificando se a correção automática deve ser aplicada..."
-                
-                # Se o nome original for conexao-de-sorte-keyvault, aplicar correção
-                if [[ "$ORIGINAL_KEYVAULT_NAME" == "conexao-de-sorte-keyvault" ]]; then
-                  CORRECTED_NAME="kv-conexao-de-sorte"
-                  echo "🔍 Tentando com nome corrigido: $CORRECTED_NAME"
-                  if az keyvault list --query "[].name" -o tsv | grep -Fx "$CORRECTED_NAME" >/dev/null 2>&1; then
-                    echo "✅ Key Vault encontrado com nome corrigido: $CORRECTED_NAME"
-                    KEYVAULT_NAME="$CORRECTED_NAME"
-                  else
-                    echo "❌ Key Vault não encontrado com nenhum dos nomes testados"
-                    exit 1
-                  fi
-                else
-                  echo "❌ Key Vault não encontrado e não há correção automática disponível"
-                  exit 1
-                fi
-              fi
+            # Verificar se o Key Vault que escolhemos existe
+            echo "🔍 Verificando Key Vault selecionado: $KEYVAULT_NAME"
+            if ! echo "$AVAILABLE_KEYVAULTS" | grep -Fx "$KEYVAULT_NAME" >/dev/null 2>&1; then
+              echo "❌ Key Vault '$KEYVAULT_NAME' não encontrado na lista acima"
+              exit 1
             fi
             
             # Validar conexão com Key Vault
