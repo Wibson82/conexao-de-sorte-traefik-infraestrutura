@@ -61,34 +61,57 @@ fi
 
 echo
 
-# 2. Verificar Azure CLI e Key Vault
-echo "🔐 Verificando Azure Key Vault..."
+# 2. Verificar Azure Key Vault - APENAS segredos do Traefik Infrastructure
+echo "🔐 Verificando Azure Key Vault (Traefik Infrastructure only)..."
 if command -v az &> /dev/null; then
     if [[ -n "${AZURE_KEYVAULT_NAME:-}" ]]; then
         # Tentar listar segredos do Key Vault
         if az keyvault secret list --vault-name "$AZURE_KEYVAULT_NAME" --query "[].name" -o tsv &>/dev/null; then
             log_info "✅ Azure Key Vault está acessível"
             
-            # Verificar segredos essenciais
+            # Verificar apenas segredos ESSENCIAIS do Traefik Infrastructure
             essential_secrets=(
                 "conexao-de-sorte-letsencrypt-email"
                 "conexao-de-sorte-traefik-dashboard-password"
             )
             
+            # Verificar segredos OPCIONAIS do Traefik Infrastructure
+            optional_secrets=(
+                "conexao-de-sorte-ssl-cert-password"
+                "conexao-de-sorte-traefik-admin-password"
+                "conexao-de-sorte-traefik-audit-password"
+                "conexao-de-sorte-traefik-crypto-password"
+            )
+            
             secrets_ok=true
+            echo
+            log_info "📋 Verificando segredos ESSENCIAIS do Traefik Infrastructure:"
             for secret in "${essential_secrets[@]}"; do
                 if az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name "$secret" --query value -o tsv &>/dev/null; then
                     log_info "✅ $secret está presente no Key Vault"
                 else
-                    log_error "❌ $secret não encontrado no Key Vault"
+                    log_error "❌ $secret não encontrado no Key Vault (ESSENCIAL)"
                     secrets_ok=false
                 fi
             done
             
+            echo
+            log_info "📋 Verificando segredos OPCIONAIS do Traefik Infrastructure:"
+            for secret in "${optional_secrets[@]}"; do
+                if az keyvault secret show --vault-name "$AZURE_KEYVAULT_NAME" --name "$secret" --query value -o tsv &>/dev/null; then
+                    log_info "✅ $secret está presente no Key Vault"
+                else
+                    log_warn "⚠️  $secret não encontrado no Key Vault (opcional)"
+                fi
+            done
+            
             if [[ "$secrets_ok" == true ]]; then
-                log_info "✅ Todos os segredos essenciais estão presentes no Key Vault"
+                log_info "✅ Todos os segredos ESSENCIAIS do Traefik Infrastructure estão presentes no Key Vault"
             else
-                log_warn "⚠️  Alguns segredos essenciais estão faltando no Key Vault"
+                log_error "❌ Segredos ESSENCIAIS do Traefik Infrastructure estão faltando no Key Vault"
+                echo
+                log_info "💡 Para criar os segredos essenciais, execute:"
+                log_info "   ./setup-keyvault-secrets.sh $AZURE_KEYVAULT_NAME seu-email@dominio.com"
             fi
         else
             log_error "❌ Não foi possível acessar o Azure Key Vault. Verifique suas credenciais e permissões."
