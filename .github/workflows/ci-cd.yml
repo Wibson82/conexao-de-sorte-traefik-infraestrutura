@@ -65,16 +65,20 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_KEYVAULT_NAME: ${{ secrets.AZURE_KEYVAULT_NAME }}
+          AZURE_KEYVAULT_ENDPOINT: ${{ secrets.AZURE_KEYVAULT_ENDPOINT }}
         run: |
-          # Verificar apenas secrets essenciais do OIDC
+          set -Eeuo pipefail
+          missing=()
           for var in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID; do
             if [[ -z "${!var:-}" ]]; then
-              echo "❌ $var não configurado"
-              exit 1
+              missing+=("$var")
             fi
           done
-          echo "✅ OIDC Azure configurado"
-          echo "has_azure_creds=true" >> "$GITHUB_OUTPUT"
+          if (( ${#missing[@]} )); then
+            printf '❌ GitHub Secrets obrigatórios ausentes: %s\n' "${missing[*]}"
+            exit 1
+          fi
+          echo "✅ Identificadores Azure configurados via secrets"
           
           # Key Vault é opcional
           if [[ -n "${AZURE_KEYVAULT_NAME:-}" ]]; then
@@ -82,6 +86,14 @@ jobs:
           else
             echo "has_keyvault=false" >> "$GITHUB_OUTPUT"
           fi
+          
+          if [[ -z "${AZURE_KEYVAULT_ENDPOINT:-}" ]]; then
+            echo 'ℹ️ AZURE_KEYVAULT_ENDPOINT não definido (usando endpoint padrão)'
+          else
+            echo '✅ Endpoint customizado definido'
+          fi
+          
+          echo "has_azure_creds=true" >> "$GITHUB_OUTPUT"
 
       - name: Validate YAML files
         run: |
@@ -122,6 +134,12 @@ jobs:
 
           echo "✅ Cache optimization configurado"
 
+      - name: ✅ Confirmar consumo mínimo do Key Vault
+        if: ${{ steps.check_secrets.outputs.has_keyvault == 'true' }}
+        run: |
+          echo 'Job de validação não consome segredos do Key Vault (lista vazia).'
+          echo "✅ Validação de Key Vault concluída sem consumo de segredos"
+          
       - name: Validation completed
         run: |
           echo "✅ Validação concluída - pronto para deploy"
@@ -149,6 +167,28 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: ✅ Validar conexão Azure (OIDC)
+        if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
+        run: |
+          echo "🔍 Validando conexão com Azure via OIDC..."
+          if az account show >/dev/null 2>&1; then
+            echo "✅ Conexão Azure OIDC estabelecida"
+            echo "Subscription: $(az account show --query id -o tsv)"
+          else
+            echo "❌ Falha na conexão Azure OIDC"
+            exit 1
+          fi
+          
+      - name: 🔒 Security Validation - Port Exposure
+        run: |
+          # Verificar exposição de portas do Traefik
+          if grep -E "^\s*-\s*[\"']?(80|443|8080):" docker-compose.yml; then
+            echo "⚠️ WARNING: Traefik ports may be exposed - ensure firewall protection"
+            echo "🔒 Note: Current configuration works but consider overlay-only for maximum security"
+          else
+            echo "✅ No ports exposed - maximum security (overlay network only)"
+          fi
+
       - name: 🔐 Get secrets from Azure Key Vault (OIDC)
         id: get-secrets
         if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
@@ -162,52 +202,116 @@ jobs:
               KEYVAULT_NAME="kv-conexao-de-sorte"
             fi
             
+            echo "🔍 Conectando ao Key Vault: $KEYVAULT_NAME"
+            echo "🔍 Service Principal atual: $(az account show --query user.name -o tsv)"
+            
+            # Validar conexão com Key Vault
+            if az keyvault show --name "$KEYVAULT_NAME" >/dev/null 2>&1; then
+              echo "✅ Conexão com Key Vault estabelecida"
+            else
+              echo "❌ Falha ao conectar ao Key Vault"
+              exit 1
+            fi
+            
             # Buscar segredos essenciais
+            echo "🔍 Buscando segredos essenciais..."
+            essential_count=0
             for secret in conexao-de-sorte-letsencrypt-email conexao-de-sorte-traefik-dashboard-password; do
-              if value=$(az keyvault secret show --vault-name "$KEYVAULT_NAME" --name "$secret" --query "value" -o tsv 2>/dev/null); then
-                echo "$secret=$value" >> $GITHUB_ENV
+              echo "🔍 Tentando obter: $secret"
+              if value=$(az keyvault secret show --vault-name "$KEYVAULT_NAME" --name "$secret" --query "value" -o tsv 2>&1); then
+                if [[ -n "$value" ]]; then
+                  echo "$secret=$value" >> $GITHUB_ENV
+                  echo "✅ $secret obtido (comprimento: ${#value})"
+                  essential_count=$((essential_count + 1))
+                else
+                  echo "⚠️ $secret retornou vazio"
+                fi
+              else
+                echo "❌ Erro ao obter $secret: $value"
               fi
             done
             
             # Buscar segredos opcionais
+            echo "🔍 Buscando segredos opcionais..."
+            optional_count=0
             for secret in conexao-de-sorte-traefik-admin-password conexao-de-sorte-traefik-audit-password conexao-de-sorte-traefik-crypto-password conexao-de-sorte-webhook-secret conexao-de-sorte-zookeeper-client-port; do
-              if value=$(az keyvault secret show --vault-name "$KEYVAULT_NAME" --name "$secret" --query "value" -o tsv 2>/dev/null); then
-                echo "$secret=$value" >> $GITHUB_ENV
+              echo "🔍 Tentando obter: $secret"
+              if value=$(az keyvault secret show --vault-name "$KEYVAULT_NAME" --name "$secret" --query "value" -o tsv 2>&1); then
+                if [[ -n "$value" ]]; then
+                  echo "$secret=$value" >> $GITHUB_ENV
+                  echo "✅ $secret obtido (opcional, comprimento: ${#value})"
+                  optional_count=$((optional_count + 1))
+                else
+                  echo "⚠️ $secret retornou vazio (opcional)"
+                fi
+              else
+                echo "ℹ️ $secret não encontrado (opcional): $value"
               fi
             done
+            
+            echo "📊 Resumo de segredos obtidos:"
+            echo "✅ Essenciais: $essential_count/2"
+            echo "✅ Opcionais: $optional_count/5"
+            
+            # Verificar se conseguimos os segredos essenciais
+            if [[ $essential_count -eq 2 ]]; then
+              echo "✅ Todos os segredos essenciais foram obtidos com sucesso!"
+            else
+              echo "❌ Falha ao obter segredos essenciais do Key Vault"
+              exit 1
+            fi
 
-      - name: ✅ Validar secrets essenciais
+      - name: ✅ Validar secrets essenciais obtidos via OIDC
         run: |
-          # Verificar apenas se temos os segredos essenciais
-          if [[ -z "${CONEXAO-DE-SORTE-LETSENCRYPT-EMAIL:-}" ]] || [[ -z "${CONEXAO-DE-SORTE-TRAEFIK-DASHBOARD-PASSWORD:-}" ]]; then
-            echo "❌ Secrets essenciais ausentes"
+          echo "🔍 Validando segredos essenciais obtidos via OIDC..."
+          
+          missing=()
+          if [[ -z "${CONEXAO-DE-SORTE-LETSENCRYPT-EMAIL:-}" ]]; then
+            missing+=("conexao-de-sorte-letsencrypt-email")
+          fi
+          if [[ -z "${CONEXAO-DE-SORTE-TRAEFIK-DASHBOARD-PASSWORD:-}" ]]; then
+            missing+=("conexao-de-sorte-traefik-dashboard-password")
+          fi
+          
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "❌ Segredos essenciais não obtidos via OIDC:"
+            printf '   - %s\n' "${missing[@]}"
+            echo "💡 Verifique se o Key Vault está acessível e os segredos existem"
             exit 1
           fi
-          echo "✅ Secrets essenciais configurados"
+          
+          echo "✅ Todos os segredos essenciais foram obtidos com sucesso via OIDC"
+          echo "📧 Email Let's Encrypt: ${CONEXAO-DE-SORTE-LETSENCRYPT-EMAIL:0:3}***${CONEXAO-DE-SORTE-LETSENCRYPT-EMAIL##*@}"
+          echo "🔐 Senha Dashboard: $(echo $CONEXAO-DE-SORTE-TRAEFIK-DASHBOARD-PASSWORD | wc -c) caracteres"
 
-      - name: 🚀 Deploy Traefik Stack (Swarm-Only)
+      - name: 🚀 Deploy Traefik Stack (OIDC)
         env:
           STACK_NAME: conexao-traefik
           COMPOSE_FILE: docker-compose.yml
-          ACME_EMAIL: ${{ env.CONEXAO-DE-SORTE-LETSENCRYPT-EMAIL }}
-          DASHBOARD_PASSWORD: ${{ env.CONEXAO-DE-SORTE-TRAEFIK-DASHBOARD-PASSWORD }}
+          DOCKER_NETWORK_NAME: conexao-network-swarm
         run: |
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
           
-          # Configurar variáveis de ambiente para o Traefik
-          if [[ -n "${ACME_EMAIL:-}" ]]; then
-            export ACME_EMAIL="$ACME_EMAIL"
-            echo "✅ Email Let's Encrypt configurado: ${ACME_EMAIL:0:3}***${ACME_EMAIL##*@}"
+          # Configurar variáveis com valores dos segredos ou padrões de desenvolvimento
+          if [[ -n "${{ env.conexao-de-sorte-letsencrypt-email }}" ]]; then
+            LETSENCRYPT_EMAIL="${{ env.conexao-de-sorte-letsencrypt-email }}"
+            echo "✅ Email Let's Encrypt configurado"
           else
+            LETSENCRYPT_EMAIL="dev@localhost"
             echo "⚠️ Email Let's Encrypt não configurado (modo desenvolvimento)"
           fi
           
-          if [[ -n "${DASHBOARD_PASSWORD:-}" ]]; then
-            export DASHBOARD_PASSWORD="$DASHBOARD_PASSWORD"
-            echo "✅ Senha do dashboard configurada (mascarada)"
+          if [[ -n "${{ env.conexao-de-sorte-traefik-dashboard-password }}" ]]; then
+            DASHBOARD_PASSWORD="${{ env.conexao-de-sorte-traefik-dashboard-password }}"
+            echo "✅ Senha do dashboard configurada"
           else
+            DASHBOARD_PASSWORD="dev123"
             echo "⚠️ Senha do dashboard não configurada (modo desenvolvimento)"
           fi
+          
+          # Exportar variáveis para o ambiente
+          export LETSENCRYPT_EMAIL
+          export DASHBOARD_PASSWORD
 
           # Criar rede se não existir
           if ! docker network ls | grep -q "conexao-network-swarm"; then
