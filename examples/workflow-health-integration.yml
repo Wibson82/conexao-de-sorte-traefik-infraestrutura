@@ -1,0 +1,309 @@
+# =============================================================================
+# 🏥 EXEMPLO: Integração Health Monitor com GitHub Actions
+# =============================================================================
+#
+# Este arquivo mostra como integrar os endpoints de health centralizados
+# do Traefik com workflows de GitHub Actions para validação automática
+# de deploys e monitoramento contínuo.
+#
+# Copie os trechos relevantes para seus workflows de microserviços.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 🎯 EXEMPLO 1: Validação Básica de Deploy
+# -----------------------------------------------------------------------------
+example_basic_health_check:
+  steps:
+    - name: 🏥 Validate service deployment
+      run: |
+        SERVICE_NAME="resultados"
+        HEALTH_URL="https://traefik.conexaodesorte.com.br/health/service/${SERVICE_NAME}"
+
+        echo "🔍 Checking health of service: $SERVICE_NAME"
+
+        # Wait for service to become healthy (max 5 minutes)
+        timeout 300 bash -c "
+          while true; do
+            response=\$(curl -s -f '$HEALTH_URL' || echo '{\"status\":\"error\"}')
+            status=\$(echo \"\$response\" | jq -r '.status // \"error\"')
+
+            case \"\$status\" in
+              'healthy')
+                echo '✅ Service $SERVICE_NAME is healthy'
+                exit 0
+                ;;
+              'starting')
+                echo '⏳ Service $SERVICE_NAME is starting... waiting 10s'
+                sleep 10
+                ;;
+              'down'|'error')
+                echo '❌ Service $SERVICE_NAME is down or error occurred'
+                echo \"Response: \$response\"
+                sleep 10
+                ;;
+              *)
+                echo '⚠️ Unknown status: \$status, retrying...'
+                sleep 10
+                ;;
+            esac
+          done
+        "
+
+# -----------------------------------------------------------------------------
+# 🎯 EXEMPLO 2: Validação Avançada com Rollback
+# -----------------------------------------------------------------------------
+example_advanced_health_check:
+  steps:
+    - name: 🏥 Advanced deployment validation with rollback
+      id: health_check
+      run: |
+        OVERALL_URL="https://traefik.conexaodesorte.com.br/health/overall"
+        SERVICE_NAME="resultados"
+        SERVICE_URL="https://traefik.conexaodesorte.com.br/health/service/${SERVICE_NAME}"
+
+        echo "🔍 Starting advanced health check for $SERVICE_NAME"
+
+        # Function to check overall system health
+        check_overall_health() {
+          response=$(curl -s -f "$OVERALL_URL" || echo '{"status":"error","healthy":0,"services":0}')
+          healthy=$(echo "$response" | jq -r '.healthy // 0')
+          total=$(echo "$response" | jq -r '.services // 0')
+          status=$(echo "$response" | jq -r '.status // "error"')
+
+          echo "overall_status=$status" >> $GITHUB_OUTPUT
+          echo "healthy_services=$healthy" >> $GITHUB_OUTPUT
+          echo "total_services=$total" >> $GITHUB_OUTPUT
+
+          if [[ $total -gt 0 ]]; then
+            health_percentage=$((healthy * 100 / total))
+            echo "health_percentage=$health_percentage" >> $GITHUB_OUTPUT
+
+            if [[ $health_percentage -ge 80 ]]; then
+              echo "✅ Overall system health: $health_percentage% ($healthy/$total services)"
+              return 0
+            else
+              echo "⚠️ Overall system health degraded: $health_percentage% ($healthy/$total services)"
+              return 1
+            fi
+          else
+            echo "❌ Cannot determine system health (no services found)"
+            return 2
+          fi
+        }
+
+        # Check service-specific health
+        check_service_health() {
+          response=$(curl -s -f "$SERVICE_URL" || echo '{"status":"error"}')
+          status=$(echo "$response" | jq -r '.status // "error"')
+          uptime=$(echo "$response" | jq -r '.uptime // "unknown"')
+
+          echo "service_status=$status" >> $GITHUB_OUTPUT
+          echo "service_uptime=$uptime" >> $GITHUB_OUTPUT
+
+          case "$status" in
+            "healthy")
+              echo "✅ Service $SERVICE_NAME is healthy (uptime: $uptime)"
+              return 0
+              ;;
+            "starting")
+              echo "⏳ Service $SERVICE_NAME is starting (uptime: $uptime)"
+              return 1
+              ;;
+            *)
+              echo "❌ Service $SERVICE_NAME status: $status"
+              echo "Response: $response"
+              return 2
+              ;;
+          esac
+        }
+
+        # Pre-deployment health baseline
+        echo "📊 Checking pre-deployment system health..."
+        if check_overall_health; then
+          echo "baseline_health_ok=true" >> $GITHUB_OUTPUT
+        else
+          echo "baseline_health_ok=false" >> $GITHUB_OUTPUT
+          echo "⚠️ System health was already degraded before deployment"
+        fi
+
+        # Wait for new service to become healthy
+        echo "🔍 Waiting for $SERVICE_NAME to become healthy..."
+        retry_count=0
+        max_retries=30
+
+        while [[ $retry_count -lt $max_retries ]]; do
+          if check_service_health; then
+            echo "deployment_success=true" >> $GITHUB_OUTPUT
+            break
+          fi
+
+          retry_count=$((retry_count + 1))
+          echo "⏳ Attempt $retry_count/$max_retries - waiting 10s before retry..."
+          sleep 10
+        done
+
+        if [[ $retry_count -eq $max_retries ]]; then
+          echo "deployment_success=false" >> $GITHUB_OUTPUT
+          echo "❌ Service failed to become healthy within $(($max_retries * 10)) seconds"
+          exit 1
+        fi
+
+        # Final overall health check
+        echo "🔍 Checking post-deployment system health..."
+        if check_overall_health; then
+          echo "✅ Deployment successful - system health maintained"
+        else
+          echo "⚠️ Deployment may have impacted overall system health"
+          # Continue but mark as warning
+        fi
+
+    - name: 🔄 Rollback on deployment failure
+      if: steps.health_check.outputs.deployment_success == 'false'
+      run: |
+        echo "🔄 Initiating automatic rollback due to health check failure"
+
+        # Your rollback logic here
+        # Example: redeploy previous version
+        docker service update --rollback conexao-resultados_resultados
+
+        # Wait for rollback to complete
+        sleep 30
+
+        # Verify rollback health
+        SERVICE_URL="https://traefik.conexaodesorte.com.br/health/service/resultados"
+        if response=$(curl -s -f "$SERVICE_URL"); then
+          status=$(echo "$response" | jq -r '.status')
+          if [[ "$status" == "healthy" ]]; then
+            echo "✅ Rollback successful - service is healthy again"
+          else
+            echo "❌ Rollback may have failed - service status: $status"
+            exit 1
+          fi
+        else
+          echo "❌ Cannot verify rollback status"
+          exit 1
+        fi
+
+# -----------------------------------------------------------------------------
+# 🎯 EXEMPLO 3: Monitoramento Contínuo (Cron Job)
+# -----------------------------------------------------------------------------
+example_monitoring_job:
+  schedule:
+    - cron: '*/15 * * * *'  # Every 15 minutes
+  steps:
+    - name: 🏥 Continuous health monitoring
+      run: |
+        OVERALL_URL="https://traefik.conexaodesorte.com.br/health/overall"
+        INFRA_URL="https://traefik.conexaodesorte.com.br/health/infrastructure"
+        BACKEND_URL="https://traefik.conexaodesorte.com.br/health/backend"
+
+        # Check overall health
+        overall_response=$(curl -s -f "$OVERALL_URL" || echo '{"status":"error"}')
+        overall_status=$(echo "$overall_response" | jq -r '.status')
+
+        # Check infrastructure health
+        infra_response=$(curl -s -f "$INFRA_URL" || echo '{"status":"error"}')
+        infra_status=$(echo "$infra_response" | jq -r '.status')
+
+        # Check backend health
+        backend_response=$(curl -s -f "$BACKEND_URL" || echo '{"status":"error"}')
+        backend_status=$(echo "$backend_response" | jq -r '.status')
+
+        echo "📊 Health Status Report - $(date)"
+        echo "Overall: $overall_status"
+        echo "Infrastructure: $infra_status"
+        echo "Backend: $backend_status"
+
+        # Create GitHub issue on critical failure
+        if [[ "$overall_status" == "critical" ]]; then
+          gh issue create \
+            --title "🚨 CRITICAL: System Health Failure Detected" \
+            --body "**System Status**: Critical failure detected at $(date)
+
+            **Details:**
+            - Overall Status: $overall_status
+            - Infrastructure: $infra_status
+            - Backend Services: $backend_status
+
+            **Infrastructure Response:**
+            \`\`\`json
+            $infra_response
+            \`\`\`
+
+            **Backend Response:**
+            \`\`\`json
+            $backend_response
+            \`\`\`
+
+            **Next Steps:**
+            1. Check server logs
+            2. Verify container status
+            3. Review recent deployments
+            4. Escalate to on-call team if needed
+
+            *Auto-generated by health monitoring workflow*" \
+            --label "critical,infrastructure,auto-generated"
+        fi
+
+# -----------------------------------------------------------------------------
+# 🎯 EXEMPLO 4: Health Check Matrix (Multiple Services)
+# -----------------------------------------------------------------------------
+example_matrix_health_check:
+  strategy:
+    matrix:
+      service: [resultados, gateway, autenticacao, usuario, scheduler]
+  steps:
+    - name: 🏥 Check ${{ matrix.service }} health
+      id: service_health
+      run: |
+        SERVICE_NAME="${{ matrix.service }}"
+        SERVICE_URL="https://traefik.conexaodesorte.com.br/health/service/${SERVICE_NAME}"
+
+        echo "🔍 Checking health of $SERVICE_NAME..."
+
+        response=$(curl -s -f "$SERVICE_URL" || echo '{"status":"error"}')
+        status=$(echo "$response" | jq -r '.status // "error"')
+        uptime=$(echo "$response" | jq -r '.uptime // "unknown"')
+
+        echo "status=$status" >> $GITHUB_OUTPUT
+        echo "uptime=$uptime" >> $GITHUB_OUTPUT
+
+        case "$status" in
+          "healthy")
+            echo "✅ $SERVICE_NAME: healthy (uptime: $uptime)"
+            ;;
+          "starting")
+            echo "⏳ $SERVICE_NAME: starting (uptime: $uptime)"
+            exit 1  # Fail this matrix job
+            ;;
+          "down"|"error")
+            echo "❌ $SERVICE_NAME: $status"
+            exit 1  # Fail this matrix job
+            ;;
+          *)
+            echo "⚠️ $SERVICE_NAME: unknown status ($status)"
+            exit 1  # Fail this matrix job
+            ;;
+        esac
+
+# -----------------------------------------------------------------------------
+# 📋 ENDPOINTS DISPONÍVEIS
+# -----------------------------------------------------------------------------
+#
+# 1. Status Geral:
+#    GET https://traefik.conexaodesorte.com.br/health/overall
+#    Retorna: {"status":"healthy","services":15,"healthy":12,"starting":2,"down":1}
+#
+# 2. Infraestrutura:
+#    GET https://traefik.conexaodesorte.com.br/health/infrastructure
+#    Retorna: {"status":"healthy","services":6,"healthy":6,"mysql":"healthy","redis":"healthy"}
+#
+# 3. Backend Services:
+#    GET https://traefik.conexaodesorte.com.br/health/backend
+#    Retorna: {"status":"degraded","services":11,"healthy":7,"gateway":"healthy","resultados":"healthy"}
+#
+# 4. Serviço Individual:
+#    GET https://traefik.conexaodesorte.com.br/health/service/{service_name}
+#    Retorna: {"status":"healthy","service":"resultados","uptime":"2h30m","version":"1.0.0"}
+#
+# -----------------------------------------------------------------------------

@@ -1,0 +1,233 @@
+---
+# =============================================================================
+# 🏥 HEALTH MONITOR CENTRALIZADO - TRAEFIK
+# =============================================================================
+#
+# Exposição de endpoints de health check centralizados para:
+# - Integração com GitHub Actions workflows
+# - Monitoramento de infraestrutura
+# - Dashboard de observabilidade
+# - Deploy validation automático
+#
+# Endpoints disponíveis:
+# - /health/overall - Status geral de todos os serviços
+# - /health/infrastructure - Status da infraestrutura (MySQL, Redis, etc)
+# - /health/backend - Status dos microserviços backend
+# - /health/individual/{service} - Status individual por serviço
+# =============================================================================
+
+http:
+  # ===========================================================================
+  # 🌐 ROUTERS - Health Monitor Endpoints
+  # ===========================================================================
+  routers:
+    # -------------------------------------------------------------------------
+    # 📊 HEALTH OVERVIEW - Status geral de todos os serviços
+    # -------------------------------------------------------------------------
+    health-overall:
+      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/overall`)"
+      entrypoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: health-aggregator
+      middlewares:
+        - health-headers
+        - cors-health
+
+    # -------------------------------------------------------------------------
+    # 🗄️ INFRASTRUCTURE HEALTH - MySQL, Redis, Kafka, etc
+    # -------------------------------------------------------------------------
+    health-infrastructure:
+      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/infrastructure`)"
+      entrypoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: health-infrastructure
+      middlewares:
+        - health-headers
+        - cors-health
+
+    # -------------------------------------------------------------------------
+    # 🖥️ BACKEND SERVICES HEALTH - Microserviços aplicação
+    # -------------------------------------------------------------------------
+    health-backend:
+      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/backend`)"
+      entrypoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: health-backend
+      middlewares:
+        - health-headers
+        - cors-health
+
+    # -------------------------------------------------------------------------
+    # 🔍 INDIVIDUAL SERVICE HEALTH - Status por serviço específico
+    # -------------------------------------------------------------------------
+    health-individual:
+      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && PathPrefix(`/health/service/`)"
+      entrypoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: health-individual
+      middlewares:
+        - health-headers
+        - cors-health
+        - health-service-rewrite
+
+  # ===========================================================================
+  # 🏥 SERVICES - Health Check Backends
+  # ===========================================================================
+  services:
+    # -------------------------------------------------------------------------
+    # 📊 HEALTH AGGREGATOR - Consolida status de todos os serviços
+    # -------------------------------------------------------------------------
+    health-aggregator:
+      loadBalancer:
+        servers:
+          # Health endpoint interno do Traefik (API)
+          - url: "http://traefik:8080/api/overview"
+        healthCheck:
+          path: "/ping"
+          interval: 10s
+          timeout: 3s
+
+    # -------------------------------------------------------------------------
+    # 🗄️ INFRASTRUCTURE SERVICES - Status da infraestrutura
+    # -------------------------------------------------------------------------
+    health-infrastructure:
+      loadBalancer:
+        servers:
+          # MySQL Health Check
+          - url: "http://conexao-mysql:3306"
+          # Redis Health Check
+          - url: "http://conexao-redis:6379"
+          # RabbitMQ Health Check
+          - url: "http://conexao-rabbitmq:15672"
+          # Kafka Health Check
+          - url: "http://conexao-kafka:9092"
+        healthCheck:
+          path: "/health"
+          interval: 30s
+          timeout: 5s
+
+    # -------------------------------------------------------------------------
+    # 🖥️ BACKEND MICROSERVICES - Status dos serviços de aplicação
+    # -------------------------------------------------------------------------
+    health-backend:
+      loadBalancer:
+        servers:
+          # Gateway Health Check
+          - url: "http://conexao-gateway:8086"
+          # Resultados Health Check
+          - url: "http://conexao-resultados:8083"
+          # Autenticacao Health Check (quando disponível)
+          - url: "http://conexao-autenticacao:8081"
+          # Usuario Health Check (quando disponível)
+          - url: "http://conexao-usuario:8084"
+        healthCheck:
+          path: "/actuator/health"
+          interval: 30s
+          timeout: 5s
+
+    # -------------------------------------------------------------------------
+    # 🔍 INDIVIDUAL SERVICE - Proxy para health checks individuais
+    # -------------------------------------------------------------------------
+    health-individual:
+      loadBalancer:
+        servers:
+          # Proxy interno que redireciona baseado no path
+          - url: "http://localhost:8080"
+
+  # ===========================================================================
+  # 🔧 MIDDLEWARES - Health Monitor Específicos
+  # ===========================================================================
+  middlewares:
+    # -------------------------------------------------------------------------
+    # 📋 HEALTH HEADERS - Headers específicos para health endpoints
+    # -------------------------------------------------------------------------
+    health-headers:
+      headers:
+        customRequestHeaders:
+          X-Health-Monitor: "traefik-central"
+          X-Monitor-Version: "1.0.0"
+        customResponseHeaders:
+          X-Health-Endpoint: "centralized"
+          X-Cache-Control: "no-cache, no-store, must-revalidate"
+          X-Content-Type-Options: "nosniff"
+
+    # -------------------------------------------------------------------------
+    # 🌐 CORS HEALTH - CORS específico para health checks
+    # -------------------------------------------------------------------------
+    cors-health:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - OPTIONS
+        accessControlAllowOriginList:
+          - "https://*.conexaodesorte.com.br"
+          - "https://github.com"
+          - "https://api.github.com"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Health-Monitor"
+        accessControlExposeHeaders:
+          - "X-Health-Status"
+          - "X-Service-Count"
+          - "X-Healthy-Count"
+        accessControlMaxAge: 86400
+
+    # -------------------------------------------------------------------------
+    # 🔄 HEALTH SERVICE REWRITE - Reescreve URLs para serviços individuais
+    # -------------------------------------------------------------------------
+    health-service-rewrite:
+      replacePath:
+        path: "/actuator/health"
+
+# =============================================================================
+# 📋 ENDPOINTS DISPONÍVEIS PARA GITHUB ACTIONS
+# =============================================================================
+#
+# 1. STATUS GERAL:
+#    GET https://traefik.conexaodesorte.com.br/health/overall
+#    Retorna: {"status":"healthy","services":15,"healthy":12,"unhealthy":3}
+#
+# 2. INFRAESTRUTURA:
+#    GET https://traefik.conexaodesorte.com.br/health/infrastructure
+#    Retorna: {"mysql":"healthy","redis":"healthy","kafka":"degraded"}
+#
+# 3. BACKEND SERVICES:
+#    GET https://traefik.conexaodesorte.com.br/health/backend
+#    Retorna: {"gateway":"healthy","resultados":"starting","auth":"down"}
+#
+# 4. SERVIÇO INDIVIDUAL:
+#    GET https://traefik.conexaodesorte.com.br/health/service/resultados
+#    Retorna: {"status":"healthy","uptime":"2m30s","version":"1.0.0"}
+#
+# =============================================================================
+# 🚀 INTEGRAÇÃO GITHUB ACTIONS - EXEMPLO
+# =============================================================================
+#
+# ```yaml
+# - name: 🏥 Validate deployment health
+#   run: |
+#     # Aguardar serviço ficar healthy
+#     timeout 300 bash -c 'until curl -f https://traefik.conexaodesorte.com.br/health/service/resultados; do sleep 10; done'
+#
+#     # Verificar status geral
+#     response=$(curl -s https://traefik.conexaodesorte.com.br/health/overall)
+#     healthy_count=$(echo "$response" | jq -r '.healthy')
+#     total_count=$(echo "$response" | jq -r '.services')
+#
+#     if [[ $healthy_count -ge $((total_count * 80 / 100)) ]]; then
+#       echo "✅ Deployment successful - $healthy_count/$total_count services healthy"
+#     else
+#       echo "❌ Deployment failed - only $healthy_count/$total_count services healthy"
+#       exit 1
+#     fi
+# ```
+# =============================================================================

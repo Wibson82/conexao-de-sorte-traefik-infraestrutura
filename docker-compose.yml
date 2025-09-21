@@ -14,6 +14,86 @@
 # =============================================================================
 
 services:
+  # ===========================================================================
+  # 🏥 HEALTH MONITOR SERVICE
+  # ===========================================================================
+  health-monitor:
+    build:
+      context: .
+      dockerfile: health-server/Dockerfile
+    restart: unless-stopped
+    networks:
+      - conexao-network-swarm
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./scripts:/app/scripts:ro
+    environment:
+      - TZ=${TZ:-America/Sao_Paulo}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+      labels:
+        # Traefik routing for health endpoints
+        - traefik.enable=true
+        - traefik.docker.network=conexao-network-swarm
+
+        # Health Overall Endpoint
+        - traefik.http.routers.health-overall.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/overall`)
+        - traefik.http.routers.health-overall.entrypoints=websecure
+        - traefik.http.routers.health-overall.tls.certresolver=letsencrypt
+        - traefik.http.routers.health-overall.service=health-monitor
+        - traefik.http.routers.health-overall.middlewares=cors-health
+
+        # Health Infrastructure Endpoint
+        - traefik.http.routers.health-infra.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/infrastructure`)
+        - traefik.http.routers.health-infra.entrypoints=websecure
+        - traefik.http.routers.health-infra.tls.certresolver=letsencrypt
+        - traefik.http.routers.health-infra.service=health-monitor
+        - traefik.http.routers.health-infra.middlewares=cors-health
+
+        # Health Backend Endpoint
+        - traefik.http.routers.health-backend.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/backend`)
+        - traefik.http.routers.health-backend.entrypoints=websecure
+        - traefik.http.routers.health-backend.tls.certresolver=letsencrypt
+        - traefik.http.routers.health-backend.service=health-monitor
+        - traefik.http.routers.health-backend.middlewares=cors-health
+
+        # Health Individual Service Endpoint
+        - traefik.http.routers.health-service.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && PathPrefix(`/health/service/`)
+        - traefik.http.routers.health-service.entrypoints=websecure
+        - traefik.http.routers.health-service.tls.certresolver=letsencrypt
+        - traefik.http.routers.health-service.service=health-monitor
+        - traefik.http.routers.health-service.middlewares=cors-health
+
+        # Service configuration
+        - traefik.http.services.health-monitor.loadbalancer.server.port=8080
+
+        # CORS middleware for health endpoints
+        - traefik.http.middlewares.cors-health.headers.accesscontrolallowmethods=GET,OPTIONS
+        - traefik.http.middlewares.cors-health.headers.accesscontrolalloworiginlist=https://*.conexaodesorte.com.br,https://github.com,https://api.github.com
+        - traefik.http.middlewares.cors-health.headers.accesscontrolallowheaders=Content-Type,Authorization,X-Health-Monitor
+        - traefik.http.middlewares.cors-health.headers.accesscontrolexposeheaders=X-Health-Status,X-Service-Count,X-Healthy-Count
+        - traefik.http.middlewares.cors-health.headers.accesscontrolmaxage=86400
+
   traefik:
     # ==========================================================================
     # 🔧 CONFIGURAÇÃO BÁSICA
