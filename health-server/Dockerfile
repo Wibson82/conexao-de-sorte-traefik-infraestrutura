@@ -23,7 +23,7 @@ COPY health-server/server.sh /app/server.sh
 RUN chmod +x /app/server.sh
 
 # Expose port
-EXPOSE 8080
+
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
