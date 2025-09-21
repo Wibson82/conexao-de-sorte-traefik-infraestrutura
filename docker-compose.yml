@@ -314,8 +314,7 @@ secrets:
 # AZURE_KEYVAULT_ENDPOINT=https://your-keyvault.vault.azure.net/
 #
 # SEGURANÇA:
-# ==========
-# - Dashboard protegido por autenticação (dashboard-auth@file)
+# ==========# - Dashboard protegido por autenticação (dashboard-auth@file)
 # - SSL/TLS obrigatório (Let's Encrypt)
 # - Headers de segurança aplicados
 # - Rate limiting configurado
