@@ -140,7 +140,7 @@ services:
     # ==========================================================================
     volumes:
       # Docker socket para descoberta de serviços (com permissões corretas)
-      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
       # Certificados Let's Encrypt
       - letsencrypt:/letsencrypt
