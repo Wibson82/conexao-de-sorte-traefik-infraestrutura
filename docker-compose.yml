@@ -29,8 +29,10 @@ services:
       - conexao-network-swarm
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./health-server/health-endpoints.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./logs:/app/logs:rw
+      - traefik-logs:/app/logs:rw
+    configs:
+      - source: health_endpoints_config
+        target: /etc/nginx/conf.d/default.conf
     environment:
       TZ: "${TZ:-America/Sao_Paulo}"
     healthcheck:
@@ -140,15 +142,18 @@ services:
       # Docker socket para descoberta de serviços (com permissões corretas)
       - /var/run/docker.sock:/var/run/docker.sock:rw
 
-      # Configuração principal do Traefik
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik/dynamic:/etc/traefik/dynamic:ro
-
       # Certificados Let's Encrypt
-      - ./letsencrypt:/letsencrypt
+      - letsencrypt:/letsencrypt
 
-      # Secrets para autenticação
-      - ./secrets:/secrets:ro
+    configs:
+      - source: traefik_config
+        target: /etc/traefik/traefik.yml
+      - source: traefik_dynamic_config
+        target: /etc/traefik/dynamic
+
+    secrets:
+      - source: traefik_secrets
+        target: /secrets
 
     # ==========================================================================
     logging:
@@ -256,6 +261,24 @@ networks:
     name: conexao-network-swarm
     external: true
     # CONFLITO RESOLVIDO: rede externa obrigatória para Docker Swarm
+
+volumes:
+  letsencrypt:
+    external: true
+  traefik-logs:
+    external: true
+
+configs:
+  health_endpoints_config:
+    file: ./health-server/health-endpoints.conf
+  traefik_config:
+    file: ./traefik/traefik.yml
+  traefik_dynamic_config:
+    file: ./traefik/dynamic
+
+secrets:
+  traefik_secrets:
+    file: ./secrets
 
 # =============================================================================
 # 📋 INSTRUÇÕES DE USO CONSOLIDADAS
