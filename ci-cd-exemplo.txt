@@ -1,8 +1,0 @@
-CONTAINER ID   IMAGE                              COMMAND                  CREATED         STATUS                                 PORTS                                                                  NAMES
-e8fbdd93ca63   confluentinc/cp-zookeeper:7.9.0    "/etc/confluent/dock…"   2 minutes ago   Up About a minute (health: starting)   2181/tcp, 2888/tcp, 3888/tcp                                           conexao-zookeeper_zookeeper.1.l0sdjalmwje8zhv7tlv3a5d3a
-1dd3f22185b4   rabbitmq:4.1.0-management-alpine   "bash -c 'export RAB…"   12 hours ago    Up 12 hours (healthy)                  4369/tcp, 5671-5672/tcp, 15671-15672/tcp, 15691-15692/tcp, 25672/tcp   conexao-rabbitmq_rabbitmq.1.ccl9hs70f7qrmu1g7gnefmo75
-root@srv649924:~# docker container ps && docker network ls
-CONTAINER ID   IMAGE                              COMMAND                  CREATED              STATUS                             PORTS                                                                  NAMES
-a1dacfd23e6a   confluentinc/cp-kafka:7.9.0        "/etc/confluent/dock…"   About a minute ago   Up 40 seconds (health: starting)   9092/tcp                                                               conexao-kafka_kafka.1.ioinak5vzr46paebioxc40i0r
-e8fbdd93ca63   confluentinc/cp-zookeeper:7.9.0    "/etc/confluent/dock…"   3 minutes ago        Up 2 minutes (health: starting)    2181/tcp, 2888/tcp, 3888/tcp                                           conexao-zookeeper_zookeeper.1.l0sdjalmwje8zhv7tlv3a5d3a
-1dd3f22185b4   rabbitmq:4.1.0-management-alpine   "bash -c 'export RAB…"   12 hours ago         Up 12 hours (healthy)              4369/tcp, 5671-5672/tcp, 15671-15672/tcp, 15691-15692/tcp, 25672/tcp   conexao-rabbitmq_rabbitmq.1.ccl9hs70f7qrmu1g7gnefmo75

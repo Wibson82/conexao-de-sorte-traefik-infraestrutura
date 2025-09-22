@@ -277,7 +277,8 @@ configs:
 
 secrets:
   traefik_secrets:
-    file: ./secrets/traefik-basicauth
+    external: true
+    name: traefik_basicauth_secret
 
 # =============================================================================
 # 📋 INSTRUÇÕES DE USO CONSOLIDADAS

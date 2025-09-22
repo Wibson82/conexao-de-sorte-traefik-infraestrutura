@@ -433,6 +433,28 @@ jobs:
             echo "✅ Rede conexao-network-swarm já existe"
           fi
 
+          # 🔐 Criar Docker Secret para basicauth dinamicamente
+          echo "🔐 Criando Docker Secret para Traefik basicauth..."
+          SECRET_NAME="traefik_basicauth_secret"
+
+          # Remover secret existente se houver
+          if docker secret ls --format "{{.Name}}" | grep -q "^$SECRET_NAME$"; then
+            echo "🗑️ Removendo secret existente: $SECRET_NAME"
+            docker secret rm "$SECRET_NAME" || echo "⚠️ Não foi possível remover secret existente"
+            sleep 2
+          fi
+
+          # Gerar hash da senha do dashboard para basicauth
+          BASICAUTH_HASH=$(echo -n "$DASHBOARD_PASSWORD" | htpasswd -niB admin)
+          if [[ -z "$BASICAUTH_HASH" ]]; then
+            echo "❌ Erro ao gerar hash basicauth"
+            exit 1
+          fi
+
+          # Criar novo secret
+          echo "$BASICAUTH_HASH" | docker secret create "$SECRET_NAME" -
+          echo "✅ Docker Secret '$SECRET_NAME' criado com sucesso"
+
           # Remover stack existente se houver
           if docker stack ls | grep -q "$STACK_NAME"; then
             echo "🔄 Removendo stack existente '$STACK_NAME'..."
