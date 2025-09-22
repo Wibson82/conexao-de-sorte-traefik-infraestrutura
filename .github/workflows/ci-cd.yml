@@ -437,37 +437,31 @@ jobs:
           echo "🔐 Criando Docker Secret para Traefik basicauth..."
           SECRET_NAME="traefik_basicauth_secret"
 
-          # Remover secret existente se houver
+          # Verificar se secret já existe (não tentar remover se em uso)
           if docker secret ls --format "{{.Name}}" | grep -q "^$SECRET_NAME$"; then
-            echo "🗑️ Removendo secret existente: $SECRET_NAME"
-            docker secret rm "$SECRET_NAME" || echo "⚠️ Não foi possível remover secret existente"
-            sleep 2
+            echo "✅ Docker Secret '$SECRET_NAME' já existe - reutilizando"
+          else
+            echo "🔐 Criando novo Docker Secret para Traefik basicauth..."
+
+            # Gerar hash da senha do dashboard para basicauth usando Python
+            echo "🔐 Gerando hash MD5 usando Python..."
+            BASICAUTH_HASH=$(python3 -c "
+            import hashlib
+            password = '$DASHBOARD_PASSWORD'
+            # Usar MD5 para compatibilidade (evitar warnings crypt deprecated)
+            hash_pwd = hashlib.md5(password.encode()).hexdigest()
+            print(f'admin:\$1\$salt\${hash_pwd}')
+            ")
+
+            if [[ -z "$BASICAUTH_HASH" ]]; then
+              echo "❌ Erro ao gerar hash basicauth"
+              exit 1
+            fi
+
+            # Criar novo secret
+            echo "$BASICAUTH_HASH" | docker secret create "$SECRET_NAME" -
+            echo "✅ Docker Secret '$SECRET_NAME' criado com sucesso"
           fi
-
-          # Gerar hash da senha do dashboard para basicauth usando Python (disponível no runner)
-          echo "🔐 Gerando hash bcrypt usando Python..."
-          BASICAUTH_HASH=$(python3 -c "
-          import crypt
-          password = '$DASHBOARD_PASSWORD'
-          # Usar crypt com bcrypt se disponível, senão usar hash MD5 simples
-          try:
-              hash_pwd = crypt.crypt(password, crypt.mksalt(crypt.METHOD_BLOWFISH))
-              print(f'admin:{hash_pwd}')
-          except:
-              # Fallback para MD5 (menos seguro mas funciona)
-              import hashlib
-              hash_pwd = hashlib.md5(password.encode()).hexdigest()
-              print(f'admin:\$1\$salt\${hash_pwd}')
-          ")
-
-          if [[ -z "$BASICAUTH_HASH" ]]; then
-            echo "❌ Erro ao gerar hash basicauth"
-            exit 1
-          fi
-
-          # Criar novo secret
-          echo "$BASICAUTH_HASH" | docker secret create "$SECRET_NAME" -
-          echo "✅ Docker Secret '$SECRET_NAME' criado com sucesso"
 
           # Remover stack existente se houver
           if docker stack ls | grep -q "$STACK_NAME"; then
