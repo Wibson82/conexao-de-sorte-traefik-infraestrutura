@@ -88,8 +88,8 @@ http:
     health-aggregator:
       loadBalancer:
         servers:
-          # Health endpoint interno do Traefik (API)
-          - url: "http://traefik:8080/api/overview"
+          # Health endpoint interno do Traefik (ping endpoint)
+          - url: "http://conexao-traefik_traefik:8080"
         healthCheck:
           path: "/ping"
           interval: 10s
@@ -101,18 +101,14 @@ http:
     health-infrastructure:
       loadBalancer:
         servers:
-          # MySQL Health Check
-          - url: "http://conexao-mysql:3306"
-          # Redis Health Check
-          - url: "http://conexao-redis:6379"
-          # RabbitMQ Health Check
-          - url: "http://conexao-rabbitmq:15672"
-          # Kafka Health Check
-          - url: "http://conexao-kafka:9092"
+          # RabbitMQ Management UI (único endpoint HTTP válido)
+          - url: "http://conexao-rabbitmq_rabbitmq:15672"
         healthCheck:
-          path: "/health"
+          path: "/api/health/checks/alarms"
           interval: 30s
           timeout: 5s
+      # NOTA: MySQL, Redis, Kafka não têm endpoints HTTP nativos
+      # Eles são monitorados via TCP health checks pelos próprios containers
 
     # -------------------------------------------------------------------------
     # 🖥️ BACKEND MICROSERVICES - Status dos serviços de aplicação
@@ -120,18 +116,16 @@ http:
     health-backend:
       loadBalancer:
         servers:
-          # Gateway Health Check
+          # Gateway Health Check (único microservice deployado)
           - url: "http://conexao-gateway_gateway:8088"
-          # Resultados Health Check
-          - url: "http://conexao-resultados:8083"
-          # Autenticacao Health Check (quando disponível)
-          - url: "http://conexao-autenticacao:8081"
-          # Usuario Health Check (quando disponível)
-          - url: "http://conexao-usuario:8084"
         healthCheck:
           path: "/actuator/health"
           interval: 30s
           timeout: 5s
+      # NOTA: Quando outros microservices forem deployados, adicionar aqui:
+      # - conexao-autenticacao_autenticacao:8081
+      # - conexao-usuario_usuario:8084
+      # - conexao-resultados_resultados:8083
 
     # -------------------------------------------------------------------------
     # 🔍 INDIVIDUAL SERVICE - Proxy para health checks individuais
