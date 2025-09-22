@@ -25,7 +25,7 @@ http:
     # 📊 HEALTH OVERVIEW - Status geral de todos os serviços
     # -------------------------------------------------------------------------
     health-overall:
-      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/overall`)"
+      rule: "Host(`traefik.conexaodesorte.com.br`) && Path(`/health/overall`)"
       entrypoints:
         - websecure
       tls:
@@ -39,7 +39,7 @@ http:
     # 🗄️ INFRASTRUCTURE HEALTH - MySQL, Redis, Kafka, etc
     # -------------------------------------------------------------------------
     health-infrastructure:
-      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/infrastructure`)"
+      rule: "Host(`traefik.conexaodesorte.com.br`) && Path(`/health/infrastructure`)"
       entrypoints:
         - websecure
       tls:
@@ -53,7 +53,7 @@ http:
     # 🖥️ BACKEND SERVICES HEALTH - Microserviços aplicação
     # -------------------------------------------------------------------------
     health-backend:
-      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/backend`)"
+      rule: "Host(`traefik.conexaodesorte.com.br`) && Path(`/health/backend`)"
       entrypoints:
         - websecure
       tls:
@@ -67,7 +67,7 @@ http:
     # 🔍 INDIVIDUAL SERVICE HEALTH - Status por serviço específico
     # -------------------------------------------------------------------------
     health-individual:
-      rule: "Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && PathPrefix(`/health/service/`)"
+      rule: "Host(`traefik.conexaodesorte.com.br`) && PathPrefix(`/health/service/`)"
       entrypoints:
         - websecure
       tls:
@@ -89,9 +89,9 @@ http:
       loadBalancer:
         servers:
           # Health endpoint interno do Traefik (ping endpoint)
-          - url: "http://conexao-traefik_traefik:8080"
+          - url: "http://traefik_traefik:8080"
         healthCheck:
-          path: "/ping"
+          path: "/api/health"
           interval: 10s
           timeout: 3s
 
@@ -102,7 +102,7 @@ http:
       loadBalancer:
         servers:
           # RabbitMQ Management UI (único endpoint HTTP válido)
-          - url: "http://conexao-rabbitmq_rabbitmq:15672"
+          - url: "http://rabbitmq_rabbitmq:15672"
         healthCheck:
           path: "/api/health/checks/alarms"
           interval: 30s
@@ -117,7 +117,7 @@ http:
       loadBalancer:
         servers:
           # Gateway Health Check (único microservice deployado)
-          - url: "http://conexao-gateway_gateway:8088"
+          - url: "http://gateway_gateway:8088"
         healthCheck:
           path: "/actuator/health"
           interval: 30s
@@ -134,7 +134,7 @@ http:
       loadBalancer:
         servers:
           # Health Aggregator service que roteia para serviços específicos
-          - url: "http://conexao-traefik_health-aggregator:8080"
+          - url: "http://traefik_health-monitor:8080"
 
   # ===========================================================================
   # 🔧 MIDDLEWARES - Health Monitor Específicos
