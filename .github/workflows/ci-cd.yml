@@ -444,6 +444,13 @@ jobs:
             sleep 2
           fi
 
+          # Instalar htpasswd se necessário
+          if ! command -v htpasswd >/dev/null 2>&1; then
+            echo "📦 Instalando apache2-utils (htpasswd)..."
+            sudo apt-get update -qq
+            sudo apt-get install -y apache2-utils
+          fi
+
           # Gerar hash da senha do dashboard para basicauth
           BASICAUTH_HASH=$(echo -n "$DASHBOARD_PASSWORD" | htpasswd -niB admin)
           if [[ -z "$BASICAUTH_HASH" ]]; then
