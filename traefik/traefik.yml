@@ -6,6 +6,8 @@ global:
 api:
   dashboard: true
   insecure: false
+  # Habilitar endpoints de API internos para health checks
+  debug: false
 
 entryPoints:
   web:
@@ -20,6 +22,9 @@ entryPoints:
     address: ":443"
     http3:
       advertisedPort: 443
+
+  traefik:
+    address: ":8080"
 
 providers:
   docker:
@@ -51,7 +56,7 @@ certificatesResolvers:
         entryPoint: web
 
 ping:
-  entryPoint: web
+  entryPoint: traefik
 
 # Health check para Docker Swarm
 metrics:

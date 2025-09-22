@@ -91,7 +91,7 @@ http:
           # Health endpoint interno do Traefik (ping endpoint)
           - url: "http://traefik_traefik:8080"
         healthCheck:
-          path: "/api/health"
+          path: "/ping"
           interval: 10s
           timeout: 3s
 
@@ -101,14 +101,14 @@ http:
     health-infrastructure:
       loadBalancer:
         servers:
-          # RabbitMQ Management UI (único endpoint HTTP válido)
-          - url: "http://rabbitmq_rabbitmq:15672"
+          # Usar Traefik ping como proxy para infraestrutura até configurar auth RabbitMQ
+          - url: "http://traefik_traefik:8080"
         healthCheck:
-          path: "/api/health/checks/alarms"
+          path: "/ping"
           interval: 30s
           timeout: 5s
-      # NOTA: MySQL, Redis, Kafka não têm endpoints HTTP nativos
-      # Eles são monitorados via TCP health checks pelos próprios containers
+      # NOTA: MySQL, Redis, Kafka, RabbitMQ são monitorados via health checks próprios
+      # RabbitMQ management requer autenticação - será integrado posteriormente
 
     # -------------------------------------------------------------------------
     # 🖥️ BACKEND MICROSERVICES - Status dos serviços de aplicação
