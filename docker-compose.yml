@@ -145,15 +145,16 @@ services:
       # Certificados Let's Encrypt
       - letsencrypt:/letsencrypt
 
+      # Configuração dinâmica
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+
     configs:
       - source: traefik_config
         target: /etc/traefik/traefik.yml
-      - source: traefik_dynamic_config
-        target: /etc/traefik/dynamic
 
     secrets:
       - source: traefik_secrets
-        target: /secrets
+        target: /secrets/traefik-basicauth
 
     # ==========================================================================
     logging:
@@ -273,12 +274,10 @@ configs:
     file: ./health-server/health-endpoints.conf
   traefik_config:
     file: ./traefik/traefik.yml
-  traefik_dynamic_config:
-    file: ./traefik/dynamic
 
 secrets:
   traefik_secrets:
-    file: ./secrets
+    file: ./secrets/traefik-basicauth
 
 # =============================================================================
 # 📋 INSTRUÇÕES DE USO CONSOLIDADAS
