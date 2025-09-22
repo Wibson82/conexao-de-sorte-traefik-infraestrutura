@@ -35,7 +35,7 @@ declare -A INFRASTRUCTURE_SERVICES=(
 )
 
 declare -A BACKEND_SERVICES=(
-    ["gateway"]="conexao-gateway:8086"
+    ["gateway"]="conexao-gateway_gateway:8088"
     ["resultados"]="conexao-resultados:8083"
     ["autenticacao"]="conexao-autenticacao:8081"
     ["usuario"]="conexao-usuario:8084"

@@ -121,7 +121,7 @@ http:
       loadBalancer:
         servers:
           # Gateway Health Check
-          - url: "http://conexao-gateway:8086"
+          - url: "http://conexao-gateway_gateway:8088"
           # Resultados Health Check
           - url: "http://conexao-resultados:8083"
           # Autenticacao Health Check (quando disponível)
@@ -139,8 +139,8 @@ http:
     health-individual:
       loadBalancer:
         servers:
-          # Proxy interno que redireciona baseado no path
-          - url: "http://localhost:8080"
+          # Health Aggregator service que roteia para serviços específicos
+          - url: "http://conexao-traefik_health-aggregator:8080"
 
   # ===========================================================================
   # 🔧 MIDDLEWARES - Health Monitor Específicos
