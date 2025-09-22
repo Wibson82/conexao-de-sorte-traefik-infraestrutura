@@ -88,8 +88,8 @@ http:
     health-aggregator:
       loadBalancer:
         servers:
-          # Health endpoint interno do Traefik (ping endpoint)
-          - url: "http://traefik_traefik:8080"
+          # Health endpoint interno do Traefik (ping endpoint) - nome correto do service
+          - url: "http://conexao-traefik_traefik:8080"
         healthCheck:
           path: "/ping"
           interval: 10s
@@ -102,7 +102,7 @@ http:
       loadBalancer:
         servers:
           # Usar Traefik ping como proxy para infraestrutura até configurar auth RabbitMQ
-          - url: "http://traefik_traefik:8080"
+          - url: "http://conexao-traefik_traefik:8080"
         healthCheck:
           path: "/ping"
           interval: 30s
@@ -116,8 +116,8 @@ http:
     health-backend:
       loadBalancer:
         servers:
-          # Gateway Health Check (único microservice deployado)
-          - url: "http://gateway_gateway:8088"
+          # Gateway Health Check (único microservice deployado) - nome correto do service
+          - url: "http://conexao-gateway_gateway:8086"
         healthCheck:
           path: "/actuator/health"
           interval: 30s

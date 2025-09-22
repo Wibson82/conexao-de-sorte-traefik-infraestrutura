@@ -51,13 +51,13 @@ http:
   # 🎯 SERVIÇOS (Load Balancers) - FASE INFRAESTRUTURA
   # ==========================================================================
   services:
-    # Serviço fallback para evitar 404s durante desenvolvimento
+    # Serviço fallback para evitar 404s durante desenvolvimento - usando Traefik interno
     fallback-service:
       loadbalancer:
         servers:
-          - url: "http://httpbin.org/status/503"
+          - url: "http://conexao-traefik_traefik:8080"
         healthcheck:
-          path: "/status/503"
+          path: "/ping"
           interval: "60s"
           timeout: "10s"
 
