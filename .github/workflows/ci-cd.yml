@@ -316,7 +316,27 @@ jobs:
           if docker stack ls | grep -q "$STACK_NAME"; then
             echo "🔄 Removendo stack existente '$STACK_NAME'..."
             docker stack rm "$STACK_NAME"
-            sleep 10
+
+            echo "⏰ Aguardando remoção completa do stack..."
+            # Aguardar até que todos os serviços sejam removidos
+            timeout=60
+            elapsed=0
+            while [ $elapsed -lt $timeout ] && docker service ls --filter label=com.docker.stack.namespace="$STACK_NAME" --quiet | grep -q .; do
+              echo "⏳ Aguardando remoção dos serviços... ($elapsed/$timeout segundos)"
+              sleep 5
+              elapsed=$((elapsed + 5))
+            done
+
+            # Tentar remover configs órfãos se existirem
+            echo "🔧 Limpando configs órfãos..."
+            for config_name in "${STACK_NAME}_traefik_config" "${STACK_NAME}_health_endpoints_config"; do
+              if docker config ls --format "{{.Name}}" | grep -q "^$config_name$"; then
+                echo "🔄 Removendo config órfão: $config_name"
+                docker config rm "$config_name" 2>/dev/null || echo "ℹ️ Config $config_name ainda em uso ou não existe"
+              fi
+            done
+
+            echo "✅ Stack removido completamente"
           fi
 
           # Deploy da nova stack
