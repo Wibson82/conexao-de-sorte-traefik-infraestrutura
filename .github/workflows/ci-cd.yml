@@ -178,24 +178,44 @@ jobs:
           fi
 
       - name: 🔐 Get secrets from Azure Key Vault (OIDC)
-        id: kv
         if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
-        uses: azure/get-keyvault-secrets@v1
-        with:
-          keyvault: ${{ secrets.AZURE_KEYVAULT_NAME }}
-          secrets: |
-            conexao-de-sorte-letsencrypt-email
-            conexao-de-sorte-traefik-dashboard-password
+        run: |
+          # Usar endpoint se disponível, senão usar nome com fallback
+          KEYVAULT_ENDPOINT="${{ secrets.AZURE_KEYVAULT_ENDPOINT }}"
+          if [[ -n "$KEYVAULT_ENDPOINT" ]]; then
+            KEYVAULT_NAME=$(echo "$KEYVAULT_ENDPOINT" | sed 's|https://\(.*\)\.vault\.azure\.net/.*|\1|')
+            echo "📍 Usando Key Vault do endpoint: $KEYVAULT_NAME"
+          else
+            KEYVAULT_NAME="${{ secrets.AZURE_KEYVAULT_NAME || 'kv-conexao-de-sorte' }}"
+            echo "📍 Usando Key Vault do nome: $KEYVAULT_NAME"
+          fi
+
+          # Obter secrets essenciais
+          secrets_list="conexao-de-sorte-letsencrypt-email,conexao-de-sorte-traefik-dashboard-password"
+
+          IFS=',' read -ra SECRETS_ARRAY <<< "$secrets_list"
+          for secret_name in "${SECRETS_ARRAY[@]}"; do
+            echo "🔍 Obtendo segredo: $secret_name"
+            secret_value=$(az keyvault secret show --vault-name "$KEYVAULT_NAME" --name "$secret_name" --query 'value' -o tsv 2>/dev/null || echo "")
+
+            if [[ -n "$secret_value" ]]; then
+              echo "✅ Segredo obtido: $secret_name"
+              echo "$secret_name=$secret_value" >> $GITHUB_ENV
+            else
+              echo "❌ Erro ao obter segredo: $secret_name"
+              exit 1
+            fi
+          done
 
       - name: ✅ Validar secrets essenciais obtidos via OIDC
         run: |
           echo "🔍 Validando segredos essenciais obtidos via OIDC..."
 
           missing=()
-          if [[ -z "${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}" ]]; then
+          if [[ -z "${conexao-de-sorte-letsencrypt-email:-}" ]]; then
             missing+=("conexao-de-sorte-letsencrypt-email")
           fi
-          if [[ -z "${{ steps.kv.outputs.conexao-de-sorte-traefik-dashboard-password }}" ]]; then
+          if [[ -z "${conexao-de-sorte-traefik-dashboard-password:-}" ]]; then
             missing+=("conexao-de-sorte-traefik-dashboard-password")
           fi
 
@@ -217,8 +237,8 @@ jobs:
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
 
           # Configurar variáveis com valores dos segredos (docker-compose.yml compatible)
-          TRAEFIK_ACME_EMAIL="${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}"
-          DASHBOARD_PASSWORD="${{ steps.kv.outputs.conexao-de-sorte-traefik-dashboard-password }}"
+          TRAEFIK_ACME_EMAIL="${conexao-de-sorte-letsencrypt-email}"
+          DASHBOARD_PASSWORD="${conexao-de-sorte-traefik-dashboard-password}"
 
           if [[ -z "$TRAEFIK_ACME_EMAIL" ]]; then
             echo "❌ Email Let's Encrypt não configurado - deploy cancelado"
