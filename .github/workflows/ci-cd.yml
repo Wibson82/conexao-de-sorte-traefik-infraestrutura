@@ -167,18 +167,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: ✅ Validar conexão Azure (OIDC)
-        if: ${{ needs.validate-and-build.outputs.has_azure_creds == 'true' }}
-        run: |
-          echo "🔍 Validando conexão com Azure via OIDC..."
-          if az account show >/dev/null 2>&1; then
-            echo "✅ Conexão Azure OIDC estabelecida"
-            echo "Subscription: $(az account show --query id -o tsv)"
-          else
-            echo "❌ Falha na conexão Azure OIDC"
-            exit 1
-          fi
-          
       - name: 🔒 Security Validation - Port Exposure
         run: |
           # Verificar exposição de portas do Traefik
@@ -189,192 +177,36 @@ jobs:
             echo "✅ No ports exposed - maximum security (overlay network only)"
           fi
 
-      - name: 🔐 Azure Login (OIDC) para Key Vault
-        if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
       - name: 🔐 Get secrets from Azure Key Vault (OIDC)
-        id: get-secrets
+        id: kv
         if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
-        uses: azure/CLI@v1
+        uses: azure/get-keyvault-secrets@v1
         with:
-          azcliversion: 2.76.0
-          inlineScript: |
-            # Verificar autenticação Azure antes de prosseguir
-            echo "🔍 Verificando autenticação Azure..."
-            if ! az account show >/dev/null 2>&1; then
-              echo "❌ Azure CLI não autenticado - execute o login Azure OIDC primeiro"
-              exit 1
-            fi
-            
-            # Obter nome do Key Vault (com correção automática)
-            # Obter nome do Key Vault do GitHub Secret
-            AZURE_KEYVAULT_NAME_SECRET="${{ secrets.AZURE_KEYVAULT_NAME }}"
-            KEYVAULT_NAME="$AZURE_KEYVAULT_NAME_SECRET"
-            
-            echo "🔍 Iniciando conexão com Key Vault..."
-            
-            # Lógica de correção automática - SEMPRE tentar aplicar quando apropriado
-            # Isso funciona mesmo com valores mascarados porque usamos a lógica, não a comparação
-            if [[ -n "$AZURE_KEYVAULT_NAME_SECRET" ]]; then
-              # Se o nome parece ser o padrão antigo, aplicar correção
-              # Isso funciona mesmo que esteja mascarado como ***
-              echo "🔍 Aplicando lógica de correção automática..."
-              
-              # Vamos sempre tentar primeiro com o nome que sabemos que existe: kv-conexao-de-sorte
-              # Isso evita problemas de mascaramento
-              KNOWN_GOOD_NAME="kv-conexao-de-sorte"
-              echo "🔍 Verificando se Key Vault existe com nome conhecido: $KNOWN_GOOD_NAME"
-              
-              if az keyvault list --query "[].name" -o tsv | grep -Fx "$KNOWN_GOOD_NAME" >/dev/null 2>&1; then
-                echo "✅ Key Vault encontrado com nome conhecido: $KNOWN_GOOD_NAME"
-                KEYVAULT_NAME="$KNOWN_GOOD_NAME"
-              else
-                echo "⚠️ Key Vault não encontrado com nome conhecido, tentando com nome original..."
-                 # Se não encontrar com o nome conhecido, tentar com o nome original
-                 if az keyvault list --query "[].name" -o tsv | grep -Fx "$AZURE_KEYVAULT_NAME_SECRET" >/dev/null 2>&1; then
-                   echo "✅ Key Vault encontrado com nome original"
-                   KEYVAULT_NAME="$AZURE_KEYVAULT_NAME_SECRET"
-                 else
-                   echo "❌ Key Vault não encontrado com nenhum dos nomes testados"
-                   echo "🔍 Nomes testados: '$KNOWN_GOOD_NAME' e '$AZURE_KEYVAULT_NAME_SECRET'"
-                   exit 1
-                 fi
-              fi
-            else
-               echo "❌ AZURE_KEYVAULT_NAME não está definido no GitHub Secrets"
-               exit 1
-             fi
-             
-             echo "🔍 Conectando ao Key Vault: $KEYVAULT_NAME"
-            
-            echo "🔍 Conectando ao Key Vault: $KEYVAULT_NAME"
-            
-            # Debug: Verificar autenticação Azure
-            echo "🔍 Verificando autenticação Azure..."
-            
-            # Listar todos os Key Vaults disponíveis para debug (apenas nomes)
-            echo "🔍 Key Vaults disponíveis na subscription:"
-            AVAILABLE_KEYVAULTS=$(az keyvault list --query "[].name" -o tsv 2>/dev/null || echo "")
-            if [[ -n "$AVAILABLE_KEYVAULTS" ]]; then
-              echo "$AVAILABLE_KEYVAULTS"
-            else
-              echo "Nenhum Key Vault encontrado"
-            fi
-            
-            # Verificar se o Key Vault que escolhemos existe
-            echo "🔍 Verificando Key Vault selecionado: $KEYVAULT_NAME"
-            if ! echo "$AVAILABLE_KEYVAULTS" | grep -Fx "$KEYVAULT_NAME" >/dev/null 2>&1; then
-              echo "❌ Key Vault '$KEYVAULT_NAME' não encontrado na lista acima"
-              exit 1
-            fi
-            
-            # Validar conexão com Key Vault
-            echo "🔍 Testando conexão com Key Vault..."
-            if az keyvault show --name "$KEYVAULT_NAME" --output table 2>/dev/null; then
-              echo "✅ Conexão com Key Vault estabelecida"
-              
-              # Verificar permissões do Service Principal no Key Vault
-              echo "🔍 Verificando permissões no Key Vault..."
-              CURRENT_SP=$(az account show --query user.name -o tsv 2>/dev/null)
-              if [[ -n "$CURRENT_SP" ]]; then
-                echo "🔍 Service Principal atual: $CURRENT_SP"
-                echo "🔍 Verificando acesso aos segredos..."
-                
-                # Testar acesso a um secret (lista de secrets)
-                if az keyvault secret list --vault-name "$KEYVAULT_NAME" --maxresults 1 >/dev/null 2>&1; then
-                  echo "✅ Service Principal tem acesso aos segredos do Key Vault"
-                else
-                  echo "⚠️ Service Principal pode não ter permissões de leitura nos segredos"
-                  echo "🔍 Verificando políticas de acesso do Key Vault..."
-                  az keyvault show --name "$KEYVAULT_NAME" --query "properties.accessPolicies" --output table || echo "Não foi possível verificar políticas"
-                fi
-              fi
-            else
-              echo "❌ Falha ao conectar ao Key Vault: $KEYVAULT_NAME"
-              echo "🔍 Verificando detalhes do erro..."
-              az keyvault show --name "$KEYVAULT_NAME" --debug 2>&1 | head -20 || true
-              exit 1
-            fi
-            
-            # Buscar segredos essenciais
-            echo "🔍 Buscando segredos essenciais..."
-            essential_secrets=(conexao-de-sorte-letsencrypt-email conexao-de-sorte-traefik-dashboard-password)
-            essential_count=0
-            for secret in "${essential_secrets[@]}"; do
-              echo "🔍 Tentando obter: $secret"
-              # Tenta obter o valor (silenciando stderr para capturar apenas falhas reais)
-              if value=$(az keyvault secret show --vault-name "$KEYVAULT_NAME" --name "$secret" --query "value" -o tsv 2>/dev/null); then
-                if [[ -n "$value" ]]; then
-                  # Converte o nome do secret para variável de ambiente (UPPERCASE + _)
-                  var_name=$(echo "$secret" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
-                  echo "$var_name=$value" >> "$GITHUB_ENV"
-                  echo "✅ $secret obtido (len=${#value}) => exportado como $var_name"
-                  essential_count=$((essential_count + 1))
-                else
-                  echo "⚠️ $secret retornou vazio"
-                fi
-              else
-                echo "❌ Erro ao obter $secret"
-              fi
-            done
-            
-            # Buscar segredos opcionais
-            echo "🔍 Buscando segredos opcionais..."
-            optional_count=0
-            for secret in conexao-de-sorte-traefik-admin-password conexao-de-sorte-traefik-audit-password conexao-de-sorte-traefik-crypto-password conexao-de-sorte-webhook-secret conexao-de-sorte-zookeeper-client-port; do
-              echo "🔍 Tentando obter: $secret"
-              if value=$(az keyvault secret show --vault-name "$KEYVAULT_NAME" --name "$secret" --query "value" -o tsv 2>&1); then
-                if [[ -n "$value" ]]; then
-                  echo "$secret=$value" >> $GITHUB_ENV
-                  echo "✅ $secret obtido (opcional, comprimento: ${#value})"
-                  optional_count=$((optional_count + 1))
-                else
-                  echo "⚠️ $secret retornou vazio (opcional)"
-                fi
-              else
-                echo "ℹ️ $secret não encontrado (opcional): $value"
-              fi
-            done
-            
-            echo "📊 Resumo de segredos obtidos:"
-            echo "✅ Essenciais: $essential_count/2"
-            echo "✅ Opcionais: $optional_count/5"
-            
-            # Verificar se conseguimos os segredos essenciais
-            if [[ $essential_count -eq 2 ]]; then
-              echo "✅ Todos os segredos essenciais foram obtidos com sucesso!"
-            else
-              echo "❌ Falha ao obter segredos essenciais do Key Vault"
-              exit 1
-            fi
+          keyvault: ${{ secrets.AZURE_KEYVAULT_NAME }}
+          secrets: |
+            conexao-de-sorte-letsencrypt-email
+            conexao-de-sorte-traefik-dashboard-password
 
       - name: ✅ Validar secrets essenciais obtidos via OIDC
         run: |
           echo "🔍 Validando segredos essenciais obtidos via OIDC..."
-          
+
           missing=()
-          if [[ -z "${CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL:-}" ]]; then
+          if [[ -z "${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}" ]]; then
             missing+=("conexao-de-sorte-letsencrypt-email")
           fi
-          if [[ -z "${CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD:-}" ]]; then
+          if [[ -z "${{ steps.kv.outputs.conexao-de-sorte-traefik-dashboard-password }}" ]]; then
             missing+=("conexao-de-sorte-traefik-dashboard-password")
           fi
-          
+
           if [[ ${#missing[@]} -gt 0 ]]; then
             echo "❌ Segredos essenciais não obtidos via OIDC:"
             printf '   - %s\n' "${missing[@]}"
             echo "💡 Verifique se o Key Vault está acessível e os segredos existem"
             exit 1
           fi
-          
+
           echo "✅ Todos os segredos essenciais foram obtidos com sucesso via OIDC"
-          echo "📧 Email Let's Encrypt: ${CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL:0:3}***${CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL##*@}"
-          echo "🔐 Senha Dashboard: $(echo $CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD | wc -c) caracteres"
 
       - name: 🚀 Deploy Traefik Stack (OIDC)
         env:
@@ -383,20 +215,17 @@ jobs:
           DOCKER_NETWORK_NAME: conexao-network-swarm
         run: |
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
-          
+
           # Configurar variáveis com valores dos segredos (docker-compose.yml compatible)
-          if [[ -n "$CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL" ]]; then
-            TRAEFIK_ACME_EMAIL="$CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL"
-            echo "✅ Email Let's Encrypt configurado"
-          else
+          TRAEFIK_ACME_EMAIL="${{ steps.kv.outputs.conexao-de-sorte-letsencrypt-email }}"
+          DASHBOARD_PASSWORD="${{ steps.kv.outputs.conexao-de-sorte-traefik-dashboard-password }}"
+
+          if [[ -z "$TRAEFIK_ACME_EMAIL" ]]; then
             echo "❌ Email Let's Encrypt não configurado - deploy cancelado"
             exit 1
           fi
 
-          if [[ -n "$CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD" ]]; then
-            DASHBOARD_PASSWORD="$CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD"
-            echo "✅ Senha do dashboard configurada"
-          else
+          if [[ -z "$DASHBOARD_PASSWORD" ]]; then
             echo "❌ Senha do dashboard não configurada - deploy cancelado"
             exit 1
           fi
