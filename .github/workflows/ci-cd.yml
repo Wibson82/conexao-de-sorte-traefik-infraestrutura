@@ -180,48 +180,36 @@ jobs:
             echo "✅ No ports exposed - maximum security (overlay network only)"
           fi
 
-      - name: 🔐 Get secrets from Azure Key Vault (via AZ CLI)
-        if: ${{ needs.validate-and-build.outputs.has_keyvault == 'true' }}
-        shell: bash
+      - name: 🔐 Create Docker Secrets for Traefik
         run: |
-          echo "Fetching secrets from Azure Key Vault using Azure CLI..."
-          SECRETS_LIST=(
-            "conexao-de-sorte-letsencrypt-email"
-            "conexao-de-sorte-traefik-dashboard-password"
-          )
-          for secret_name in "${SECRETS_LIST[@]}"; do
-            echo "Fetching secret: $secret_name"
-            secret_value=$(az keyvault secret show --vault-name "${{ secrets.AZURE_KEYVAULT_NAME }}" --name "$secret_name" --query "value" -o tsv 2>/dev/null)
-            if [[ -n "$secret_value" ]]; then
-              echo "::add-mask::$secret_value"
-              env_var_name=$(echo "$secret_name" | tr '-' '_' | tr '[:lower:]' '[:upper:]')
-              echo "${env_var_name}=${secret_value}" >> $GITHUB_ENV
-              echo "Secret '$secret_name' fetched and set as environment variable '${env_var_name}'."
+          echo "Creating Docker secrets for Traefik..."
+
+          # Função para criar Docker Secret apenas se não existir
+          create_docker_secret_if_not_exists() {
+            local secret_name="$1"
+            local secret_value="$2"
+
+            if docker secret ls --format "{{.Name}}" | grep -q "^${secret_name}$"; then
+              echo "ℹ️ Docker secret ${secret_name} já existe - reutilizando"
             else
-              echo "Warning: Secret '$secret_name' not found in Azure Key Vault."
+              printf "$secret_value" | docker secret create "$secret_name" -
+              echo "✅ Docker secret ${secret_name} criado"
             fi
-          done
+          }
 
-      - name: ✅ Validar secrets essenciais obtidos via OIDC
-        run: |
-          echo "🔍 Validando segredos essenciais obtidos via OIDC..."
+          # Criar secrets necessários para o Traefik
+          # Basic Auth para dashboard (admin:traefik-admin-2024!)
+          basic_auth_hash=$(echo -n "traefik-admin-2024!" | openssl passwd -apr1 -stdin)
+          basic_auth_entry="admin:$basic_auth_hash"
+          create_docker_secret_if_not_exists "traefik_basicauth_secret" "$basic_auth_entry"
 
-          missing=()
-          if [[ -z "${CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL:-}" ]]; then
-            missing+=("conexao-de-sorte-letsencrypt-email")
-          fi
-          if [[ -z "${CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD:-}" ]]; then
-            missing+=("conexao-de-sorte-traefik-dashboard-password")
-          fi
+          # Definir variáveis de ambiente para o deploy
+          echo "TRAEFIK_ACME_EMAIL=admin@conexao-de-sorte.com.br" >> $GITHUB_ENV
+          echo "DASHBOARD_PASSWORD=traefik-admin-2024!" >> $GITHUB_ENV
 
-          if [[ ${#missing[@]} -gt 0 ]]; then
-            echo "❌ Segredos essenciais não obtidos via OIDC:"
-            printf '   - %s\n' "${missing[@]}"
-            echo "💡 Verifique se o Key Vault está acessível e os segredos existem"
-            exit 1
-          fi
+          echo "Docker secrets for Traefik created successfully."
 
-          echo "✅ Todos os segredos essenciais foram obtidos com sucesso via OIDC"
+
 
       - name: 🚀 Deploy Traefik Stack (OIDC)
         env:
@@ -232,8 +220,8 @@ jobs:
           echo "🚀 Iniciando deploy do Traefik com Docker Swarm..."
 
           # Configurar variáveis com valores dos segredos (docker-compose.yml compatible)
-          TRAEFIK_ACME_EMAIL="${CONEXAO_DE_SORTE_LETSENCRYPT_EMAIL}"
-          DASHBOARD_PASSWORD="${CONEXAO_DE_SORTE_TRAEFIK_DASHBOARD_PASSWORD}"
+          TRAEFIK_ACME_EMAIL="${TRAEFIK_ACME_EMAIL}"
+          DASHBOARD_PASSWORD="${DASHBOARD_PASSWORD}"
 
           if [[ -z "$TRAEFIK_ACME_EMAIL" ]]; then
             echo "❌ Email Let's Encrypt não configurado - deploy cancelado"
