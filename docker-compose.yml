@@ -30,9 +30,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-logs:/app/logs:rw
-    configs:
-      - source: health_endpoints_config
-        target: /etc/nginx/conf.d/default.conf
+    volumes:
+      - ./health-server/health-endpoints.conf:/etc/nginx/conf.d/default.conf:ro
     environment:
       TZ: "${TZ:-America/Sao_Paulo}"
     healthcheck:
@@ -148,9 +147,8 @@ services:
       # Configuração dinâmica
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
 
-    configs:
-      - source: traefik_config
-        target: /etc/traefik/traefik.yml
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
 
     secrets:
       - source: traefik_secrets
@@ -269,11 +267,7 @@ volumes:
   traefik-logs:
     external: true
 
-configs:
-  health_endpoints_config:
-    file: ./health-server/health-endpoints.conf
-  traefik_config:
-    file: ./traefik/traefik.yml
+
 
 secrets:
   traefik_secrets:
