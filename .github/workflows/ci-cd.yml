@@ -124,10 +124,82 @@ jobs:
           echo "Scripts: $(find . -name "*.sh" | wc -l)"
           echo "Status: ✅ Validation Passed"
 
+  # ============================================================================
+  # 🚀 DEPLOY JOB - SELF-HOSTED RUNNER
+  # ============================================================================
+  deploy-selfhosted:
+    name: "🚀 Deploy to Self-Hosted Server"
+    runs-on: [self-hosted, Linux, X64, conexao-de-sorte-traefik-infraestrutura]
+    needs: [validate]
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐳 Deploy Traefik Infrastructure"
+        run: |
+          echo "🚀 Deploying Traefik Infrastructure with Log Server..."
+
+          # Stop existing services safely
+          echo "⏹️ Stopping existing Traefik services..."
+          docker service ls --filter name=traefik-stack --format "{{.Name}}" | xargs -r docker service rm || true
+          sleep 10
+
+          # Remove orphaned containers
+          echo "🧹 Cleaning up containers..."
+          docker ps -a --filter name=traefik --format "{{.ID}}" | xargs -r docker rm -f || true
+
+          # Deploy the stack with log server
+          echo "🏗️ Deploying Traefik stack with Log Server..."
+          docker stack deploy -c docker-compose.yml traefik-stack --with-registry-auth
+
+          # Wait for services to start
+          echo "⏳ Waiting for services to initialize..."
+          sleep 30
+
+          # Verify deployment
+          echo "🔍 Verifying deployment..."
+          docker service ls --filter name=traefik-stack
+
+          # Check health of critical services
+          echo "🏥 Checking service health..."
+          for service in traefik log-server health-monitor; do
+            if docker service ls --filter name=traefik-stack_${service} --format "{{.Name}}" | grep -q .; then
+              echo "✅ Service ${service} deployed"
+            else
+              echo "⚠️ Service ${service} not found"
+            fi
+          done
+
+      - name: "📊 Post-Deploy Verification"
+        run: |
+          echo "📊 Post-deployment verification..."
+
+          # Wait a bit more for health checks
+          sleep 60
+
+          # Check running containers
+          echo "🐳 Running containers:"
+          docker ps --filter name=traefik-stack --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+          # Test endpoints (if accessible locally)
+          echo "🌐 Testing local endpoints..."
+
+          # Test log server (if running locally)
+          if curl -f http://localhost:9090/health 2>/dev/null; then
+            echo "✅ Log server health endpoint responding"
+          else
+            echo "⚠️ Log server not accessible locally (may be normal in production)"
+          fi
+
+          echo "🎉 Traefik Infrastructure deployment completed!"
+
   summary:
     name: "📊 Pipeline Summary"
     runs-on: ubuntu-latest
-    needs: [validate]
+    needs: [validate, deploy-selfhosted]
     if: always()
     timeout-minutes: 2
     
@@ -139,6 +211,7 @@ jobs:
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Validate | ${{ needs.validate.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy | ${{ needs.deploy-selfhosted.result == 'success' && '✅ Deployed' || needs.deploy-selfhosted.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Project:** conexao-de-sorte-traefik-infraestrutura" >> $GITHUB_STEP_SUMMARY
           echo "**Type:** infrastructure" >> $GITHUB_STEP_SUMMARY
