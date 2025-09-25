@@ -88,8 +88,8 @@ http:
     health-aggregator:
       loadBalancer:
         servers:
-          # Health endpoint interno do Traefik (ping endpoint) - nome correto do service
-          - url: "http://conexao-traefik_traefik:8080"
+          # Health endpoint interno do Traefik (ping endpoint) - Docker Swarm service name
+          - url: "http://traefik-stack_traefik:8080"
         healthCheck:
           path: "/ping"
           interval: 10s
@@ -102,7 +102,7 @@ http:
       loadBalancer:
         servers:
           # Usar Traefik ping como proxy para infraestrutura até configurar auth RabbitMQ
-          - url: "http://conexao-traefik_traefik:8080"
+          - url: "http://traefik-stack_traefik:8080"
         healthCheck:
           path: "/ping"
           interval: 30s
@@ -116,7 +116,7 @@ http:
     health-backend:
       loadBalancer:
         servers:
-          # Gateway Health Check (único microservice deployado) - nome correto do service
+          # Gateway Health Check (único microservice deployado) - Docker Swarm service name
           - url: "http://conexao-gateway_gateway:8086"
         healthCheck:
           path: "/actuator/health"
@@ -133,8 +133,8 @@ http:
     health-individual:
       loadBalancer:
         servers:
-          # Health Aggregator service que roteia para serviços específicos
-          - url: "http://traefik_health-monitor:8080"
+          # Health Monitor service que roteia para serviços específicos
+          - url: "http://traefik-stack_health-monitor:8080"
 
   # ===========================================================================
   # 🔧 MIDDLEWARES - Health Monitor Específicos

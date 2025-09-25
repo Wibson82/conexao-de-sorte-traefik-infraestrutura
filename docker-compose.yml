@@ -275,7 +275,7 @@ services:
         - traefik.http.routers.dashboard.entrypoints=websecure
         - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
         - traefik.http.routers.dashboard.service=api@internal
-        - traefik.http.routers.dashboard.middlewares=dashboard-auth@file,security-headers@file
+        - traefik.http.routers.dashboard.middlewares=dashboard-auth@file,dashboard-headers@file
 
         # Dashboard HTTP redirect (Segurança)
         - traefik.http.routers.dashboard-redirect.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)
