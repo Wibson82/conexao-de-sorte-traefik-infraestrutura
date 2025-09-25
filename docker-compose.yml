@@ -139,22 +139,14 @@ services:
         - traefik.http.routers.log-servidor.entrypoints=websecure
         - traefik.http.routers.log-servidor.tls.certresolver=letsencrypt
         - traefik.http.routers.log-servidor.service=log-server
-        - traefik.http.routers.log-servidor.middlewares=cors-logs
 
         # Rota HTTP para acesso direto via IP (sem SSL)
         - traefik.http.routers.log-servidor-http.rule=Host(`145.223.31.87`) && Path(`/rest/v1/log-servidor`)
         - traefik.http.routers.log-servidor-http.entrypoints=web
         - traefik.http.routers.log-servidor-http.service=log-server
-        - traefik.http.routers.log-servidor-http.middlewares=cors-logs
 
         # Service configuration
         - traefik.http.services.log-server.loadbalancer.server.port=9090
-
-        # CORS middleware para logs
-        - traefik.http.middlewares.cors-logs.headers.accesscontrolallowmethods=GET,OPTIONS
-        - traefik.http.middlewares.cors-logs.headers.accesscontrolalloworiginlist=*
-        - traefik.http.middlewares.cors-logs.headers.accesscontrolallowheaders=Content-Type,Authorization
-        - traefik.http.middlewares.cors-logs.headers.accesscontrolmaxage=86400
 
   traefik:
     # ==========================================================================
