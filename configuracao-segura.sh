@@ -56,8 +56,7 @@ setup_environment() {
 # =============================================================================
 TZ=America/Sao_Paulo
 TRAEFIK_ACME_EMAIL=facilitaservicos.tec@gmail.com
-TRAEFIK_DOMAIN=traefik.conexaodesorte.com.br
-API_DOMAIN=api.conexaodesorte.com.br
+BASE_DOMAIN=conexaodesorte.com.br
 
 # =============================================================================
 # 🔧 BACKEND CONFIGURATION (Docker Swarm Only)
@@ -151,7 +150,7 @@ validate_setup() {
     fi
 
     # Verificar variáveis obrigatórias do Traefik
-    local traefik_vars=("TRAEFIK_DOMAIN" "API_DOMAIN" "TRAEFIK_ACME_EMAIL")
+    local traefik_vars=("BASE_DOMAIN" "TRAEFIK_ACME_EMAIL")
     for var in "${traefik_vars[@]}"; do
         if [[ -n "${!var:-}" ]]; then
             echo "✅ $var configurado"
@@ -191,8 +190,8 @@ main() {
     echo ""
     echo "🔗 URLs de PRODUÇÃO após deploy:"
     echo "   🌐 Frontend: https://www.conexaodesorte.com.br"
-    echo "   📊 Dashboard: https://traefik.conexaodesorte.com.br (PROTEGIDO)"
-    echo "   🔌 API: https://api.conexaodesorte.com.br"
+    echo "   📊 Dashboard: https://conexaodesorte.com.br/traefik (PROTEGIDO)"
+    echo "   🔌 APIs: https://conexaodesorte.com.br/rest/*"
     echo ""
     echo "🛡️  SEGURANÇA: Dashboard protegido por autenticação obrigatória"
 }

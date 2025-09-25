@@ -17,7 +17,7 @@ example_basic_health_check:
     - name: 🏥 Validate service deployment
       run: |
         SERVICE_NAME="resultados"
-        HEALTH_URL="https://traefik.conexaodesorte.com.br/health/service/${SERVICE_NAME}"
+        HEALTH_URL="https://conexaodesorte.com.br/traefik/health/service/${SERVICE_NAME}"
 
         echo "🔍 Checking health of service: $SERVICE_NAME"
 
@@ -57,9 +57,9 @@ example_advanced_health_check:
     - name: 🏥 Advanced deployment validation with rollback
       id: health_check
       run: |
-        OVERALL_URL="https://traefik.conexaodesorte.com.br/health/overall"
+        OVERALL_URL="https://conexaodesorte.com.br/traefik/health/overall"
         SERVICE_NAME="resultados"
-        SERVICE_URL="https://traefik.conexaodesorte.com.br/health/service/${SERVICE_NAME}"
+        SERVICE_URL="https://conexaodesorte.com.br/traefik/health/service/${SERVICE_NAME}"
 
         echo "🔍 Starting advanced health check for $SERVICE_NAME"
 
@@ -170,7 +170,7 @@ example_advanced_health_check:
         sleep 30
 
         # Verify rollback health
-        SERVICE_URL="https://traefik.conexaodesorte.com.br/health/service/resultados"
+        SERVICE_URL="https://conexaodesorte.com.br/traefik/health/service/resultados"
         if response=$(curl -s -f "$SERVICE_URL"); then
           status=$(echo "$response" | jq -r '.status')
           if [[ "$status" == "healthy" ]]; then
@@ -193,9 +193,9 @@ example_monitoring_job:
   steps:
     - name: 🏥 Continuous health monitoring
       run: |
-        OVERALL_URL="https://traefik.conexaodesorte.com.br/health/overall"
-        INFRA_URL="https://traefik.conexaodesorte.com.br/health/infrastructure"
-        BACKEND_URL="https://traefik.conexaodesorte.com.br/health/backend"
+        OVERALL_URL="https://conexaodesorte.com.br/traefik/health/overall"
+        INFRA_URL="https://conexaodesorte.com.br/traefik/health/infrastructure"
+        BACKEND_URL="https://conexaodesorte.com.br/traefik/health/backend"
 
         # Check overall health
         overall_response=$(curl -s -f "$OVERALL_URL" || echo '{"status":"error"}')
@@ -257,7 +257,7 @@ example_matrix_health_check:
       id: service_health
       run: |
         SERVICE_NAME="${{ matrix.service }}"
-        SERVICE_URL="https://traefik.conexaodesorte.com.br/health/service/${SERVICE_NAME}"
+        SERVICE_URL="https://conexaodesorte.com.br/traefik/health/service/${SERVICE_NAME}"
 
         echo "🔍 Checking health of $SERVICE_NAME..."
 
@@ -291,19 +291,19 @@ example_matrix_health_check:
 # -----------------------------------------------------------------------------
 #
 # 1. Status Geral:
-#    GET https://traefik.conexaodesorte.com.br/health/overall
+#    GET https://conexaodesorte.com.br/traefik/health/overall
 #    Retorna: {"status":"healthy","services":15,"healthy":12,"starting":2,"down":1}
 #
 # 2. Infraestrutura:
-#    GET https://traefik.conexaodesorte.com.br/health/infrastructure
+#    GET https://conexaodesorte.com.br/traefik/health/infrastructure
 #    Retorna: {"status":"healthy","services":6,"healthy":6,"mysql":"healthy","redis":"healthy"}
 #
 # 3. Backend Services:
-#    GET https://traefik.conexaodesorte.com.br/health/backend
+#    GET https://conexaodesorte.com.br/traefik/health/backend
 #    Retorna: {"status":"degraded","services":11,"healthy":7,"gateway":"healthy","resultados":"healthy"}
 #
 # 4. Serviço Individual:
-#    GET https://traefik.conexaodesorte.com.br/health/service/{service_name}
+#    GET https://conexaodesorte.com.br/traefik/health/service/{service_name}
 #    Retorna: {"status":"healthy","service":"resultados","uptime":"2h30m","version":"1.0.0"}
 #
 # -----------------------------------------------------------------------------

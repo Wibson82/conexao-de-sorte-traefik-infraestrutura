@@ -25,13 +25,14 @@ http:
     # 📊 HEALTH OVERVIEW - Status geral de todos os serviços
     # -------------------------------------------------------------------------
     health-overall:
-      rule: "Host(`traefik.conexaodesorte.com.br`) && Path(`/health/overall`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && Path(`/traefik/health/overall`)"
       entrypoints:
         - websecure
       tls:
         certResolver: letsencrypt
       service: health-aggregator
       middlewares:
+        - traefik-path-trim
         - health-headers
         - cors-health
 
@@ -39,13 +40,14 @@ http:
     # 🗄️ INFRASTRUCTURE HEALTH - MySQL, Redis, Kafka, etc
     # -------------------------------------------------------------------------
     health-infrastructure:
-      rule: "Host(`traefik.conexaodesorte.com.br`) && Path(`/health/infrastructure`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && Path(`/traefik/health/infrastructure`)"
       entrypoints:
         - websecure
       tls:
         certResolver: letsencrypt
       service: health-infrastructure
       middlewares:
+        - traefik-path-trim
         - health-headers
         - cors-health
 
@@ -53,13 +55,14 @@ http:
     # 🖥️ BACKEND SERVICES HEALTH - Microserviços aplicação
     # -------------------------------------------------------------------------
     health-backend:
-      rule: "Host(`traefik.conexaodesorte.com.br`) && Path(`/health/backend`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && Path(`/traefik/health/backend`)"
       entrypoints:
         - websecure
       tls:
         certResolver: letsencrypt
       service: health-backend
       middlewares:
+        - traefik-path-trim
         - health-headers
         - cors-health
 
@@ -67,13 +70,14 @@ http:
     # 🔍 INDIVIDUAL SERVICE HEALTH - Status por serviço específico
     # -------------------------------------------------------------------------
     health-individual:
-      rule: "Host(`traefik.conexaodesorte.com.br`) && PathPrefix(`/health/service/`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/traefik/health/service/`)"
       entrypoints:
         - websecure
       tls:
         certResolver: letsencrypt
       service: health-individual
       middlewares:
+        - traefik-path-trim
         - health-headers
         - cors-health
         - health-service-rewrite
@@ -88,10 +92,10 @@ http:
     health-aggregator:
       loadBalancer:
         servers:
-          # Health endpoint interno do Traefik (ping endpoint) - Docker Swarm service name
-          - url: "http://traefik-stack_traefik:8080"
+          # Health monitor centralizado exposto via path /health/overall
+          - url: "http://traefik-stack_health-monitor:8080"
         healthCheck:
-          path: "/ping"
+          path: "/health/overall"
           interval: 10s
           timeout: 3s
 
@@ -101,10 +105,10 @@ http:
     health-infrastructure:
       loadBalancer:
         servers:
-          # Usar Traefik ping como proxy para infraestrutura até configurar auth RabbitMQ
-          - url: "http://traefik-stack_traefik:8080"
+          # Nginx health monitor consolidado
+          - url: "http://traefik-stack_health-monitor:8080"
         healthCheck:
-          path: "/ping"
+          path: "/health/infrastructure"
           interval: 30s
           timeout: 5s
       # NOTA: MySQL, Redis, Kafka, RabbitMQ são monitorados via health checks próprios
@@ -187,19 +191,19 @@ http:
 # =============================================================================
 #
 # 1. STATUS GERAL:
-#    GET https://traefik.conexaodesorte.com.br/health/overall
+#    GET https://conexaodesorte.com.br/traefik/health/overall
 #    Retorna: {"status":"healthy","services":15,"healthy":12,"unhealthy":3}
 #
 # 2. INFRAESTRUTURA:
-#    GET https://traefik.conexaodesorte.com.br/health/infrastructure
+#    GET https://conexaodesorte.com.br/traefik/health/infrastructure
 #    Retorna: {"mysql":"healthy","redis":"healthy","kafka":"degraded"}
 #
 # 3. BACKEND SERVICES:
-#    GET https://traefik.conexaodesorte.com.br/health/backend
+#    GET https://conexaodesorte.com.br/traefik/health/backend
 #    Retorna: {"gateway":"healthy","resultados":"starting","auth":"down"}
 #
 # 4. SERVIÇO INDIVIDUAL:
-#    GET https://traefik.conexaodesorte.com.br/health/service/resultados
+#    GET https://conexaodesorte.com.br/traefik/health/service/resultados
 #    Retorna: {"status":"healthy","uptime":"2m30s","version":"1.0.0"}
 #
 # =============================================================================
@@ -210,10 +214,10 @@ http:
 # - name: 🏥 Validate deployment health
 #   run: |
 #     # Aguardar serviço ficar healthy
-#     timeout 300 bash -c 'until curl -f https://traefik.conexaodesorte.com.br/health/service/resultados; do sleep 10; done'
+#     timeout 300 bash -c 'until curl -f https://conexaodesorte.com.br/traefik/health/service/resultados; do sleep 10; done'
 #
 #     # Verificar status geral
-#     response=$(curl -s https://traefik.conexaodesorte.com.br/health/overall)
+#     response=$(curl -s https://conexaodesorte.com.br/traefik/health/overall)
 #     healthy_count=$(echo "$response" | jq -r '.healthy')
 #     total_count=$(echo "$response" | jq -r '.services')
 #

@@ -16,7 +16,7 @@ O Health Monitor Centralizado é uma extensão do Traefik que fornece endpoints 
 
 ### 1. Status Geral
 ```bash
-GET https://traefik.conexaodesorte.com.br/health/overall
+GET https://conexaodesorte.com.br/traefik/health/overall
 ```
 **Retorna:**
 ```json
@@ -33,7 +33,7 @@ GET https://traefik.conexaodesorte.com.br/health/overall
 
 ### 2. Infraestrutura
 ```bash
-GET https://traefik.conexaodesorte.com.br/health/infrastructure
+GET https://conexaodesorte.com.br/traefik/health/infrastructure
 ```
 **Retorna:**
 ```json
@@ -53,7 +53,7 @@ GET https://traefik.conexaodesorte.com.br/health/infrastructure
 
 ### 3. Backend Services
 ```bash
-GET https://traefik.conexaodesorte.com.br/health/backend
+GET https://conexaodesorte.com.br/traefik/health/backend
 ```
 **Retorna:**
 ```json
@@ -71,11 +71,11 @@ GET https://traefik.conexaodesorte.com.br/health/backend
 
 ### 4. Serviço Individual
 ```bash
-GET https://traefik.conexaodesorte.com.br/health/service/{service_name}
+GET https://conexaodesorte.com.br/traefik/health/service/{service_name}
 ```
 **Exemplo:**
 ```bash
-GET https://traefik.conexaodesorte.com.br/health/service/resultados
+GET https://conexaodesorte.com.br/traefik/health/service/resultados
 ```
 **Retorna:**
 ```json
@@ -106,7 +106,7 @@ GET https://traefik.conexaodesorte.com.br/health/service/resultados
 - name: 🏥 Validate deployment
   run: |
     SERVICE_NAME="resultados"
-    HEALTH_URL="https://traefik.conexaodesorte.com.br/health/service/${SERVICE_NAME}"
+    HEALTH_URL="https://conexaodesorte.com.br/traefik/health/service/${SERVICE_NAME}"
 
     # Wait for service to become healthy (max 5 minutes)
     timeout 300 bash -c "
@@ -136,7 +136,7 @@ GET https://traefik.conexaodesorte.com.br/health/service/resultados
 ```yaml
 - name: 🏥 Advanced health check with rollback
   run: |
-    OVERALL_URL="https://traefik.conexaodesorte.com.br/health/overall"
+    OVERALL_URL="https://conexaodesorte.com.br/traefik/health/overall"
 
     # Check overall system health
     response=$(curl -s -f "$OVERALL_URL")
@@ -165,7 +165,7 @@ jobs:
     steps:
       - name: 🏥 System health check
         run: |
-          response=$(curl -s https://traefik.conexaodesorte.com.br/health/overall)
+          response=$(curl -s https://conexaodesorte.com.br/traefik/health/overall)
           status=$(echo "$response" | jq -r '.status')
 
           if [[ "$status" == "critical" ]]; then
@@ -200,13 +200,13 @@ docker service ls | grep traefik
 docker service ps conexao-traefik_health-monitor
 
 # Testar endpoints
-curl -f https://traefik.conexaodesorte.com.br/health/overall
+curl -f https://conexaodesorte.com.br/traefik/health/overall
 ```
 
 ### 3. Configurar DNS (se necessário)
 ```bash
 # Adicionar entrada DNS apontando para o servidor
-# traefik.conexaodesorte.com.br -> IP_DO_SERVIDOR
+# conexaodesorte.com.br -> IP_DO_SERVIDOR
 ```
 
 ## 🛡️ Segurança
@@ -261,7 +261,7 @@ docker service inspect conexao-traefik_health-monitor
 docker exec -it $(docker ps -q -f name=traefik) cat /etc/traefik/dynamic/health-monitor.yml
 
 # 3. Verificar certificados SSL
-curl -I https://traefik.conexaodesorte.com.br/health/overall
+curl -I https://conexaodesorte.com.br/traefik/health/overall
 ```
 
 ## 📈 Métricas e Observabilidade
@@ -271,7 +271,7 @@ O health monitor expõe métricas compatíveis com Prometheus:
 
 ```bash
 # Métricas disponíveis em
-GET https://traefik.conexaodesorte.com.br/metrics
+GET https://conexaodesorte.com.br/traefik/metrics
 
 # Exemplos de métricas:
 # - conexao_services_total{type="infrastructure"}

@@ -53,8 +53,7 @@ check_env_vars() {
         "AZURE_CLIENT_ID"
         "AZURE_TENANT_ID" 
         "AZURE_KEYVAULT_ENDPOINT"
-        "TRAEFIK_DOMAIN"
-        "API_DOMAIN"
+        "BASE_DOMAIN"
     )
     
     # Verificar se arquivo .env existe
@@ -228,8 +227,8 @@ final_check() {
     
     echo ""
     log "🌐 Frontend: https://www.conexaodesorte.com.br"
-    echo "🔌 API: https://api.conexaodesorte.com.br"
-    echo "📊 Traefik Dashboard: https://traefik.conexaodesorte.com.br (PROTEGIDO)"
+    echo "🔌 APIs: https://conexaodesorte.com.br/rest/*"
+    echo "📊 Traefik Dashboard: https://conexaodesorte.com.br/traefik (PROTEGIDO)"
     echo ""
     echo "🛡️  SEGURANÇA DE PRODUÇÃO:"
     echo "   ✅ SSL/TLS automático (Let's Encrypt)"

@@ -11,7 +11,7 @@ http:
     # Placeholder para futuros serviços Swarm
     # Exemplo de roteamento para serviços Swarm:
     # backend-swarm-service:
-    #   rule: "Host(`api.conexaodesorte.com.br`) && PathPrefix(`/api/v2`)"
+    #   rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/rest/backend`)"
     #   entrypoints:
     #     - websecure
     #   service: backend-swarm-service

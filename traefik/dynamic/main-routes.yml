@@ -3,7 +3,7 @@
 # 🌐 CONEXÃO DE SORTE - ROTEAMENTO INFRAESTRUTURA
 # =============================================================================
 # FASE INFRAESTRUTURA: Apenas rotas que não dependem de serviços externos
-# - Dashboard Traefik: traefik.conexaodesorte.com.br
+# - Dashboard Traefik: conexaodesorte.com.br/traefik
 # - Fallback para evitar 404s
 # - Preparado para expansão futura
 # =============================================================================
@@ -47,37 +47,67 @@ http:
     # api-criptografia: /rest/criptografia/
     # api-observabilidade: /rest/observabilidade/
 
+    # ==========================================================================
+    # 📊 TRAEFIK DASHBOARD VIA PATH PREFIX
+    # ==========================================================================
+    traefik-dashboard-root:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && (Path(`/traefik`) || Path(`/traefik/`))"
+      entrypoints:
+        - websecure
+      tls:
+        certresolver: letsencrypt
+      service: noop@internal
+      middlewares:
+        - traefik-dashboard-redirect@file
+
+    traefik-dashboard:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/traefik/dashboard`)"
+      entrypoints:
+        - websecure
+      tls:
+        certresolver: letsencrypt
+      service: api@internal
+      middlewares:
+        - traefik-dashboard-redirect@file
+        - traefik-path-trim@file
+        - dashboard-auth@file
+        - dashboard-headers@file
+
+    traefik-admin:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && (PathPrefix(`/traefik/api`) || Path(`/traefik/metrics`) || Path(`/traefik/ping`))"
+      entrypoints:
+        - websecure
+      tls:
+        certresolver: letsencrypt
+      service: api@internal
+      middlewares:
+        - traefik-path-trim@file
+        - dashboard-auth@file
+        - dashboard-headers@file
+
   # ==========================================================================
   # 🎯 SERVIÇOS (Load Balancers) - FASE INFRAESTRUTURA
   # ==========================================================================
-  services:
-    # Serviço fallback para evitar 404s durante desenvolvimento - usando Traefik interno
-    fallback-service:
-      loadbalancer:
-        servers:
-          - url: "http://conexao-traefik_traefik:8080"
-        healthcheck:
-          path: "/ping"
-          interval: "60s"
-          timeout: "10s"
+  services: {}
+  # Os services desta fase reutilizam a definição compartilhada em
+  # microservices-routes.yml para evitar conflitos de configuração.
 
-    # ==========================================================================
-    # 🚀 SERVIÇOS FUTUROS (SERÃO ATIVADOS COM OS DEPLOYMENTS)
-    # ==========================================================================
-    #
-    # frontend-service: conexao-frontend_frontend:3000
-    # gateway-service: conexao-gateway_gateway:8080
-    # autenticacao-service: conexao-autenticacao_autenticacao:8080
-    # usuario-service: conexao-usuario_usuario:8080
-    # resultados-service: conexao-resultados_resultados:8080
-    # batepapo-service: conexao-batepapo_batepapo:8080
-    # chatbot-service: conexao-chatbot_chatbot:8080
-    # financeiro-service: conexao-financeiro_financeiro:8080
-    # notificacoes-service: conexao-notificacoes_notificacoes:8080
-    # scheduler-service: conexao-scheduler_scheduler:8080
-    # auditoria-service: conexao-auditoria_auditoria:8080
-    # criptografia-service: conexao-criptografia_criptografia:8080
-    # observabilidade-service: conexao-observabilidade_observabilidade:8080
+  # ==========================================================================
+  # 🚀 SERVIÇOS FUTUROS (SERÃO ATIVADOS COM OS DEPLOYMENTS)
+  # ==========================================================================
+  # frontend-service: conexao-frontend_frontend:3000
+  # gateway-service: conexao-gateway_gateway:8080
+  # autenticacao-service: conexao-autenticacao_autenticacao:8080
+  # usuario-service: conexao-usuario_usuario:8080
+  # resultados-service: conexao-resultados_resultados:8080
+  # batepapo-service: conexao-batepapo_batepapo:8080
+  # chatbot-service: conexao-chatbot_chatbot:8080
+  # financeiro-service: conexao-financeiro_financeiro:8080
+  # notificacoes-service: conexao-notificacoes_notificacoes:8080
+  # scheduler-service: conexao-scheduler_scheduler:8080
+  # auditoria-service: conexao-auditoria_auditoria:8080
+  # criptografia-service: conexao-criptografia_criptografia:8080
+  # observabilidade-service: conexao-observabilidade_observabilidade:8080
 
 # =============================================================================
 # 📋 CONFIGURAÇÃO DE ROTEAMENTO

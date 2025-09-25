@@ -46,8 +46,7 @@ Segredos Necessários:
   - crypto-users (usuários criptografia)
 
 - Environment Variables:
-  - TRAEFIK_DOMAIN (default: traefik.conexaodesorte.com.br)
-  - API_DOMAIN (default: api.conexaodesorte.com.br)
+  - BASE_DOMAIN (default: conexaodesorte.com.br)
   - DOCKER_NETWORK_NAME (default: conexao-network-swarm)
   - STACK_NAME (default: conexao-traefik)
 

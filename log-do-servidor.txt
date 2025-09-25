@@ -130,8 +130,8 @@ yw3siryopdjnqi98k9sc842f6    \_ conexao-traefik_traefik.1   traefik:v3.5.2@sha25
 ID             NAME                      MODE         REPLICAS   IMAGE            PORTS
 bsk2pp27shzz   conexao-traefik_traefik   replicated   0/1        traefik:v3.5.2   *:80->80/tcp, *:443->443/tcp
 ✅ Deploy do Traefik finalizado com sucesso!
-� Traefik Dashboard: https://traefik.conexaodesorte.com.br
-� API: https://api.conexaodesorte.com.br
+� Traefik Dashboard: https://conexaodesorte.com.br/traefik
+� APIs: https://conexaodesorte.com.br/rest/*
 0s
 2m 1s
 Run .github/workflows/scripts/connectivity-validation.sh

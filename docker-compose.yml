@@ -61,42 +61,35 @@ services:
         - traefik.docker.network=conexao-network-swarm
 
         # Health Overall Endpoint
-        - traefik.http.routers.health-overall.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/overall`)
+        - traefik.http.routers.health-overall.rule=HostRegexp(`{host:(www\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && Path(`/traefik/health/overall`)
         - traefik.http.routers.health-overall.entrypoints=websecure
         - traefik.http.routers.health-overall.tls.certresolver=letsencrypt
         - traefik.http.routers.health-overall.service=health-monitor
-        - traefik.http.routers.health-overall.middlewares=cors-health
+        - traefik.http.routers.health-overall.middlewares=traefik-path-trim@file,health-headers@file,cors-health@file
 
         # Health Infrastructure Endpoint
-        - traefik.http.routers.health-infra.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/infrastructure`)
+        - traefik.http.routers.health-infra.rule=HostRegexp(`{host:(www\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && Path(`/traefik/health/infrastructure`)
         - traefik.http.routers.health-infra.entrypoints=websecure
         - traefik.http.routers.health-infra.tls.certresolver=letsencrypt
         - traefik.http.routers.health-infra.service=health-monitor
-        - traefik.http.routers.health-infra.middlewares=cors-health
+        - traefik.http.routers.health-infra.middlewares=traefik-path-trim@file,health-headers@file,cors-health@file
 
         # Health Backend Endpoint
-        - traefik.http.routers.health-backend.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && Path(`/health/backend`)
+        - traefik.http.routers.health-backend.rule=HostRegexp(`{host:(www\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && Path(`/traefik/health/backend`)
         - traefik.http.routers.health-backend.entrypoints=websecure
         - traefik.http.routers.health-backend.tls.certresolver=letsencrypt
         - traefik.http.routers.health-backend.service=health-monitor
-        - traefik.http.routers.health-backend.middlewares=cors-health
+        - traefik.http.routers.health-backend.middlewares=traefik-path-trim@file,health-headers@file,cors-health@file
 
         # Health Individual Service Endpoint
-        - traefik.http.routers.health-service.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`) && PathPrefix(`/health/service/`)
+        - traefik.http.routers.health-service.rule=HostRegexp(`{host:(www\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && PathPrefix(`/traefik/health/service/`)
         - traefik.http.routers.health-service.entrypoints=websecure
         - traefik.http.routers.health-service.tls.certresolver=letsencrypt
         - traefik.http.routers.health-service.service=health-monitor
-        - traefik.http.routers.health-service.middlewares=cors-health
+        - traefik.http.routers.health-service.middlewares=traefik-path-trim@file,health-headers@file,cors-health@file,health-service-rewrite@file
 
         # Service configuration
         - traefik.http.services.health-monitor.loadbalancer.server.port=8080
-
-        # CORS middleware for health endpoints
-        - traefik.http.middlewares.cors-health.headers.accesscontrolallowmethods=GET,OPTIONS
-        - traefik.http.middlewares.cors-health.headers.accesscontrolalloworiginlist=https://*.conexaodesorte.com.br,https://github.com,https://api.github.com
-        - traefik.http.middlewares.cors-health.headers.accesscontrolallowheaders=Content-Type,Authorization,X-Health-Monitor
-        - traefik.http.middlewares.cors-health.headers.accesscontrolexposeheaders=X-Health-Status,X-Service-Count,X-Healthy-Count
-        - traefik.http.middlewares.cors-health.headers.accesscontrolmaxage=86400
 
   # ===========================================================================
   # 📊 LOG SERVER - MONITORAMENTO COMPLETO DO SISTEMA
@@ -142,7 +135,7 @@ services:
         - traefik.docker.network=conexao-network-swarm
 
         # Endpoint principal de logs do servidor
-        - traefik.http.routers.log-servidor.rule=Host(`conexaodesorte.com.br`) && Path(`/rest/v1/log-servidor`)
+        - traefik.http.routers.log-servidor.rule=HostRegexp(`{host:(www\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && Path(`/rest/v1/log-servidor`)
         - traefik.http.routers.log-servidor.entrypoints=websecure
         - traefik.http.routers.log-servidor.tls.certresolver=letsencrypt
         - traefik.http.routers.log-servidor.service=log-server
@@ -269,24 +262,10 @@ services:
         - traefik.docker.network=conexao-network-swarm
 
         # ===================================================================
-        # 📊 DASHBOARD HTTPS (Seguro - sem porta externa)
-        # ===================================================================
-        - traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)
-        - traefik.http.routers.dashboard.entrypoints=websecure
-        - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
-        - traefik.http.routers.dashboard.service=api@internal
-        - traefik.http.routers.dashboard.middlewares=dashboard-auth@file,dashboard-headers@file
-
-        # Dashboard HTTP redirect (Segurança)
-        - traefik.http.routers.dashboard-redirect.rule=Host(`${TRAEFIK_DOMAIN:-traefik.conexaodesorte.com.br}`)
-        - traefik.http.routers.dashboard-redirect.entrypoints=web
-        - traefik.http.routers.dashboard-redirect.middlewares=https-redirect@file
-
-        # ===================================================================
         # 🔀 API BACKEND PROXY (Consolidado) - COMENTADO TEMPORARIAMENTE
         # ===================================================================
         # - >-
-        #   traefik.http.routers.api-backend.rule=Host(`${API_DOMAIN:-api.conexaodesorte.com.br}`)
+        #   traefik.http.routers.api-backend.rule=HostRegexp(`{host:(www\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && PathPrefix(`/rest/gateway`)
         # - traefik.http.routers.api-backend.entrypoints=websecure
         # - traefik.http.routers.api-backend.tls.certresolver=letsencrypt
         # - traefik.http.routers.api-backend.service=api-backend-service
@@ -354,8 +333,7 @@ secrets:
 # ==========================================
 # TZ=America/Sao_Paulo
 # TRAEFIK_ACME_EMAIL=facilitaservicos.tec@gmail.com
-# TRAEFIK_DOMAIN=traefik.conexaodesorte.com.br
-# API_DOMAIN=api.conexaodesorte.com.br
+# BASE_DOMAIN=conexaodesorte.com.br
 # ENABLE_DASHBOARD=true
 # LOG_LEVEL=INFO
 # ACCESS_LOG_ENABLED=true

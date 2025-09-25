@@ -1,5 +1,7 @@
 ---
 http:
+  # Middlewares de segurança baseados em headers permanecem em
+  # security-headers.yml para evitar duplicações durante o reload.
   middlewares:
     gzip-compress:
       compress: {}
@@ -29,6 +31,10 @@ http:
         accessControlMaxAge: 86400
         addVaryHeader: true
 
+    traefik-path-trim:
+      stripPrefixRegex:
+        - "^/traefik"
+
     # ==========================================================================
     # MIDDLEWARES PARA GATEWAY-FIRST ARCHITECTURE
     # ==========================================================================
@@ -49,23 +55,6 @@ http:
           - "X-Requested-With"
         accessControlAllowCredentials: true
         accessControlMaxAge: 3600
-
-    security-headers-api:
-      headers:
-        browserXssFilter: true
-        contentTypeNosniff: true
-        frameDeny: true
-        referrerPolicy: "strict-origin-when-cross-origin"
-        customResponseHeaders:
-          X-Content-Type-Options: "nosniff"
-          Strict-Transport-Security: >-
-            max-age=31536000; includeSubDomains
-          X-Frame-Options: "DENY"
-          X-XSS-Protection: "1; mode=block"
-          Content-Security-Policy: >-
-            default-src 'self'; script-src 'self';
-            style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;
-            connect-src 'self' https://api.conexaodesorte.com.br
 
     rate-limit-gateway:
       rateLimit:
@@ -90,6 +79,12 @@ http:
       redirectRegex:
         regex: "^https://conexaodesorte.com.br/(.*)"
         replacement: "https://www.conexaodesorte.com.br/${1}"
+        permanent: true
+
+    traefik-dashboard-redirect:
+      redirectRegex:
+        regex: "^/traefik/?$"
+        replacement: "/traefik/dashboard/"
         permanent: true
 
     redirect-www-to-non-www:
@@ -258,30 +253,6 @@ http:
     dashboard-auth:
       basicAuth:
         usersFile: /secrets/traefik-basicauth
-
-    # Security Headers
-    security-headers:
-      headers:
-        frameDeny: true
-        sslRedirect: true
-        browserXssFilter: true
-        contentTypeNosniff: true
-        forceSTSHeader: true
-        stsIncludeSubdomains: true
-        stsPreload: true
-        stsSeconds: 31536000
-        isDevelopment: false
-        customRequestHeaders:
-          X-Forwarded-Proto: "https"
-        customResponseHeaders:
-          X-Frame-Options: "DENY"
-          X-Content-Type-Options: "nosniff"
-          X-XSS-Protection: "1; mode=block"
-          Strict-Transport-Security: >-
-            max-age=31536000; includeSubDomains; preload
-          Content-Security-Policy: >-
-            default-src 'self'; img-src 'self' data: https:;
-            style-src 'self' 'unsafe-inline'
 
     # Gzip compression
     gzip:
