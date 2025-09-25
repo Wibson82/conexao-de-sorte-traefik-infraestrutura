@@ -1,33 +1,58 @@
 # =============================================================================
-# 🏥 HEALTH SERVER - Lightweight Health Check Aggregator
+# 📊 LOG SERVER - DOCKERFILE OPTIMIZADO
 # =============================================================================
-FROM alpine:3.19
+# Servidor Python para endpoint /rest/v1/log-servidor
+# Base: Alpine Linux + Python + Docker CLI
+# =============================================================================
 
-# Install dependencies
+FROM python:3.11-alpine
+
+# Metadados
+LABEL maintainer="conexao-de-sorte@sistema.com"
+LABEL version="1.0.0"
+LABEL description="Log Server para monitoramento completo dos containers"
+
+# Dependências do sistema + Docker CLI
 RUN apk add --no-cache \
+    docker-cli \
     bash \
+    bc \
     curl \
     jq \
-    docker-cli \
-    netcat-openbsd
+    dcron \
+    && rm -rf /var/cache/apk/*
 
-# Create app directory
-WORKDIR /app
+# Criar usuário não-privilegiado
+RUN addgroup -g 1000 logserver && \
+    adduser -u 1000 -G logserver -s /bin/bash -D logserver
 
-# Copy health aggregator script
-COPY scripts/health-aggregator.sh /app/health-aggregator.sh
-RUN chmod +x /app/health-aggregator.sh
+# Diretórios de trabalho
+RUN mkdir -p /app/logs /app/scripts /app/health-server && \
+    chown -R logserver:logserver /app
 
-# Copy HTTP server script responsible for encaminhar as requisições
-COPY health-server/server.sh /app/server.sh
-RUN chmod +x /app/server.sh
+# Copiar scripts e servidor
+COPY --chown=logserver:logserver scripts/server-monitor.sh /app/scripts/
+COPY --chown=logserver:logserver scripts/cronjob-monitor.sh /app/scripts/
+COPY --chown=logserver:logserver health-server/log-server.py /app/health-server/
+COPY --chown=logserver:logserver health-server/entrypoint.sh /app/
 
-# Expose port
+# Dar permissões de execução
+RUN chmod +x /app/scripts/server-monitor.sh /app/scripts/cronjob-monitor.sh /app/health-server/log-server.py /app/entrypoint.sh
 
+# Mudar para usuário não-privilegiado
+USER logserver
+
+# Configurações
+ENV PYTHONUNBUFFERED=1
+ENV TZ=America/Sao_Paulo
+ENV LOG_LEVEL=INFO
+
+# Porta do servidor
+EXPOSE 9090
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/ || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
+    CMD curl -f http://localhost:9090/health || exit 1
 
-# Start server
-CMD ["/app/server.sh"]
+# Ponto de entrada
+CMD ["/app/entrypoint.sh"]

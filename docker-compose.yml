@@ -98,6 +98,67 @@ services:
         - traefik.http.middlewares.cors-health.headers.accesscontrolexposeheaders=X-Health-Status,X-Service-Count,X-Healthy-Count
         - traefik.http.middlewares.cors-health.headers.accesscontrolmaxage=86400
 
+  # ===========================================================================
+  # 📊 LOG SERVER - MONITORAMENTO COMPLETO DO SISTEMA
+  # ===========================================================================
+  log-server:
+    build:
+      context: .
+      dockerfile: health-server/Dockerfile
+    user: "1000:1000"
+    restart: on-failure:10
+    networks:
+      - conexao-network-swarm
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-logs:/app/logs:rw
+    environment:
+      TZ: "${TZ:-America/Sao_Paulo}"
+      PYTHONUNBUFFERED: "1"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+      labels:
+        # Traefik routing para /rest/v1/log-servidor
+        - traefik.enable=true
+        - traefik.docker.network=conexao-network-swarm
+
+        # Endpoint principal de logs do servidor
+        - traefik.http.routers.log-servidor.rule=Host(`conexaodesorte.com.br`) && Path(`/rest/v1/log-servidor`)
+        - traefik.http.routers.log-servidor.entrypoints=websecure
+        - traefik.http.routers.log-servidor.tls.certresolver=letsencrypt
+        - traefik.http.routers.log-servidor.service=log-server
+        - traefik.http.routers.log-servidor.middlewares=cors-logs
+
+        # Service configuration
+        - traefik.http.services.log-server.loadbalancer.server.port=9090
+
+        # CORS middleware para logs
+        - traefik.http.middlewares.cors-logs.headers.accesscontrolallowmethods=GET,OPTIONS
+        - traefik.http.middlewares.cors-logs.headers.accesscontrolalloworiginlist=*
+        - traefik.http.middlewares.cors-logs.headers.accesscontrolallowheaders=Content-Type,Authorization
+        - traefik.http.middlewares.cors-logs.headers.accesscontrolmaxage=86400
+
   traefik:
     # ==========================================================================
     # 🔧 CONFIGURAÇÃO BÁSICA
