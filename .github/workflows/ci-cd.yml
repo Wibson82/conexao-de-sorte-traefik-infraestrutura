@@ -142,6 +142,10 @@ jobs:
         run: |
           echo "🚀 Deploying Traefik Infrastructure with Log Server..."
 
+          # Build log server image for Swarm
+          echo "🏗️ Building Log Server image..."
+          docker build -t log-server:latest -f health-server/Dockerfile .
+
           # Stop existing services safely
           echo "⏹️ Stopping existing Traefik services..."
           docker service ls --filter name=traefik-stack --format "{{.Name}}" | xargs -r docker service rm || true
