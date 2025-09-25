@@ -50,18 +50,21 @@ jobs:
       - name: "🔒 Security Validation"
         run: |
           echo "🔒 Checking for security issues..."
-          
-          # Check for hardcoded secrets
-          if find . -name "*.yaml" -o -name "*.yml" | xargs grep -l "password:" 2>/dev/null | grep -v ".github" | head -1; then
-            echo "⚠️ Found password references - ensure they use secrets"
+
+          # Check for hardcoded secrets (excluding .github and common files)
+          yaml_files=$(find . -name "*.yaml" -o -name "*.yml" | grep -v -E "\.(github|git)/" || true)
+          if [[ -n "$yaml_files" ]]; then
+            if echo "$yaml_files" | xargs grep -l "password:" 2>/dev/null | head -1; then
+              echo "⚠️ Found password references - ensure they use secrets"
+            fi
+
+            # Check for default passwords (very specific patterns)
+            if echo "$yaml_files" | xargs grep -E "password:\s*(admin|root|123456|password)" 2>/dev/null | head -1; then
+              echo "❌ Hardcoded default passwords found!"
+              exit 1
+            fi
           fi
-          
-          # Check for default passwords (excluding .github workflows)
-          if find . -name "*.yaml" -o -name "*.yml" | grep -v ".github" | xargs grep -i "admin:admin\|root:root\|password:password" 2>/dev/null | head -1; then
-            echo "❌ Default passwords found!"
-            exit 1
-          fi
-          
+
           echo "✅ Security validation passed"
           
       - name: "🧪 Test Scripts"
