@@ -207,7 +207,7 @@ services:
       # Configuração dinâmica
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
 
-    volumes:
+      # Configuração principal do Traefik
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
 
     secrets:
