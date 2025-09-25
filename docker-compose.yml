@@ -23,7 +23,7 @@ services:
     # build:
     #   context: .
     #   dockerfile: health-server/Dockerfile
-    user: "1000:1000"
+    user: "root:root"
     restart: on-failure:10
     networks:
       - conexao-network-swarm
@@ -96,7 +96,7 @@ services:
   # ===========================================================================
   log-server:
     image: log-server:latest
-    user: "1000:1000"
+    user: "root:root"
     restart: on-failure:10
     networks:
       - conexao-network-swarm
