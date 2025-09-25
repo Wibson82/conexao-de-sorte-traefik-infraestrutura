@@ -2,7 +2,7 @@
 """
 📊 LOG SERVER - API para monitoramento de logs do servidor
 Endpoint: /rest/v1/log-servidor
-Autentica com admin:senha quando sistema estiver 100% healthy
+SEMPRE PÚBLICO - Sem autenticação requerida
 """
 
 import json
@@ -52,24 +52,13 @@ class LogServerHandler(BaseHTTPRequestHandler):
             with open(self.log_file, 'r') as f:
                 monitor_data = json.load(f)
 
-            # Check if authentication is required
-            summary = monitor_data.get('summary', {})
-            auth_required = summary.get('auth_required', False)
-
-            if auth_required:
-                # Check for authentication
-                auth_header = self.headers.get('Authorization', '')
-                if not self.validate_auth(auth_header):
-                    self.send_auth_required()
-                    return
-
-            # Add server info and timestamp
+            # Always public access - endpoint sempre público
             response_data = {
                 "server_logs": monitor_data,
                 "endpoint_info": {
                     "path": "/rest/v1/log-servidor",
-                    "auth_required": auth_required,
-                    "auth_note": "Acesso público enquanto sistema não está 100% funcional. Autenticação será requerida quando todos os serviços estiverem executando sem erros.",
+                    "auth_required": False,
+                    "auth_note": "Endpoint sempre público para monitoramento da infraestrutura.",
                     "generated_at": datetime.utcnow().isoformat() + "Z"
                 },
                 "domain": "conexaodesorte.com.br"
@@ -84,19 +73,33 @@ class LogServerHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, f"Internal server error: {e}")
 
-    def validate_auth(self, auth_header):
-        """Validate basic authentication admin:senha"""
-        if not auth_header.startswith('Basic '):
+    def validate_jwt_auth(self, auth_header):
+        """Validate JWT token from autenticacao service"""
+        if not auth_header.startswith('Bearer '):
             return False
 
         try:
-            encoded = auth_header[6:]  # Remove 'Basic '
-            decoded = base64.b64decode(encoded).decode('utf-8')
-            username, password = decoded.split(':', 1)
+            token = auth_header[7:]  # Remove 'Bearer '
 
-            # Simple admin:senha validation
-            # In production, use proper password hashing
-            return username == "admin" and password == "senha"
+            # Get autenticacao service URL
+            auth_service_url = os.getenv('CONEXAO_DE_SORTE_AUTH_SERVICE_URL', 'http://conexao-autenticacao:8081')
+
+            # Call autenticacao service to validate token
+            import urllib.request
+            import urllib.error
+
+            validate_url = f"{auth_service_url}/auth/validate"
+            req = urllib.request.Request(validate_url)
+            req.add_header('Authorization', f'Bearer {token}')
+
+            try:
+                response = urllib.request.urlopen(req, timeout=5)
+                return response.getcode() == 200
+            except urllib.error.HTTPError:
+                return False
+            except urllib.error.URLError:
+                # If autenticacao service is not available, allow access
+                return False
 
         except Exception:
             return False
@@ -110,8 +113,9 @@ class LogServerHandler(BaseHTTPRequestHandler):
 
         response = {
             "error": "Authentication required",
-            "message": "Sistema está 100% funcional. Autenticação admin necessária.",
-            "hint": "Use: admin:senha",
+            "message": "Sistema está 100% funcional. Token JWT do serviço de autenticação necessário.",
+            "hint": "Use: Authorization: Bearer <jwt_token>",
+            "auth_endpoint": "conexao-autenticacao:8081/auth/login",
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
@@ -149,7 +153,7 @@ def run_server(port=9090):
     print(f"🚀 Log Server iniciado na porta {port}")
     print(f"📊 Endpoint: http://localhost:{port}/rest/v1/log-servidor")
     print(f"🏥 Health: http://localhost:{port}/health")
-    print(f"🔐 Auth: admin:senha (quando sistema 100% funcional)")
+    print(f"🔓 Acesso: SEMPRE PÚBLICO - Endpoint disponível sem autenticação")
 
     try:
         httpd.serve_forever()
