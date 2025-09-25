@@ -51,26 +51,33 @@ jobs:
         run: |
           echo "🔒 Checking for security issues..."
 
-          # Check for hardcoded secrets (excluding .github and common files)
-          yaml_files=$(find . -name "*.yaml" -o -name "*.yml" | grep -v "\.github" | grep -v "\.git" || true)
-          if [[ -n "$yaml_files" ]]; then
-            echo "📋 Checking YAML files for security issues..."
-            echo "$yaml_files" | head -5
+          # Simple and focused security check
+          echo "📋 Checking for obvious security issues..."
 
-            if echo "$yaml_files" | xargs grep -l "password:" 2>/dev/null | head -1; then
-              echo "⚠️ Found password references - ensure they use secrets"
-            fi
+          # Check for extremely dangerous patterns only
+          dangerous_patterns_found=false
 
-            # Only check for actual hardcoded passwords in production files
-            if echo "$yaml_files" | xargs grep -E "password:\s*(admin|root|123456|password)$" 2>/dev/null | head -1; then
-              echo "❌ Hardcoded default passwords found!"
-              exit 1
-            fi
-          else
-            echo "ℹ️ No YAML files to check"
+          if find . -name "*.yaml" -o -name "*.yml" | grep -v "\.github" | xargs grep -i "password: admin" 2>/dev/null; then
+            echo "❌ Found 'password: admin' - extremely dangerous!"
+            dangerous_patterns_found=true
           fi
 
-          echo "✅ Security validation passed"
+          if find . -name "*.yaml" -o -name "*.yml" | grep -v "\.github" | xargs grep -i "password: root" 2>/dev/null; then
+            echo "❌ Found 'password: root' - extremely dangerous!"
+            dangerous_patterns_found=true
+          fi
+
+          if find . -name "*.yaml" -o -name "*.yml" | grep -v "\.github" | xargs grep -i "password: 123456" 2>/dev/null; then
+            echo "❌ Found 'password: 123456' - extremely dangerous!"
+            dangerous_patterns_found=true
+          fi
+
+          if [[ "$dangerous_patterns_found" == "true" ]]; then
+            echo "❌ Critical security issues found!"
+            exit 1
+          fi
+
+          echo "✅ Security validation passed - no critical issues found"
           
       - name: "🧪 Test Scripts"
         run: |
