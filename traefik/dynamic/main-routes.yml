@@ -11,20 +11,28 @@
 http:
   routers:
     # ==========================================================================
-    # 📋 FALLBACK PARA EVITAR 404s (FASE INFRAESTRUTURA)
+    # 📋 FRONTEND PRINCIPAL - REACT APPLICATION
     # ==========================================================================
-    # Durante a fase de infraestrutura, evitamos 404s com um fallback
-    conexaodesorte-fallback:
+    frontend-main:
       rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
       entrypoints:
-        - web
         - websecure
-      service: fallback-service
+      service: frontend-service
       tls:
         certresolver: letsencrypt
       middlewares:
         - security-headers@file
+        - compression@file
       priority: 1
+
+    # HTTP redirect para HTTPS
+    frontend-redirect:
+      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
+      entrypoints:
+        - web
+      middlewares:
+        - https-redirect@file
+      service: frontend-service
 
     # ==========================================================================
     # 🚀 ROTAS FUTURAS (COMENTADAS - SERÃO ATIVADAS COM OS SERVIÇOS)
@@ -89,13 +97,22 @@ http:
   # 🎯 SERVIÇOS (Load Balancers) - FASE INFRAESTRUTURA
   # ==========================================================================
   services:
-    # Fallback service para evitar 404s durante fase de infraestrutura
-    fallback-service:
+    # Frontend service - React Application
+    frontend-service:
       loadBalancer:
         servers:
-          - url: "http://traefik-stack_traefik:8080"
+          - url: "http://conexao-frontend_frontend:3000"
         healthCheck:
-          path: "/ping"
+          path: "/health"
+          interval: 30s
+
+    # API de containers service - via log-server
+    containers-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-stack_log-server:9090"
+        healthCheck:
+          path: "/health"
           interval: 30s
 
   # ==========================================================================

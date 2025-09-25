@@ -3,8 +3,18 @@ http:
   # Middlewares de segurança baseados em headers permanecem em
   # security-headers.yml para evitar duplicações durante o reload.
   middlewares:
+    # Compression middleware
+    compression:
+      compress: {}
+
     gzip-compress:
       compress: {}
+
+    # HTTPS redirect middleware
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
 
     ip-allow-local:
       ipWhiteList:
