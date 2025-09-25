@@ -88,9 +88,15 @@ http:
   # ==========================================================================
   # 🎯 SERVIÇOS (Load Balancers) - FASE INFRAESTRUTURA
   # ==========================================================================
-  services: {}
-  # Os services desta fase reutilizam a definição compartilhada em
-  # microservices-routes.yml para evitar conflitos de configuração.
+  services:
+    # Fallback service para evitar 404s durante fase de infraestrutura
+    fallback-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-stack_traefik:8080"
+        healthCheck:
+          path: "/ping"
+          interval: 30s
 
   # ==========================================================================
   # 🚀 SERVIÇOS FUTUROS (SERÃO ATIVADOS COM OS DEPLOYMENTS)

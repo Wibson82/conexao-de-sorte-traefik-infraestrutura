@@ -142,6 +142,19 @@ jobs:
         run: |
           echo "🚀 Deploying Traefik Infrastructure with Log Server..."
 
+          # Create required volumes if they don't exist
+          echo "📦 Creating required volumes..."
+          docker volume create --name=traefik-logs || echo "Volume traefik-logs already exists"
+          docker volume create --name=letsencrypt || echo "Volume letsencrypt already exists"
+
+          # Create network if it doesn't exist
+          echo "🌐 Creating Swarm network..."
+          docker network create --driver overlay --attachable conexao-network-swarm || echo "Network already exists"
+
+          # Create secrets if they don't exist
+          echo "🔐 Creating basic auth secret..."
+          echo "admin:$(openssl passwd -apr1 'admin123')" | docker secret create traefik_basicauth_secret - || echo "Secret already exists"
+
           # Build log server image for Swarm
           echo "🏗️ Building Log Server image..."
           docker build -t log-server:latest -f health-server/Dockerfile .

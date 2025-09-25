@@ -8,13 +8,17 @@ set -e
 
 echo "🚀 Iniciando Log Server..."
 
-# Configurar crontab para monitoramento automático
-echo "📊 Configurando crontab para monitoramento automático..."
-echo "* * * * * /app/scripts/cronjob-monitor.sh" > /tmp/crontab
+# Configurar crontab para monitoramento a cada 30 segundos
+echo "📊 Configurando crontab para monitoramento a cada 30 segundos..."
+cat > /tmp/crontab <<EOF
+# Execução a cada 30 segundos (00:00 e 00:30)
+* * * * * /app/scripts/cronjob-monitor.sh
+* * * * * sleep 30; /app/scripts/cronjob-monitor.sh
+EOF
 crontab /tmp/crontab
 rm /tmp/crontab
 
-echo "✅ Crontab configurado: execução a cada minuto"
+echo "✅ Crontab configurado: execução a cada 30 segundos"
 
 # Executar monitoramento inicial
 echo "📈 Executando monitoramento inicial..."
