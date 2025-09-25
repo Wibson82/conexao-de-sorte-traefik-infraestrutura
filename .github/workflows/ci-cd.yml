@@ -56,8 +56,8 @@ jobs:
             echo "⚠️ Found password references - ensure they use secrets"
           fi
           
-          # Check for default passwords
-          if find . -name "*.yaml" -o -name "*.yml" | xargs grep -i "admin:admin\|root:root\|password:password" 2>/dev/null | head -1; then
+          # Check for default passwords (excluding .github workflows)
+          if find . -name "*.yaml" -o -name "*.yml" | grep -v ".github" | xargs grep -i "admin:admin\|root:root\|password:password" 2>/dev/null | head -1; then
             echo "❌ Default passwords found!"
             exit 1
           fi
