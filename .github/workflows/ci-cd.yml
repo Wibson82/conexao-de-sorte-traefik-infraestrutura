@@ -184,21 +184,50 @@ jobs:
           # Wait a bit more for health checks
           sleep 60
 
+          # Validate deployment on self-hosted server
+          echo "🏗️ Validating deployment on self-hosted runner:"
+          echo "📍 Runner: ${{ runner.name }}"
+          echo "📍 OS: ${{ runner.os }}"
+          echo "📍 Architecture: ${{ runner.arch }}"
+
           # Check running containers
-          echo "🐳 Running containers:"
+          echo "🐳 Running containers on server:"
           docker ps --filter name=traefik-stack --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-          # Test endpoints (if accessible locally)
-          echo "🌐 Testing local endpoints..."
+          # Validate Docker Swarm services
+          echo "🔍 Docker Swarm services:"
+          docker service ls --filter name=traefik-stack
 
-          # Test log server (if running locally)
-          if curl -f http://localhost:9090/health 2>/dev/null; then
-            echo "✅ Log server health endpoint responding"
+          # Count deployed services
+          service_count=$(docker service ls --filter name=traefik-stack --quiet | wc -l)
+          echo "📊 Total services deployed: $service_count"
+
+          if [[ $service_count -gt 0 ]]; then
+            echo "✅ Services successfully deployed to self-hosted server!"
           else
-            echo "⚠️ Log server not accessible locally (may be normal in production)"
+            echo "❌ No services found - deployment may have failed"
+            exit 1
           fi
 
-          echo "🎉 Traefik Infrastructure deployment completed!"
+          # Test critical endpoints (if accessible locally on runner)
+          echo "🌐 Testing endpoints on runner..."
+
+          # Test log server health
+          if curl -f http://localhost:9090/health 2>/dev/null; then
+            echo "✅ Log server health endpoint responding on runner"
+          else
+            echo "⚠️ Log server not accessible on runner port 9090"
+          fi
+
+          # Check if Traefik is binding ports
+          if netstat -tlnp 2>/dev/null | grep -E ':80|:443' | head -3; then
+            echo "✅ Traefik ports (80/443) are bound on server"
+          else
+            echo "⚠️ Traefik ports not detected (may be starting up)"
+          fi
+
+          echo "🎉 Deployment verification completed on server runner!"
+          echo "🌐 Services should be accessible via: conexaodesorte.com.br"
 
   summary:
     name: "📊 Pipeline Summary"
