@@ -74,7 +74,7 @@ if [[ ${#missing_vars[@]} -gt 0 ]]; then
     error "Variáveis de ambiente obrigatórias não definidas para Traefik:"
     for var in "${missing_vars[@]}"; do
         error "  - $var"
-    fi
+    done
     exit 1
 fi
 
