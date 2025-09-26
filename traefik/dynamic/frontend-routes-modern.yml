@@ -130,7 +130,7 @@ http:
     fallback-service:
       loadBalancer:
         servers:
-          - url: "http://traefik-stack_health-monitor:8080"
+          - url: "http://conexao-traefik_health-monitor:8080"
         healthCheck:
           path: "/health"
           interval: "30s"
@@ -231,3 +231,4 @@ tls:
 # - Circuit breaker por rota
 # - Observabilidade com OpenTelemetry
 # =============================================================================
+

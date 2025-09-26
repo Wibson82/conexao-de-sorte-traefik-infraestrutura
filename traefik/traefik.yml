@@ -172,21 +172,18 @@ serversTransport:
   disableHTTP2: false  # Manter HTTP/2 habilitado
 
 # =============================================================================
-# 🔧 CONFIGURAÇÕES EXPERIMENTAIS - TRAEFIK v3.5.2
+# 🔧 CONFIGURAÇÕES EXPERIMENTAIS - DESABILITADAS ATÉ VALIDAÇÃO
 # =============================================================================
-experimental:
-  # Plugins habilitados para extensibilidade futura
-  plugins:
-    enabled: true
-  # HTTP/3 experimental features
-  http3: true
+# experimental:
+#   http3: true
 
 # =============================================================================
-# 📈 CLUSTER CONFIGURATION - PREPARADO PARA SCALING
+# 📈 CLUSTER CONFIGURATION - PENDENTE DE CONSUL/ETCD
 # =============================================================================
-cluster:
-  # Preparado para cluster multi-node (quando necessário)
-  store: "consul"
-  prefix: "/traefik"
+# cluster:
+#   store: "consul"
+#   prefix: "/traefik"
 
-# Configuração será expandida quando usar Consul/etcd para HA
+# Os blocos acima permanecem comentados até que os backends necessários
+# (Consul/etcd e validação de plugins) estejam provisionados em produção.
+

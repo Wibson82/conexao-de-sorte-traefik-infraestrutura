@@ -14,6 +14,7 @@ concurrency:
 env:
   INFRA_TYPE: infrastructure
   KUBECTL_VERSION: 'v1.28.0'
+  STACK_NAME: conexao-traefik
 
 permissions:
   contents: read
@@ -142,6 +143,9 @@ jobs:
         run: |
           echo "🚀 Deploying Traefik Infrastructure with Log Server..."
 
+          STACK_NAME="${STACK_NAME:-conexao-traefik}"
+          LEGACY_STACK="traefik-stack"
+
           # Create required volumes if they don't exist
           echo "📦 Creating required volumes..."
           docker volume create --name=traefik-logs || echo "Volume traefik-logs already exists"
@@ -161,7 +165,10 @@ jobs:
 
           # Stop existing services safely
           echo "⏹️ Stopping existing Traefik services..."
-          docker service ls --filter name=traefik-stack --format "{{.Name}}" | xargs -r docker service rm || true
+          docker stack rm "$STACK_NAME" >/dev/null 2>&1 || true
+          if [[ "$LEGACY_STACK" != "$STACK_NAME" ]]; then
+            docker stack rm "$LEGACY_STACK" >/dev/null 2>&1 || true
+          fi
           sleep 10
 
           # Remove orphaned containers
@@ -170,7 +177,7 @@ jobs:
 
           # Deploy the stack with log server
           echo "🏗️ Deploying Traefik stack with Log Server..."
-          docker stack deploy -c docker-compose.yml traefik-stack --with-registry-auth
+          docker stack deploy -c docker-compose.yml "$STACK_NAME" --with-registry-auth
 
           # Wait for services to start
           echo "⏳ Waiting for services to initialize..."
@@ -178,21 +185,43 @@ jobs:
 
           # Verify deployment
           echo "🔍 Verifying deployment..."
-          docker service ls --filter name=traefik-stack
+          docker service ls --filter name="${STACK_NAME}"
 
           # Check health of critical services
           echo "🏥 Checking service health..."
           for service in traefik log-server health-monitor; do
-            if docker service ls --filter name=traefik-stack_${service} --format "{{.Name}}" | grep -q .; then
+            if docker service ls --filter name="${STACK_NAME}_${service}" --format "{{.Name}}" | grep -q .; then
               echo "✅ Service ${service} deployed"
             else
               echo "⚠️ Service ${service} not found"
             fi
           done
 
+          echo "⏳ Ensuring ${STACK_NAME}_traefik reaches running state..."
+          for attempt in {1..12}; do
+            current_state=$(docker service ps "${STACK_NAME}_traefik" --no-trunc --format "{{.CurrentState}}" | head -n 1)
+            if echo "$current_state" | grep -qi "running"; then
+              echo "✅ Traefik service running (${current_state})"
+              break
+            fi
+
+            if [[ $attempt -eq 12 ]]; then
+              echo "❌ Traefik service failed to reach running state"
+              docker service ps "${STACK_NAME}_traefik"
+              exit 1
+            fi
+
+            echo "⏳ Attempt ${attempt}/12 - current state: ${current_state:-unknown}. Retrying in 10s..."
+            sleep 10
+          done
+
       - name: "📊 Post-Deploy Verification"
         run: |
           echo "📊 Post-deployment verification..."
+
+          STACK_NAME="${STACK_NAME:-conexao-traefik}"
+          FRONTEND_DOMAINS=("conexaodesorte.com.br" "www.conexaodesorte.com.br")
+          domain_failure=false
 
           # Wait a bit more for health checks
           sleep 60
@@ -205,14 +234,14 @@ jobs:
 
           # Check running containers
           echo "🐳 Running containers on server:"
-          docker ps --filter name=traefik-stack --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          docker ps --filter name="${STACK_NAME}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
           # Validate Docker Swarm services
           echo "🔍 Docker Swarm services:"
-          docker service ls --filter name=traefik-stack
+          docker service ls --filter name="${STACK_NAME}"
 
           # Count deployed services
-          service_count=$(docker service ls --filter name=traefik-stack --quiet | wc -l)
+          service_count=$(docker service ls --filter name="${STACK_NAME}" --quiet | wc -l)
           echo "📊 Total services deployed: $service_count"
 
           if [[ $service_count -gt 0 ]]; then
@@ -232,11 +261,28 @@ jobs:
             echo "⚠️ Log server not accessible on runner port 9090"
           fi
 
+          # Validate public domains for the React frontend
+          echo "🌐 Validating public domains..."
+          for domain in "${FRONTEND_DOMAINS[@]}"; do
+            status=$(curl --silent --location --max-time 20 -o /dev/null -w '%{http_code}' "https://${domain}" || echo "000")
+            if [[ $status =~ ^[23][0-9]{2}$ ]]; then
+              echo "✅ Domain ${domain} reachable (HTTP ${status})"
+            else
+              echo "❌ Domain ${domain} not reachable (HTTP ${status})"
+              domain_failure=true
+            fi
+          done
+
           # Check if Traefik is binding ports
           if netstat -tlnp 2>/dev/null | grep -E ':80|:443' | head -3; then
             echo "✅ Traefik ports (80/443) are bound on server"
           else
             echo "⚠️ Traefik ports not detected (may be starting up)"
+          fi
+
+          if [[ "$domain_failure" == true ]]; then
+            echo "❌ One or more frontend domains are unreachable. Failing pipeline."
+            exit 1
           fi
 
           echo "🎉 Deployment verification completed on server runner!"
