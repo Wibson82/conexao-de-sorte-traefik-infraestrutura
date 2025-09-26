@@ -48,10 +48,10 @@ http:
     # 📊 LOG SERVIDOR - MONITORAMENTO ESPECÍFICO
     # ==========================================================================
     frontend-log-servidor:
-      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && Path(`/log-servidor`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/log-servidor`)"
       entrypoints:
         - websecure
-      service: log-servidor-ui
+      service: frontend-service-main
       middlewares:
         - frontend-security-headers@file
         - compression-modern@file
@@ -129,15 +129,6 @@ http:
           timeout: "5s"
         passHostHeader: true
 
-    log-servidor-ui:
-      loadBalancer:
-        servers:
-          - url: "http://conexao-traefik_log-server:9090"
-        healthCheck:
-          path: "/health"
-          interval: "30s"
-          timeout: "10s"
-        passHostHeader: true
 
   # ==========================================================================
   # 🔧 MIDDLEWARES ESPECÍFICOS PARA FRONTEND
