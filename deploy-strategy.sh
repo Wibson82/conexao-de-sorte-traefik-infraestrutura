@@ -121,8 +121,8 @@ deploy_phase1() {
     # PRODUÇÃO: Priorizar Docker Swarm
     if docker info --format '{{.Swarm.LocalNodeState}}' | grep -q "active"; then
         log "✅ Modo Docker Swarm (PRODUÇÃO) - usando stack deploy"
-        docker stack deploy -c "$COMPOSE_FILE" traefik-stack
-        wait_for_health "traefik-stack_traefik" 90  # Mais tempo para produção
+        docker stack deploy -c "$COMPOSE_FILE" conexao-traefik
+        wait_for_health "conexao-traefik_traefik" 90  # Mais tempo para produção
     else
         warning "⚠️  Modo Standalone detectado - recomendado usar Docker Swarm em produção"
         log "Deployando em modo standalone..."

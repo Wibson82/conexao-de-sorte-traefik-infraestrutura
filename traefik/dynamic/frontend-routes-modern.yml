@@ -29,7 +29,7 @@ http:
         - rate-limit-global@file
         - redirect-to-www@file  # Padronizar para www
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
         options: modern-tls@file
       priority: 100
 
@@ -57,7 +57,7 @@ http:
         - compression-modern@file
         - rate-limit-global@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
         options: modern-tls@file
       priority: 110  # Prioridade alta para rota específica
 
@@ -76,7 +76,7 @@ http:
         - traefik-dashboard-auth@file
         - rate-limit-auth@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
         options: modern-tls@file
       priority: 120  # Máxima prioridade para dashboard
 
@@ -92,7 +92,7 @@ http:
         - frontend-security-headers@file
         - compression-modern@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 1  # Baixíssima prioridade - só ativa se outros falharem
 
   # ==========================================================================
@@ -178,7 +178,7 @@ http:
           X-Content-Type-Options: "nosniff"
           Referrer-Policy: "no-referrer"
           Cache-Control: "no-cache, no-store, must-revalidate"
-          X-Dashboard-Version: "traefik-v3.5.2"
+          X-Dashboard-Version: "traefik-v3.5.3"
 
         # Configurações de segurança máximas
         frameDeny: true

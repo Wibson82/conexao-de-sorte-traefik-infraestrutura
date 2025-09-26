@@ -19,7 +19,7 @@ http:
         - websecure
       service: frontend-service
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       middlewares:
         - security-headers@file
         - compression@file
@@ -63,7 +63,7 @@ http:
       entrypoints:
         - websecure
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       service: noop@internal
       middlewares:
         - traefik-dashboard-redirect@file
@@ -73,7 +73,7 @@ http:
       entrypoints:
         - websecure
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       service: api@internal
       middlewares:
         - traefik-dashboard-redirect@file
@@ -86,7 +86,7 @@ http:
       entrypoints:
         - websecure
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       service: api@internal
       middlewares:
         - traefik-path-trim@file
@@ -110,7 +110,7 @@ http:
     containers-api-service:
       loadBalancer:
         servers:
-          - url: "http://traefik-stack_log-server:9090"
+          - url: "http://conexao-traefik_log-server:9090"
         healthCheck:
           path: "/health"
           interval: 30s

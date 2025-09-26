@@ -28,7 +28,7 @@ http:
         - metrics-auth@file  # Autenticação para métricas
         - rate-limit-monitoring@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 150
 
     # ==========================================================================
@@ -44,7 +44,7 @@ http:
         - compression-modern@file
         - rate-limit-global@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 145
 
     # Health check detalhado por serviço
@@ -58,7 +58,7 @@ http:
         - health-strip-prefix@file
         - rate-limit-monitoring@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 140
 
     # ==========================================================================
@@ -75,7 +75,7 @@ http:
         - rate-limit-auth@file
         - monitoring-strip-prefix@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 135
 
     # ==========================================================================
@@ -92,7 +92,7 @@ http:
         - rate-limit-alerts@file
         - alerts-strip-prefix@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 130
 
     # ==========================================================================
@@ -109,7 +109,7 @@ http:
         - rate-limit-monitoring@file
         - logs-strip-prefix@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 125
 
   # ==========================================================================
@@ -131,7 +131,7 @@ http:
     health-aggregator-service:
       loadBalancer:
         servers:
-          - url: "http://traefik-stack_health-monitor:8080"
+          - url: "http://conexao-traefik_health-monitor:8080"
         healthCheck:
           path: "/health"
           interval: "30s"
@@ -142,7 +142,7 @@ http:
     health-services-service:
       loadBalancer:
         servers:
-          - url: "http://traefik-stack_health-monitor:8080"
+          - url: "http://conexao-traefik_health-monitor:8080"
         healthCheck:
           path: "/health/services"
           interval: "30s"
@@ -153,7 +153,7 @@ http:
     monitoring-dashboard-service:
       loadBalancer:
         servers:
-          - url: "http://traefik-stack_health-monitor:8080"
+          - url: "http://conexao-traefik_health-monitor:8080"
         healthCheck:
           path: "/monitoring"
           interval: "30s"
@@ -164,7 +164,7 @@ http:
     alerts-service:
       loadBalancer:
         servers:
-          - url: "http://traefik-stack_health-monitor:8080"
+          - url: "http://conexao-traefik_health-monitor:8080"
         healthCheck:
           path: "/alerts/health"
           interval: "30s"
@@ -175,7 +175,7 @@ http:
     logs-service:
       loadBalancer:
         servers:
-          - url: "http://traefik-stack_log-server:9090"
+          - url: "http://conexao-traefik_log-server:9090"
         healthCheck:
           path: "/health"
           interval: "30s"

@@ -1,5 +1,5 @@
 # =============================================================================
-# 🚀 CONEXÃO DE SORTE - TRAEFIK v3.5.2 MODERNA E ESCALÁVEL
+# 🚀 CONEXÃO DE SORTE - TRAEFIK v3.5.3 MODERNA E ESCALÁVEL
 # =============================================================================
 # Configuração principal otimizada para:
 # - Segurança avançada (OWASP compliance)
@@ -66,25 +66,18 @@ entryPoints:
 # 📡 PROVIDERS - DOCKER SWARM + ARQUIVOS DINÂMICOS
 # =============================================================================
 providers:
-  # Docker Swarm Provider - Detecção automática
-  docker:
+  swarm:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     watch: true
     network: conexao-network-swarm
-    swarmMode: true  # Explícito para Docker Swarm
     useBindPortIP: false
-    # Polling interval otimizado
-    pollInterval: "5s"
-    # Constraints para filtrar serviços
     constraints: "Label(`traefik.enable`, `true`)"
 
   # File Provider - Configuração dinâmica
   file:
     directory: "/etc/traefik/dynamic"
     watch: true
-    # Intervalo de verificação otimizado
-    pollInterval: "2s"
 
 # =============================================================================
 # 📝 LOGGING - ESTRUTURADO E SEGURO

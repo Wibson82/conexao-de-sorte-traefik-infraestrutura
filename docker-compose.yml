@@ -7,7 +7,7 @@
 # - docker-compose.yml (labels standalone conflitantes)
 # - docker-compose.swarm.yml (configuração incompleta)
 #
-# VERSÃO: v3.5.2-consolidated
+# VERSÃO: v3.5.3-consolidated
 # COMPATIBILIDADE: Docker Swarm (Recomendado) + Standalone
 # SEGURANÇA: Enterprise Grade + Azure Key Vault Integration
 # CONFLITOS RESOLVIDOS: ✅ Labels, ✅ Networks, ✅ Health Checks, ✅ Security
@@ -24,7 +24,7 @@ services:
     #   context: .
     #   dockerfile: health-server/Dockerfile
     user: "root:root"
-    restart: on-failure:10
+    restart: "on-failure:10"
     networks:
       - conexao-network-swarm
     volumes:
@@ -58,7 +58,7 @@ services:
       labels:
         # Traefik routing for health endpoints
         - traefik.enable=true
-        - traefik.docker.network=conexao-network-swarm
+        - traefik.swarm.network=conexao-network-swarm
 
         # Health Overall Endpoint
         - traefik.http.routers.health-overall.rule=HostRegexp(`{host:(www\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && Path(`/traefik/health/overall`)
@@ -97,7 +97,7 @@ services:
   log-server:
     image: log-server:latest
     user: "root:root"
-    restart: on-failure:10
+    restart: "on-failure:10"
     networks:
       - conexao-network-swarm
     volumes:
@@ -132,7 +132,7 @@ services:
       labels:
         # Traefik routing para /rest/v1/log-servidor
         - traefik.enable=true
-        - traefik.docker.network=conexao-network-swarm
+        - traefik.swarm.network=conexao-network-swarm
 
         # Endpoint principal HTTPS - domínio e IP
         - traefik.http.routers.log-servidor.rule=Host(`conexaodesorte.com.br`) && Path(`/rest/v1/log-servidor`)
@@ -152,7 +152,7 @@ services:
     # ==========================================================================
     # 🔧 CONFIGURAÇÃO BÁSICA
     # ==========================================================================
-    image: traefik:v3.5.2
+    image: traefik:v3.5.3
     # CONFLITO RESOLVIDO: container_name removido para compatibilidade Swarm
     restart: unless-stopped
     # Sem user específico - Docker Swarm gerencia automaticamente
@@ -257,7 +257,7 @@ services:
       labels:
         # Habilitar Traefik para este serviço
         - traefik.enable=true
-        - traefik.docker.network=conexao-network-swarm
+        - traefik.swarm.network=conexao-network-swarm
 
         # ===================================================================
         # 🔀 API BACKEND PROXY (Consolidado) - COMENTADO TEMPORARIAMENTE
@@ -283,7 +283,7 @@ services:
         # ===================================================================
         - org.opencontainers.image.title=Traefik Gateway - Conexão de Sorte
         - org.opencontainers.image.description=Load Balancer e SSL Termination - Consolidated Secure Version
-        - org.opencontainers.image.version=v3.5.2-consolidated
+        - org.opencontainers.image.version=v3.5.3-consolidated
         - org.opencontainers.image.vendor=Conexão de Sorte
         - org.opencontainers.image.created=${BUILD_DATE:-2024-01-01}
 

@@ -16,18 +16,18 @@ http:
     #     - websecure
     #   service: backend-swarm-service
     #   tls:
-    #     certresolver: letsencrypt
+    #     certResolver: letsencrypt
 
   services:
     # Placeholder para futuros serviços Swarm
     # Exemplo de serviço Swarm futuro:
     # backend-swarm-service:
-    #   loadbalancer:
+    #   loadBalancer:
     #     servers:
     #       - url: "http://backend-swarm:8080"
 
     # YAML válido requer pelo menos um item, mesmo que comentado
     placeholder-service:
-      loadbalancer:
+      loadBalancer:
         servers:
           - url: "http://placeholder:3000"

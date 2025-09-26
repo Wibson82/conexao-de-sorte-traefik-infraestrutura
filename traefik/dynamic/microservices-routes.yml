@@ -32,9 +32,9 @@ http:
     # 📊 SERVIÇO FALLBACK PARA EVITAR 404s - USANDO TRAEFIK INTERNO
     # ==========================================================================
     fallback-service:
-      loadbalancer:
+      loadBalancer:
         servers:
-          - url: "http://traefik-stack_traefik:8080"
+          - url: "http://conexao-traefik_traefik:8080"
 
 # =============================================================================
 # Esta configuração evita 404s durante a fase de infraestrutura

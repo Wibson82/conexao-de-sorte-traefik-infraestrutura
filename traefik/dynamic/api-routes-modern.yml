@@ -32,7 +32,7 @@ http:
         - retry-policy@file
         - compression-modern@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 100
 
     # ==========================================================================
@@ -50,7 +50,7 @@ http:
         - api-strip-prefix-auth@file
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 95
 
     # ==========================================================================
@@ -69,7 +69,7 @@ http:
         - circuit-breaker-api@file
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 90
 
     # ==========================================================================
@@ -89,7 +89,7 @@ http:
         - retry-policy@file
         - cache-results@file  # Cache específico para resultados
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 85
 
     # ==========================================================================
@@ -108,7 +108,7 @@ http:
         - websocket-headers@file  # Headers específicos para WebSocket
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 80
 
     # ==========================================================================
@@ -127,7 +127,7 @@ http:
         - circuit-breaker-api@file
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 75
 
     # ==========================================================================
@@ -146,7 +146,7 @@ http:
         - circuit-breaker-api@file
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 70
 
     # ==========================================================================
@@ -165,7 +165,7 @@ http:
         - circuit-breaker-api@file
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 65
 
     # ==========================================================================
@@ -184,7 +184,7 @@ http:
         - circuit-breaker-api@file
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 60
 
     # ==========================================================================
@@ -202,7 +202,7 @@ http:
         - api-strip-prefix-observability@file
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 55
 
     # ==========================================================================
@@ -221,7 +221,7 @@ http:
         - circuit-breaker-api@file
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 50
 
     # ==========================================================================
@@ -239,7 +239,7 @@ http:
         - api-strip-prefix-audit@file
         - retry-policy@file
       tls:
-        certresolver: letsencrypt
+        certResolver: letsencrypt
       priority: 45
 
   # ==========================================================================

@@ -93,7 +93,7 @@ http:
       loadBalancer:
         servers:
           # Health monitor centralizado exposto via path /health/overall
-          - url: "http://traefik-stack_health-monitor:8080"
+          - url: "http://conexao-traefik_health-monitor:8080"
         healthCheck:
           path: "/health/overall"
           interval: 10s
@@ -106,7 +106,7 @@ http:
       loadBalancer:
         servers:
           # Nginx health monitor consolidado
-          - url: "http://traefik-stack_health-monitor:8080"
+          - url: "http://conexao-traefik_health-monitor:8080"
         healthCheck:
           path: "/health/infrastructure"
           interval: 30s
@@ -138,7 +138,7 @@ http:
       loadBalancer:
         servers:
           # Health Monitor service que roteia para serviços específicos
-          - url: "http://traefik-stack_health-monitor:8080"
+          - url: "http://conexao-traefik_health-monitor:8080"
 
   # ===========================================================================
   # 🔧 MIDDLEWARES - Health Monitor Específicos
