@@ -75,11 +75,6 @@ http:
           ipStrategy:
             depth: 1
 
-    redirect-to-https:
-      redirectScheme:
-        scheme: https
-        permanent: true
-
     redirect-to-www:
       redirectRegex:
         regex: "^https://conexaodesorte.com.br/(.*)"
