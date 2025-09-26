@@ -95,9 +95,6 @@ services:
   # 📊 LOG SERVER - MONITORAMENTO COMPLETO DO SISTEMA
   # ===========================================================================
   log-server:
-    build:
-      context: .
-      dockerfile: ./health-server/Dockerfile
     image: log-server:latest
     user: "1000:1000"  # Usar usuário logserver definido no Dockerfile
     restart: "on-failure:10"
