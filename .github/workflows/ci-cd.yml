@@ -227,6 +227,8 @@ jobs:
             if [[ $attempt -eq 12 ]]; then
               echo "❌ Traefik service failed to reach running state"
               docker service ps "${STACK_NAME}_traefik"
+              echo "🔎 Capturing last logs for ${STACK_NAME}_traefik"
+              docker service logs "${STACK_NAME}_traefik" --tail 200 || true
               exit 1
             fi
 
@@ -301,6 +303,10 @@ jobs:
 
           if [[ "$domain_failure" == true ]]; then
             echo "❌ One or more frontend domains are unreachable. Failing pipeline."
+            echo "🔎 Capturing Traefik logs for debugging..."
+            docker service logs "${STACK_NAME}_traefik" --tail 200 || true
+            echo "🔎 Capturing health-monitor logs for debugging..."
+            docker service logs "${STACK_NAME}_health-monitor" --tail 200 || true
             exit 1
           fi
 

@@ -154,22 +154,22 @@ metrics:
       - 10.0
 
 # =============================================================================
-# 🚀 TRANSPORT CONFIGURATIONS - OTIMIZADO PARA PERFORMANCE
+# 🚀 TRANSPORT CONFIGURATIONS - DESABILITADO ATÉ VALIDAR TRUSTSTORE DO CONTAINER
 # =============================================================================
-serversTransport:
-  # SSL/TLS configuration para backend services
-  insecureSkipVerify: false  # Manter segurança
-  rootCAs:
-    - "/etc/ssl/certs/ca-certificates.crt"
-  # Timeouts otimizados para APIs REST
-  forwardingTimeouts:
-    dialTimeout: "10s"
-    responseHeaderTimeout: "30s"
-    expectContinueTimeout: "1s"
-    idleConnTimeout: "90s"
-  # Connection pooling para performance
-  maxIdleConnsPerHost: 10
-  disableHTTP2: false  # Manter HTTP/2 habilitado
+# serversTransport:
+#   # SSL/TLS configuration para backend services
+#   insecureSkipVerify: false  # Manter segurança
+#   rootCAs:
+#     - "/etc/ssl/certs/ca-certificates.crt"
+#   # Timeouts otimizados para APIs REST
+#   forwardingTimeouts:
+#     dialTimeout: "10s"
+#     responseHeaderTimeout: "30s"
+#     expectContinueTimeout: "1s"
+#     idleConnTimeout: "90s"
+#   # Connection pooling para performance
+#   maxIdleConnsPerHost: 10
+#   disableHTTP2: false  # Manter HTTP/2 habilitado
 
 # =============================================================================
 # 🔧 CONFIGURAÇÕES EXPERIMENTAIS - DESABILITADAS ATÉ VALIDAÇÃO
@@ -186,4 +186,3 @@ serversTransport:
 
 # Os blocos acima permanecem comentados até que os backends necessários
 # (Consul/etcd e validação de plugins) estejam provisionados em produção.
-
