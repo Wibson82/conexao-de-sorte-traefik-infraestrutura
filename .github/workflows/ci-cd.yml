@@ -185,9 +185,25 @@ jobs:
           echo "🔐 Creating basic auth secret..."
           echo "admin:$(openssl passwd -apr1 'admin123')" | docker secret create traefik_basicauth_secret - || echo "Secret already exists"
 
-          # Build log server image for Swarm
-          echo "🏗️ Building Log Server image..."
-          docker build -t log-server:latest -f health-server/Dockerfile .
+          # Limpeza de recursos legados para poupar espaço
+          echo "🧹 Limpando recursos legados..."
+
+          # Limpar imagens órfãs e não utilizadas
+          docker image prune -f || echo "Falha ao limpar imagens órfãs"
+
+          # Limpar containers parados antigos
+          docker container prune -f || echo "Falha ao limpar containers parados"
+
+          # Limpar volumes não utilizados
+          docker volume prune -f || echo "Falha ao limpar volumes órfãos"
+
+          # Limpar networks não utilizadas
+          docker network prune -f || echo "Falha ao limpar networks órfãs"
+
+          # Remover imagens antigas do log-server se existirem
+          docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | grep "log-server" | grep -v "latest" | awk '{print $2}' | xargs -r docker rmi -f || echo "Nenhuma imagem log-server antiga para remover"
+
+          echo "✅ Limpeza de legado concluída"
 
           # Stop existing services safely
           echo "⏹️ Stopping existing Traefik services..."
