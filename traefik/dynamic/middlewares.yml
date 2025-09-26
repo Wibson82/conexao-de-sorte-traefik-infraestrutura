@@ -43,7 +43,8 @@ http:
 
     traefik-path-trim:
       stripPrefixRegex:
-        - "^/traefik"
+        regexes:
+          - "^/traefik"
 
     # ==========================================================================
     # MIDDLEWARES PARA GATEWAY-FIRST ARCHITECTURE

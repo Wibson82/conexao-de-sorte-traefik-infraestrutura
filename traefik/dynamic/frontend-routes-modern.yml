@@ -99,14 +99,14 @@ http:
   # 🎯 SERVICES - LOAD BALANCERS OTIMIZADOS
   # ==========================================================================
   services:
-    # Frontend principal - React SPA
+    # Frontend principal - React SPA (temporariamente usando health-monitor como fallback)
     frontend-service-main:
       loadBalancer:
         servers:
-          # Múltiplas instâncias para alta disponibilidade
-          - url: "http://conexao-frontend_frontend:3000"
+          # TEMPORÁRIO: Usando health-monitor até frontend ser configurado
+          - url: "http://conexao-traefik_health-monitor:8080"
         healthCheck:
-          path: "/health.json"  # Endpoint padrão React
+          path: "/health/overall"  # Endpoint do health-monitor
           interval: "30s"
           timeout: "10s"
           scheme: "http"
@@ -150,7 +150,8 @@ http:
     # Strip path para dashboard
     traefik-path-strip:
       stripPrefixRegex:
-        - "^/traefik"
+        regexes:
+          - "^/traefik"
 
     # Redirect para dashboard completo
     traefik-dashboard-redirect:
