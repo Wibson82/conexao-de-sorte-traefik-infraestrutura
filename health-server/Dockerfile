@@ -30,11 +30,11 @@ RUN addgroup -g 1000 logserver && \
 RUN mkdir -p /app/logs /app/scripts /app/health-server && \
     chown -R logserver:logserver /app
 
-# Copiar scripts e servidor (caminhos relativos ao contexto ./health-server)
-COPY --chown=logserver:logserver ../scripts/server-monitor.sh /app/scripts/
-COPY --chown=logserver:logserver ../scripts/cronjob-monitor.sh /app/scripts/
-COPY --chown=logserver:logserver log-server.py /app/health-server/
-COPY --chown=logserver:logserver entrypoint.sh /app/
+# Copiar scripts e servidor (contexto é a raiz do projeto)
+COPY --chown=logserver:logserver scripts/server-monitor.sh /app/scripts/
+COPY --chown=logserver:logserver scripts/cronjob-monitor.sh /app/scripts/
+COPY --chown=logserver:logserver health-server/log-server.py /app/health-server/
+COPY --chown=logserver:logserver health-server/entrypoint.sh /app/
 
 # Dar permissões de execução
 RUN chmod +x /app/scripts/server-monitor.sh /app/scripts/cronjob-monitor.sh /app/health-server/log-server.py /app/entrypoint.sh
