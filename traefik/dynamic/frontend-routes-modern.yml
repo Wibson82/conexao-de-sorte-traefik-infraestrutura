@@ -149,9 +149,9 @@ http:
 
     # Strip path para dashboard
     traefik-path-strip:
-      stripPrefixRegex:
-        regexes:
-          - "^/traefik"
+      stripPrefix:
+        prefixes:
+          - "/traefik"
 
     # Redirect para dashboard completo
     traefik-dashboard-redirect:

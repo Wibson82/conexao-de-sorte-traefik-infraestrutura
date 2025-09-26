@@ -42,9 +42,9 @@ http:
         addVaryHeader: true
 
     traefik-path-trim:
-      stripPrefixRegex:
-        regexes:
-          - "^/traefik"
+      stripPrefix:
+        prefixes:
+          - "/traefik"
 
     # ==========================================================================
     # MIDDLEWARES PARA GATEWAY-FIRST ARCHITECTURE
