@@ -1,33 +1,9 @@
 ---
 # ============================================================================
-# 🌐 BACKEND API ROUTES - DOCKER SWARM ONLY
+# 🌐 BACKEND API ROUTES - CONFIGURAÇÃO LIMPA
 # ============================================================================
-# Configurações de roteamento para serviços gerenciados por Docker Swarm
-# Todas as configurações legacy do backend-prod foram removidas
+# Este arquivo é mantido vazio propositalmente.
+# Todas as rotas de API estão definidas em api-routes-modern.yml
 # ============================================================================
 
-http:
-  routers:
-    # Placeholder para futuros serviços Swarm
-    # Exemplo de roteamento para serviços Swarm:
-    # backend-swarm-service:
-    #   rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/rest/backend`)"
-    #   entrypoints:
-    #     - websecure
-    #   service: backend-swarm-service
-    #   tls:
-    #     certResolver: letsencrypt
-
-  services:
-    # Placeholder para futuros serviços Swarm
-    # Exemplo de serviço Swarm futuro:
-    # backend-swarm-service:
-    #   loadBalancer:
-    #     servers:
-    #       - url: "http://backend-swarm:8080"
-
-    # YAML válido requer pelo menos um item, mesmo que comentado
-    placeholder-service:
-      loadBalancer:
-        servers:
-          - url: "http://placeholder:3000"
+# Arquivo vazio - sem placeholders ou serviços temporários
