@@ -59,13 +59,12 @@ entryPoints:
 # 📡 PROVIDERS - DOCKER SWARM CORRETO v3.5.3
 # =============================================================================
 providers:
-  # Provider Docker com Swarm Mode (sintaxe correta v3.5.3)
+  # Provider Docker para Swarm Mode (sintaxe correta v3.5.2)
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     watch: true
     network: conexao-network-swarm
-    swarmMode: true  # Modo Swarm ativado
     useBindPortIP: false
     constraints: "Label(`traefik.enable`, `true`)"
 
