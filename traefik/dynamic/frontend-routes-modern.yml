@@ -18,7 +18,7 @@ http:
     # 🏠 FRONTEND PRINCIPAL - REACT SPA
     # ==========================================================================
     frontend-main:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`))"
       entrypoints:
         - websecure
       service: frontend-service-main
@@ -35,7 +35,7 @@ http:
 
     # HTTP → HTTPS redirect
     frontend-redirect-https:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`))"
       entrypoints:
         - web
       service: frontend-service-main
@@ -48,10 +48,10 @@ http:
     # 📊 LOG SERVIDOR - MONITORAMENTO ESPECÍFICO
     # ==========================================================================
     frontend-log-servidor:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && Path(`/log-servidor`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && Path(`/log-servidor`)"
       entrypoints:
         - websecure
-      service: frontend-service-main
+      service: log-servidor-ui
       middlewares:
         - frontend-security-headers@file
         - compression-modern@file
@@ -65,7 +65,7 @@ http:
     # 🛠️ TRAEFIK DASHBOARD - ACESSO ADMINISTRATIVO
     # ==========================================================================
     traefik-dashboard-access:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/traefik`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/traefik`)"
       entrypoints:
         - websecure
       service: api@internal
@@ -84,7 +84,7 @@ http:
     # 🔍 FALLBACK ROUTES - QUANDO SERVIÇOS ESTÃO INDISPONÍVEIS
     # ==========================================================================
     frontend-fallback:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`))"
       entrypoints:
         - websecure
       service: fallback-service
@@ -99,26 +99,18 @@ http:
   # 🎯 SERVICES - LOAD BALANCERS OTIMIZADOS
   # ==========================================================================
   services:
-    # Frontend principal - React SPA (temporariamente usando health-monitor como fallback)
+    # Frontend principal - React SPA servido pelo container oficial
     frontend-service-main:
       loadBalancer:
         servers:
-          # TEMPORÁRIO: Usando health-monitor até frontend ser configurado
-          - url: "http://conexao-traefik_health-monitor:8080"
+          - url: "http://conexao-frontend_frontend:80"
         healthCheck:
-          path: "/health/overall"  # Endpoint do health-monitor
+          path: "/"
           interval: "30s"
           timeout: "10s"
-          scheme: "http"
-          method: "GET"
-          headers:
-            Accept: "application/json"
-            User-Agent: "Traefik-HealthCheck/3.5"
-        # Performance otimizada para SPA
         passHostHeader: true
         responseForwarding:
-          flushInterval: "10ms"  # Flush rápido para UI responsiva
-        # Sticky sessions para melhor UX
+          flushInterval: "10ms"
         sticky:
           cookie:
             name: "frontend-session"
@@ -126,15 +118,25 @@ http:
             httpOnly: true
             sameSite: "strict"
 
-    # Serviço de fallback - Health Monitor como backup
+    # Serviço de fallback - reutiliza o frontend para evitar 404 durante falhas breves
     fallback-service:
       loadBalancer:
         servers:
-          - url: "http://conexao-traefik_health-monitor:8080"
+          - url: "http://conexao-frontend_frontend:80"
+        healthCheck:
+          path: "/"
+          interval: "30s"
+          timeout: "5s"
+        passHostHeader: true
+
+    log-servidor-ui:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-traefik_log-server:9090"
         healthCheck:
           path: "/health"
           interval: "30s"
-          timeout: "5s"
+          timeout: "10s"
         passHostHeader: true
 
   # ==========================================================================
@@ -232,4 +234,3 @@ tls:
 # - Circuit breaker por rota
 # - Observabilidade com OpenTelemetry
 # =============================================================================
-

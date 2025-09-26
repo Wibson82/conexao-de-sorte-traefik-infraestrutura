@@ -91,7 +91,6 @@ tls:
         domain:
           main: "conexaodesorte.com.br"
           sans:
-            - "www.conexaodesorte.com.br"
             - "*.conexaodesorte.com.br"  # Wildcard (se suportado)
 
       # Certificados adicionais (futuros)

@@ -19,7 +19,7 @@ http:
     # 🔍 PROMETHEUS METRICS - COLETORES DE MÉTRICAS
     # ==========================================================================
     metrics-prometheus:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && Path(`/metrics`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && Path(`/metrics`)"
       entrypoints:
         - websecure
       service: prometheus-metrics-service
@@ -35,7 +35,7 @@ http:
     # ❤️ HEALTH CHECKS - MONITORAMENTO DE SAÚDE
     # ==========================================================================
     health-overall:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && Path(`/health`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && Path(`/health`)"
       entrypoints:
         - websecure
       service: health-aggregator-service
@@ -49,7 +49,7 @@ http:
 
     # Health check detalhado por serviço
     health-services:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/health/services`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/health/services`)"
       entrypoints:
         - websecure
       service: health-services-service
@@ -65,7 +65,7 @@ http:
     # 📊 DASHBOARD DE MONITORAMENTO INTERNO
     # ==========================================================================
     monitoring-dashboard:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/monitoring`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/monitoring`)"
       entrypoints:
         - websecure
       service: monitoring-dashboard-service
@@ -82,7 +82,7 @@ http:
     # 🚨 ALERTAS E NOTIFICAÇÕES
     # ==========================================================================
     alerts-webhook:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/alerts/webhook`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/alerts/webhook`)"
       entrypoints:
         - websecure
       service: alerts-service
@@ -99,7 +99,7 @@ http:
     # 📋 LOGS ESTRUTURADOS - AGREGAÇÃO E CONSULTA
     # ==========================================================================
     logs-query:
-      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/logs`)"
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/logs`)"
       entrypoints:
         - websecure
       service: logs-service
