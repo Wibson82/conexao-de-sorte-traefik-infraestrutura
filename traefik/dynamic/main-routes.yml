@@ -13,26 +13,8 @@ http:
     # ==========================================================================
     # 📋 FRONTEND PRINCIPAL - REACT APPLICATION
     # ==========================================================================
-    frontend-main:
-      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
-      entrypoints:
-        - websecure
-      service: frontend-service
-      tls:
-        certResolver: letsencrypt
-      middlewares:
-        - security-headers@file
-        - compression@file
-      priority: 1
-
-    # HTTP redirect para HTTPS
-    frontend-redirect:
-      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
-      entrypoints:
-        - web
-      middlewares:
-        - redirect-to-https@file
-      service: frontend-service
+    # frontend-main router movido para frontend-routes-modern.yml para evitar duplicidade
+    # frontend-redirect router movido para frontend-routes-modern.yml
 
     # ==========================================================================
     # 🚀 ROTAS FUTURAS (COMENTADAS - SERÃO ATIVADAS COM OS SERVIÇOS)
@@ -98,13 +80,7 @@ http:
   # ==========================================================================
   services:
     # Frontend service - React Application
-    frontend-service:
-      loadBalancer:
-        servers:
-          - url: "http://conexao-frontend_frontend:3000"
-        healthCheck:
-          path: "/health"
-          interval: 30s
+    # frontend-service configurado em frontend-routes-modern.yml
 
     # API de containers service - via log-server
     containers-api-service:
