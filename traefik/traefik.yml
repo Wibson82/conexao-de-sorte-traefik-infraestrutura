@@ -47,12 +47,12 @@ entryPoints:
         readTimeout: "30s"
         writeTimeout: "30s"
         idleTimeout: "300s"
+    http:
+      middlewares:
+        - "rate-limit-global@file"
     # Configuração avançada de TLS
     tls:
       options: modern-tls@file
-    # Rate limiting por IP
-    middlewares:
-      - "rate-limit-global@file"
 
   # Dashboard interno - Apenas interno
   traefik-internal:
