@@ -165,11 +165,30 @@ jobs:
 
           # Stop existing services safely
           echo "⏹️ Stopping existing Traefik services..."
-          docker stack rm "$STACK_NAME" >/dev/null 2>&1 || true
-          if [[ "$LEGACY_STACK" != "$STACK_NAME" ]]; then
+          if docker stack ls --format '{{.Name}}' | grep -q "^${STACK_NAME}$"; then
+            docker stack rm "$STACK_NAME" >/dev/null 2>&1 || true
+          fi
+
+          if [[ "$LEGACY_STACK" != "$STACK_NAME" ]] && docker stack ls --format '{{.Name}}' | grep -q "^${LEGACY_STACK}$"; then
             docker stack rm "$LEGACY_STACK" >/dev/null 2>&1 || true
           fi
-          sleep 10
+
+          echo "⏳ Waiting for previous stack shutdown..."
+          for attempt in {1..12}; do
+            if ! docker stack ls --format '{{.Name}}' | grep -Eq "^(${STACK_NAME}|${LEGACY_STACK})$"; then
+              echo "✅ Previous stacks removed"
+              break
+            fi
+
+            if [[ $attempt -eq 12 ]]; then
+              echo "❌ Previous stack removal timed out"
+              docker stack ls
+              exit 1
+            fi
+
+            echo "⏳ Attempt ${attempt}/12 - stacks still shutting down..."
+            sleep 10
+          done
 
           # Remove orphaned containers
           echo "🧹 Cleaning up containers..."
