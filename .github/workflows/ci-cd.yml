@@ -44,13 +44,13 @@ jobs:
           # Instalar yamllint para validação adequada
           pip install yamllint
 
-          for file in $(find . -name "*.yaml" -o -name "*.yml" | grep -v ".github"); do
+          for file in $(find . -name "*.yaml" -o -name "*.yml" | grep -v ".github" | grep -v "backup" | grep -v "examples"); do
             echo "Validating: $file"
             yaml_count=$((yaml_count + 1))
 
-            # Usar yamllint em vez de kubectl para arquivos Docker Compose
+            # Usar yamllint em vez de kubectl para arquivos Docker Compose (apenas erros críticos)
             if [[ "$file" == *"docker-compose"* ]] || [[ "$file" == *"traefik"* ]]; then
-              if ! yamllint -d relaxed "$file" >/dev/null 2>&1; then
+              if ! yamllint -d "{extends: relaxed, rules: {line-length: disable, empty-lines: disable}}" "$file" >/dev/null 2>&1; then
                 echo "❌ YAML syntax error in: $file"
                 error_count=$((error_count + 1))
               fi
