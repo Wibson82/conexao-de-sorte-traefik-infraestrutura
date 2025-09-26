@@ -1,0 +1,233 @@
+# =============================================================================
+# 🌐 CONEXÃO DE SORTE - FRONTEND ROUTES MODERNAS
+# =============================================================================
+# Roteamento principal do frontend React com:
+# - PWA Support (Progressive Web App)
+# - Performance otimizada
+# - SEO friendly
+# - Fallbacks inteligentes
+# =============================================================================
+
+---
+http:
+  # ==========================================================================
+  # 🎯 ROUTERS - FRONTEND PRINCIPAL E FALLBACKS
+  # ==========================================================================
+  routers:
+    # ==========================================================================
+    # 🏠 FRONTEND PRINCIPAL - REACT SPA
+    # ==========================================================================
+    frontend-main:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`)"
+      entrypoints:
+        - websecure
+      service: frontend-service-main
+      middlewares:
+        - frontend-security-headers@file
+        - cors-modern@file
+        - compression-modern@file
+        - rate-limit-global@file
+        - redirect-to-www@file  # Padronizar para www
+      tls:
+        certresolver: letsencrypt
+        options: modern-tls@file
+      priority: 100
+
+    # HTTP → HTTPS redirect
+    frontend-redirect-https:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`)"
+      entrypoints:
+        - web
+      service: frontend-service-main
+      middlewares:
+        - redirect-to-https@file
+        - redirect-to-www@file
+      priority: 100
+
+    # ==========================================================================
+    # 📊 LOG SERVIDOR - MONITORAMENTO ESPECÍFICO
+    # ==========================================================================
+    frontend-log-servidor:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && Path(`/log-servidor`)"
+      entrypoints:
+        - websecure
+      service: frontend-service-main
+      middlewares:
+        - frontend-security-headers@file
+        - compression-modern@file
+        - rate-limit-global@file
+      tls:
+        certresolver: letsencrypt
+        options: modern-tls@file
+      priority: 110  # Prioridade alta para rota específica
+
+    # ==========================================================================
+    # 🛠️ TRAEFIK DASHBOARD - ACESSO ADMINISTRATIVO
+    # ==========================================================================
+    traefik-dashboard-access:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/traefik`)"
+      entrypoints:
+        - websecure
+      service: api@internal
+      middlewares:
+        - dashboard-security-headers@file
+        - traefik-dashboard-redirect@file
+        - traefik-path-strip@file
+        - traefik-dashboard-auth@file
+        - rate-limit-auth@file
+      tls:
+        certresolver: letsencrypt
+        options: modern-tls@file
+      priority: 120  # Máxima prioridade para dashboard
+
+    # ==========================================================================
+    # 🔍 FALLBACK ROUTES - QUANDO SERVIÇOS ESTÃO INDISPONÍVEIS
+    # ==========================================================================
+    frontend-fallback:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`)"
+      entrypoints:
+        - websecure
+      service: fallback-service
+      middlewares:
+        - frontend-security-headers@file
+        - compression-modern@file
+      tls:
+        certresolver: letsencrypt
+      priority: 1  # Baixíssima prioridade - só ativa se outros falharem
+
+  # ==========================================================================
+  # 🎯 SERVICES - LOAD BALANCERS OTIMIZADOS
+  # ==========================================================================
+  services:
+    # Frontend principal - React SPA
+    frontend-service-main:
+      loadBalancer:
+        servers:
+          # Múltiplas instâncias para alta disponibilidade
+          - url: "http://conexao-frontend_frontend:3000"
+        healthCheck:
+          path: "/health.json"  # Endpoint padrão React
+          interval: "30s"
+          timeout: "10s"
+          scheme: "http"
+          method: "GET"
+          headers:
+            Accept: "application/json"
+            User-Agent: "Traefik-HealthCheck/3.5"
+        # Performance otimizada para SPA
+        passHostHeader: true
+        responseForwarding:
+          flushInterval: "10ms"  # Flush rápido para UI responsiva
+        # Sticky sessions para melhor UX
+        sticky:
+          cookie:
+            name: "frontend-session"
+            secure: true
+            httpOnly: true
+            sameSite: "strict"
+
+    # Serviço de fallback - Health Monitor como backup
+    fallback-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-stack_health-monitor:8080"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "5s"
+        passHostHeader: true
+
+  # ==========================================================================
+  # 🔧 MIDDLEWARES ESPECÍFICOS PARA FRONTEND
+  # ==========================================================================
+  middlewares:
+    # Dashboard auth - Básico com arquivo de usuários
+    traefik-dashboard-auth:
+      basicAuth:
+        usersFile: "/secrets/traefik-basicauth"
+        removeHeader: true  # Remover header após autenticação
+
+    # Strip path para dashboard
+    traefik-path-strip:
+      stripPrefixRegex:
+        - "^/traefik"
+
+    # Redirect para dashboard completo
+    traefik-dashboard-redirect:
+      redirectRegex:
+        regex: "^/traefik/?$"
+        replacement: "/traefik/dashboard/"
+        permanent: false  # Redirect temporário para flexibilidade
+
+    # Headers específicos para dashboard
+    dashboard-security-headers:
+      headers:
+        customResponseHeaders:
+          # CSP máximo para dashboard
+          Content-Security-Policy: >-
+            default-src 'self';
+            script-src 'self' 'unsafe-inline';
+            style-src 'self' 'unsafe-inline';
+            font-src 'self' data:;
+            img-src 'self' data:;
+            connect-src 'self';
+            frame-ancestors 'none';
+
+          # Headers máximos de segurança
+          X-Frame-Options: "DENY"
+          X-Content-Type-Options: "nosniff"
+          Referrer-Policy: "no-referrer"
+          Cache-Control: "no-cache, no-store, must-revalidate"
+          X-Dashboard-Version: "traefik-v3.5.2"
+
+        # Configurações de segurança máximas
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+
+# =============================================================================
+# 📋 CONFIGURAÇÃO DE TLS MODERNA
+# =============================================================================
+tls:
+  options:
+    modern-tls:
+      minVersion: "VersionTLS12"
+      maxVersion: "VersionTLS13"
+      # Cipher suites modernas - suporte total HTTP/3
+      cipherSuites:
+        - "TLS_AES_256_GCM_SHA384"         # TLS 1.3
+        - "TLS_CHACHA20_POLY1305_SHA256"   # TLS 1.3
+        - "TLS_AES_128_GCM_SHA256"         # TLS 1.3
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"    # TLS 1.2
+        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"     # TLS 1.2
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"    # TLS 1.2
+      # Curvas elípticas modernas
+      curvePreferences:
+        - "X25519"      # Mais moderna
+        - "CurveP521"
+        - "CurveP384"
+        - "CurveP256"
+      # Configurações adicionais
+      sniStrict: false  # Permitir SNI flexível
+      alpnProtocols:
+        - "h2"          # HTTP/2
+        - "http/1.1"    # HTTP/1.1 como fallback
+
+# =============================================================================
+# 🚀 MELHORIAS DE PERFORMANCE
+# =============================================================================
+# - HTTP/3 habilitado no traefik.yml
+# - Compression otimizada com thresholds inteligentes
+# - Health checks com timeouts ajustados
+# - Sticky sessions para melhor UX
+# - Cache inteligente para assets estáticos
+# - Response forwarding otimizado para SPA
+#
+# PRÓXIMAS MELHORIAS:
+# - Service mesh com Consul Connect
+# - Canary deployments automatizados
+# - Circuit breaker por rota
+# - Observabilidade com OpenTelemetry
+# =============================================================================

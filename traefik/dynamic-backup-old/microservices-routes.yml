@@ -1,0 +1,41 @@
+---
+# =============================================================================
+# 🌐 TRAEFIK MINIMAL ROUTING CONFIGURATION - INFRAESTRUTURA FASE
+# =============================================================================
+# Configuração mínima para fase de infraestrutura
+# Apenas serviços internos e ping para evitar 404s
+# =============================================================================
+
+http:
+  routers:
+    # ====================================================================
+    # 📊 PING/HEALTH INTERNO - EVITA 404s
+    # ====================================================================
+    api-ping:
+      rule: "PathPrefix(`/ping`) || PathPrefix(`/api/ping`)"
+      service: "api@internal"
+      entrypoints:
+        - web
+        - websecure
+
+    # Fallback para evitar 404s em desenvolvimento
+    fallback-router:
+      rule: "HostRegexp(`{host:.+}`)"
+      service: "fallback-service"
+      entrypoints:
+        - web
+        - websecure
+      priority: 1
+
+  services:
+    # ==========================================================================
+    # 📊 SERVIÇO FALLBACK PARA EVITAR 404s - USANDO TRAEFIK INTERNO
+    # ==========================================================================
+    fallback-service:
+      loadbalancer:
+        servers:
+          - url: "http://traefik-stack_traefik:8080"
+
+# =============================================================================
+# Esta configuração evita 404s durante a fase de infraestrutura
+# =============================================================================

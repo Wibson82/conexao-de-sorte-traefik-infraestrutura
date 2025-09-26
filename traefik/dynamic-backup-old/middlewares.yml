@@ -1,0 +1,365 @@
+---
+http:
+  # Middlewares de segurança baseados em headers permanecem em
+  # security-headers.yml para evitar duplicações durante o reload.
+  middlewares:
+    # Compression middleware
+    compression:
+      compress: {}
+
+    gzip-compress:
+      compress: {}
+
+    # HTTPS redirect middleware (renamed to avoid conflicts)
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    ip-allow-local:
+      ipWhiteList:
+        sourceRange:
+          - "10.0.0.0/8"
+          - "172.16.0.0/12"
+          - "192.168.0.0/16"
+
+    cors-api:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+          - PATCH
+        accessControlAllowOriginList:
+          - https://conexaodesorte.com.br
+          - https://www.conexaodesorte.com.br
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 86400
+        addVaryHeader: true
+
+    traefik-path-trim:
+      stripPrefixRegex:
+        - "^/traefik"
+
+    # ==========================================================================
+    # MIDDLEWARES PARA GATEWAY-FIRST ARCHITECTURE
+    # ==========================================================================
+    cors-basic:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowOriginList:
+          - https://conexaodesorte.com.br
+          - https://www.conexaodesorte.com.br
+        accessControlAllowHeaders:
+          - "Authorization"
+          - "Content-Type"
+          - "X-Requested-With"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600
+
+    rate-limit-gateway:
+      rateLimit:
+        burst: 100
+        average: 50
+        period: "1m"
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    redirect-to-www:
+      redirectRegex:
+        regex: "^https://conexaodesorte.com.br/(.*)"
+        replacement: "https://www.conexaodesorte.com.br/${1}"
+        permanent: true
+
+    traefik-dashboard-redirect:
+      redirectRegex:
+        regex: "^/traefik/?$"
+        replacement: "/traefik/dashboard/"
+        permanent: true
+
+    redirect-www-to-non-www:
+      redirectRegex:
+        regex: '^https://www.conexaodesorte.com.br/(.*)'
+        replacement: 'https://conexaodesorte.com.br/${1}'
+        permanent: true
+
+    redirect-non-www-to-www:
+      redirectRegex:
+        regex: '^https://conexaodesorte.com.br/(.*)'
+        replacement: 'https://www.conexaodesorte.com.br/${1}'
+        permanent: true
+
+    # Rate Limiting - Proteção contra ataques DDoS
+    rate-limit-general:
+      rateLimit:
+        average: 100
+        period: 1m
+        burst: 200
+
+    rate-limit-api:
+      rateLimit:
+        average: 50
+        period: 1m
+        burst: 100
+
+    # Dashboard específico - CSP permissivo para fontes do Traefik
+    dashboard-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "no-referrer"
+        customResponseHeaders:
+          X-Content-Type-Options: "nosniff"
+          Strict-Transport-Security: >-
+            max-age=31536000; includeSubDomains; preload
+          Content-Security-Policy: >-
+            default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval';
+            style-src 'self' 'unsafe-inline' https: data:; img-src 'self' data: https:;
+            font-src 'self' data: https: blob:; connect-src 'self' https:;
+            frame-ancestors 'none';
+          X-Frame-Options: "DENY"
+          X-XSS-Protection: "1; mode=block"
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+
+    rate-limit-strict:
+      rateLimit:
+        average: 20
+        period: 1m
+        burst: 40
+
+    # Proteção contra ataques de força bruta
+    rate-limit-auth:
+      rateLimit:
+        average: 5
+        period: 1m
+        burst: 10
+
+    # Circuit Breaker - Proteção contra sobrecarga
+    circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.30"
+        checkPeriod: 10s
+        fallbackDuration: 30s
+        recoveryDuration: 10s
+
+    # Retry - Tentativas automáticas em caso de falha
+    retry-policy:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+
+    # Strip Prefix Middlewares para novos microserviços
+    user-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/users"
+
+    user-legacy-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/rest/users"
+
+    # Additional stripprefix middlewares for microservices
+    auth-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/auth"
+
+    results-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/results"
+
+    chat-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/chat"
+
+    notifications-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/notifications"
+
+    observability-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/observability"
+
+    crypto-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/crypto"
+
+    chatbot-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/chatbot"
+
+    crypto-kms-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/crypto-kms"
+
+    monitoring-diag-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/monitoring-diag"
+
+    scheduler-extractions-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/scheduler-extractions"
+
+    # Rate Limiting específicos para novos serviços
+    rate-limit:
+      rateLimit:
+        average: 60
+        period: 1m
+        burst: 120
+
+    rate-limit-notifications:
+      rateLimit:
+        average: 30
+        period: 1m
+        burst: 60
+
+    # Autenticação específica para serviços críticos
+    # TEMPORARIAMENTE DESABILITADO - arrays vazios causam problemas
+    # crypto-auth:
+    #   basicAuth:
+    #     users: []  # Configurado dinamicamente via Azure Key Vault
+
+    # audit-auth:
+    #   basicAuth:
+    #     users: []  # Configurado dinamicamente via Azure Key Vault
+
+    # admin-auth:
+    #   basicAuth:
+    #     users: []  # Configurado dinamicamente via Azure Key Vault
+
+    dashboard-auth:
+      basicAuth:
+        usersFile: /secrets/traefik-basicauth
+
+    # Gzip compression
+    gzip:
+      compress: {}
+
+    # WebSocket headers para chat
+    websocket-headers:
+      headers:
+        customRequestHeaders:
+          Connection: "upgrade"
+          Upgrade: "websocket"
+
+    # Cache headers para resultados
+    cache-results:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=300"
+          Expires: "300"
+
+    # Redirect para www
+    www-redirect:
+      redirectRegex:
+        regex: "^https://conexaodesorte.com.br/(.*)"
+        replacement: "https://www.conexaodesorte.com.br/${1}"
+
+    # ==========================================================================
+    # API STRIPPREFIX MIDDLEWARES - /rest/NOME-DO-PROJETO/
+    # ==========================================================================
+
+    api-strip-prefix-gateway:
+      stripPrefix:
+        prefixes:
+          - "/rest/gateway"
+
+    api-strip-prefix-autenticacao:
+      stripPrefix:
+        prefixes:
+          - "/rest/autenticacao"
+
+    api-strip-prefix-usuario:
+      stripPrefix:
+        prefixes:
+          - "/rest/usuario"
+
+    api-strip-prefix-resultados:
+      stripPrefix:
+        prefixes:
+          - "/rest/resultados"
+
+    api-strip-prefix-batepapo:
+      stripPrefix:
+        prefixes:
+          - "/rest/batepapo"
+
+    api-strip-prefix-chatbot:
+      stripPrefix:
+        prefixes:
+          - "/rest/chatbot"
+
+    api-strip-prefix-financeiro:
+      stripPrefix:
+        prefixes:
+          - "/rest/financeiro"
+
+    api-strip-prefix-notificacoes:
+      stripPrefix:
+        prefixes:
+          - "/rest/notificacoes"
+
+    api-strip-prefix-scheduler:
+      stripPrefix:
+        prefixes:
+          - "/rest/scheduler"
+
+    api-strip-prefix-auditoria:
+      stripPrefix:
+        prefixes:
+          - "/rest/auditoria"
+
+    api-strip-prefix-criptografia:
+      stripPrefix:
+        prefixes:
+          - "/rest/criptografia"
+
+    api-strip-prefix-observabilidade:
+      stripPrefix:
+        prefixes:
+          - "/rest/observabilidade"
+
+    # ==========================================================================
+    # CORS FRONTEND MIDDLEWARE
+    # ==========================================================================
+
+    cors-frontend:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowOriginList:
+          - https://conexaodesorte.com.br
+          - https://www.conexaodesorte.com.br
+        accessControlAllowHeaders:
+          - "Authorization"
+          - "Content-Type"
+          - "X-Requested-With"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600

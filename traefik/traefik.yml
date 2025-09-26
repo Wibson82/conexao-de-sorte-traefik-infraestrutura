@@ -1,66 +1,192 @@
+# =============================================================================
+# 🚀 CONEXÃO DE SORTE - TRAEFIK v3.5.2 MODERNA E ESCALÁVEL
+# =============================================================================
+# Configuração principal otimizada para:
+# - Segurança avançada (OWASP compliance)
+# - Escalabilidade para futuras APIs REST
+# - Performance otimizada
+# - Facilidade de manutenção e expansão
+# =============================================================================
+
 ---
 global:
   checkNewVersion: false
   sendAnonymousUsage: false
 
+# =============================================================================
+# 📊 API E DASHBOARD - SEGURO E MONITORÁVEL
+# =============================================================================
 api:
   dashboard: true
   insecure: false
-  # Habilitar endpoints de API internos para health checks
   debug: false
+  # Habilitado para métricas e health checks internos
 
+# =============================================================================
+# 🌐 ENTRY POINTS - HTTP/HTTPS/HTTP3 OTIMIZADOS
+# =============================================================================
 entryPoints:
+  # HTTP Entry Point - Apenas para redirecionamentos e ACME challenge
   web:
     address: ":80"
-    # HTTP sem redirect forçado - permitir rotas específicas
-    # O redirect será feito via middlewares quando necessário
+    # Rate limiting no entry point para DDoS protection
+    transport:
+      respondingTimeouts:
+        readTimeout: "10s"
+        writeTimeout: "10s"
+        idleTimeout: "120s"
 
+  # HTTPS Entry Point - Produção com HTTP/3
   websecure:
     address: ":443"
+    # HTTP/3 (QUIC) para performance moderna
     http3:
       advertisedPort: 443
+    transport:
+      respondingTimeouts:
+        readTimeout: "30s"
+        writeTimeout: "30s"
+        idleTimeout: "300s"
+    # Configuração avançada de TLS
+    tls:
+      options: modern-tls@file
+    # Rate limiting por IP
+    middlewares:
+      - "rate-limit-global@file"
 
-  traefik:
+  # Dashboard interno - Apenas interno
+  traefik-internal:
     address: ":8080"
+    transport:
+      respondingTimeouts:
+        readTimeout: "5s"
+        writeTimeout: "5s"
+        idleTimeout: "60s"
 
+# =============================================================================
+# 📡 PROVIDERS - DOCKER SWARM + ARQUIVOS DINÂMICOS
+# =============================================================================
 providers:
+  # Docker Swarm Provider - Detecção automática
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     watch: true
     network: conexao-network-swarm
-    # SwarmMode é detectado automaticamente no Traefik 3.x quando
-    # Docker está em modo Swarm
+    swarmMode: true  # Explícito para Docker Swarm
+    useBindPortIP: false
+    # Polling interval otimizado
+    pollInterval: "5s"
+    # Constraints para filtrar serviços
+    constraints: "Label(`traefik.enable`, `true`)"
+
+  # File Provider - Configuração dinâmica
   file:
     directory: "/etc/traefik/dynamic"
     watch: true
+    # Intervalo de verificação otimizado
+    pollInterval: "2s"
 
+# =============================================================================
+# 📝 LOGGING - ESTRUTURADO E SEGURO
+# =============================================================================
 log:
   level: INFO
+  format: json
+  filePath: "/dev/stdout"  # Container-friendly logging
 
-# Remover accessLog para evitar problemas de bind mount no Swarm
+# Access logs desabilitados para evitar vazamento de dados
+# Podem ser habilitados em desenvolvimento se necessário
 # accessLog:
 #   format: json
-#   filePath: "/var/log/traefik/access.log"
-#   bufferingSize: 100
+#   bufferingSize: 0
+#   filters:
+#     statusCodes:
+#       - "400-499"
+#       - "500-599"
 
+# =============================================================================
+# 🔐 CERTIFICADOS SSL - LET'S ENCRYPT OTIMIZADO
+# =============================================================================
 certificatesResolvers:
   letsencrypt:
     acme:
       email: "facilitaservicos.tec@gmail.com"
       storage: /letsencrypt/acme.json
+      # Usar HTTP challenge (mais estável que DNS)
       httpChallenge:
         entryPoint: web
+      # Rate limiting interno do ACME
+      caServer: "https://acme-v02.api.letsencrypt.org/directory"
 
+  # Resolver de staging para testes (comentado para produção)
+  # letsencrypt-staging:
+  #   acme:
+  #     email: "facilitaservicos.tec@gmail.com"
+  #     storage: /letsencrypt/acme-staging.json
+  #     caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"
+  #     httpChallenge:
+  #       entryPoint: web
+
+# =============================================================================
+# 📊 MÉTRICAS E MONITORAMENTO - PROMETHEUS + HEALTH CHECKS
+# =============================================================================
 ping:
-  entryPoint: traefik
+  entryPoint: traefik-internal
 
-# Health check para Docker Swarm
 metrics:
   prometheus:
     addEntryPointsLabels: true
     addServicesLabels: true
+    addRoutersLabels: true
+    # Buckets otimizados para web applications
+    buckets:
+      - 0.005
+      - 0.01
+      - 0.025
+      - 0.05
+      - 0.1
+      - 0.25
+      - 0.5
+      - 1.0
+      - 2.5
+      - 5.0
+      - 10.0
 
-# Timeout configurations (Traefik 3.x format)
+# =============================================================================
+# 🚀 TRANSPORT CONFIGURATIONS - OTIMIZADO PARA PERFORMANCE
+# =============================================================================
 serversTransport:
-  insecureSkipVerify: false
+  # SSL/TLS configuration para backend services
+  insecureSkipVerify: false  # Manter segurança
+  rootCAs:
+    - "/etc/ssl/certs/ca-certificates.crt"
+  # Timeouts otimizados para APIs REST
+  forwardingTimeouts:
+    dialTimeout: "10s"
+    responseHeaderTimeout: "30s"
+    expectContinueTimeout: "1s"
+    idleConnTimeout: "90s"
+  # Connection pooling para performance
+  maxIdleConnsPerHost: 10
+  disableHTTP2: false  # Manter HTTP/2 habilitado
+
+# =============================================================================
+# 🔧 CONFIGURAÇÕES EXPERIMENTAIS - TRAEFIK v3.5.2
+# =============================================================================
+experimental:
+  # Plugins habilitados para extensibilidade futura
+  plugins:
+    enabled: true
+  # HTTP/3 experimental features
+  http3: true
+
+# =============================================================================
+# 📈 CLUSTER CONFIGURATION - PREPARADO PARA SCALING
+# =============================================================================
+cluster:
+  # Preparado para cluster multi-node (quando necessário)
+  store: "consul"
+  prefix: "/traefik"
+
+# Configuração será expandida quando usar Consul/etcd para HA

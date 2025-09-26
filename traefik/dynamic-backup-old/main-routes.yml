@@ -1,0 +1,155 @@
+---
+# =============================================================================
+# 🌐 CONEXÃO DE SORTE - ROTEAMENTO INFRAESTRUTURA
+# =============================================================================
+# FASE INFRAESTRUTURA: Apenas rotas que não dependem de serviços externos
+# - Dashboard Traefik: conexaodesorte.com.br/traefik
+# - Fallback para evitar 404s
+# - Preparado para expansão futura
+# =============================================================================
+
+http:
+  routers:
+    # ==========================================================================
+    # 📋 FRONTEND PRINCIPAL - REACT APPLICATION
+    # ==========================================================================
+    frontend-main:
+      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
+      entrypoints:
+        - websecure
+      service: frontend-service
+      tls:
+        certresolver: letsencrypt
+      middlewares:
+        - security-headers@file
+        - compression@file
+      priority: 1
+
+    # HTTP redirect para HTTPS
+    frontend-redirect:
+      rule: "Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)"
+      entrypoints:
+        - web
+      middlewares:
+        - redirect-to-https@file
+      service: frontend-service
+
+    # ==========================================================================
+    # 🚀 ROTAS FUTURAS (COMENTADAS - SERÃO ATIVADAS COM OS SERVIÇOS)
+    # ==========================================================================
+    #
+    # FRONTEND:
+    # frontend-main: conexaodesorte.com.br + www.conexaodesorte.com.br
+    #
+    # APIs REST:
+    # api-gateway: /rest/gateway/
+    # api-autenticacao: /rest/autenticacao/
+    # api-usuario: /rest/usuario/
+    # api-resultados: /rest/resultados/
+    # api-batepapo: /rest/batepapo/
+    # api-chatbot: /rest/chatbot/
+    # api-financeiro: /rest/financeiro/
+    # api-notificacoes: /rest/notificacoes/
+    # api-scheduler: /rest/scheduler/
+    # api-auditoria: /rest/auditoria/
+    # api-criptografia: /rest/criptografia/
+    # api-observabilidade: /rest/observabilidade/
+
+    # ==========================================================================
+    # 📊 TRAEFIK DASHBOARD VIA PATH PREFIX
+    # ==========================================================================
+    traefik-dashboard-root:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && (Path(`/traefik`) || Path(`/traefik/`))"
+      entrypoints:
+        - websecure
+      tls:
+        certresolver: letsencrypt
+      service: noop@internal
+      middlewares:
+        - traefik-dashboard-redirect@file
+
+    traefik-dashboard:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && PathPrefix(`/traefik/dashboard`)"
+      entrypoints:
+        - websecure
+      tls:
+        certresolver: letsencrypt
+      service: api@internal
+      middlewares:
+        - traefik-dashboard-redirect@file
+        - traefik-path-trim@file
+        - dashboard-auth@file
+        - dashboard-headers@file
+
+    traefik-admin:
+      rule: "(Host(`conexaodesorte.com.br`) || Host(`www.conexaodesorte.com.br`)) && (PathPrefix(`/traefik/api`) || Path(`/traefik/metrics`) || Path(`/traefik/ping`))"
+      entrypoints:
+        - websecure
+      tls:
+        certresolver: letsencrypt
+      service: api@internal
+      middlewares:
+        - traefik-path-trim@file
+        - dashboard-auth@file
+        - dashboard-headers@file
+
+  # ==========================================================================
+  # 🎯 SERVIÇOS (Load Balancers) - FASE INFRAESTRUTURA
+  # ==========================================================================
+  services:
+    # Frontend service - React Application
+    frontend-service:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-frontend_frontend:3000"
+        healthCheck:
+          path: "/health"
+          interval: 30s
+
+    # API de containers service - via log-server
+    containers-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-stack_log-server:9090"
+        healthCheck:
+          path: "/health"
+          interval: 30s
+
+  # ==========================================================================
+  # 🚀 SERVIÇOS FUTUROS (SERÃO ATIVADOS COM OS DEPLOYMENTS)
+  # ==========================================================================
+  # frontend-service: conexao-frontend_frontend:3000
+  # gateway-service: conexao-gateway_gateway:8080
+  # autenticacao-service: conexao-autenticacao_autenticacao:8080
+  # usuario-service: conexao-usuario_usuario:8080
+  # resultados-service: conexao-resultados_resultados:8080
+  # batepapo-service: conexao-batepapo_batepapo:8080
+  # chatbot-service: conexao-chatbot_chatbot:8080
+  # financeiro-service: conexao-financeiro_financeiro:8080
+  # notificacoes-service: conexao-notificacoes_notificacoes:8080
+  # scheduler-service: conexao-scheduler_scheduler:8080
+  # auditoria-service: conexao-auditoria_auditoria:8080
+  # criptografia-service: conexao-criptografia_criptografia:8080
+  # observabilidade-service: conexao-observabilidade_observabilidade:8080
+
+# =============================================================================
+# 📋 CONFIGURAÇÃO DE ROTEAMENTO
+# =============================================================================
+# Frontend:
+#   - https://conexaodesorte.com.br
+#   - https://www.conexaodesorte.com.br
+#
+# APIs REST:
+#   - https://conexaodesorte.com.br/rest/gateway/
+#   - https://conexaodesorte.com.br/rest/autenticacao/
+#   - https://conexaodesorte.com.br/rest/usuario/
+#   - https://conexaodesorte.com.br/rest/resultados/
+#   - https://conexaodesorte.com.br/rest/batepapo/
+#   - https://conexaodesorte.com.br/rest/chatbot/
+#   - https://conexaodesorte.com.br/rest/financeiro/
+#   - https://conexaodesorte.com.br/rest/notificacoes/
+#   - https://conexaodesorte.com.br/rest/scheduler/
+#   - https://conexaodesorte.com.br/rest/auditoria/
+#   - https://conexaodesorte.com.br/rest/criptografia/
+#   - https://conexaodesorte.com.br/rest/observabilidade/
+# =============================================================================

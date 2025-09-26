@@ -1,0 +1,423 @@
+# =============================================================================
+# 🚀 CONEXÃO DE SORTE - API ROUTES MODERNAS E ESCALÁVEIS
+# =============================================================================
+# Sistema de roteamento preparado para futuras APIs REST:
+# - Estrutura modular e expansível
+# - Versionamento de APIs (v1, v2, v3...)
+# - Load balancing inteligente
+# - Health checks automáticos
+# - Rate limiting por API
+# =============================================================================
+
+---
+http:
+  # ==========================================================================
+  # 🌐 ROUTERS - SISTEMA ESCALÁVEL PARA APIs REST
+  # ==========================================================================
+  routers:
+    # ==========================================================================
+    # 📱 API GATEWAY - PONTO CENTRAL DE ENTRADA
+    # ==========================================================================
+    api-gateway-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/gateway`)"
+      entrypoints:
+        - websecure
+      service: gateway-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-api@file
+        - api-strip-prefix-gateway@file
+        - circuit-breaker-api@file
+        - retry-policy@file
+        - compression-modern@file
+      tls:
+        certresolver: letsencrypt
+      priority: 100
+
+    # ==========================================================================
+    # 🔐 AUTENTICAÇÃO - JWT E OAUTH2
+    # ==========================================================================
+    api-auth-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/auth`)"
+      entrypoints:
+        - websecure
+      service: auth-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-auth@file  # Rate limiting mais restritivo para auth
+        - api-strip-prefix-auth@file
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 95
+
+    # ==========================================================================
+    # 👤 USUÁRIOS - GERENCIAMENTO DE PERFIS
+    # ==========================================================================
+    api-users-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/users`)"
+      entrypoints:
+        - websecure
+      service: users-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-api@file
+        - api-strip-prefix-users@file
+        - circuit-breaker-api@file
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 90
+
+    # ==========================================================================
+    # 🎯 RESULTADOS - ANÁLISE DE DADOS
+    # ==========================================================================
+    api-results-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/results`)"
+      entrypoints:
+        - websecure
+      service: results-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-api@file
+        - api-strip-prefix-results@file
+        - circuit-breaker-api@file
+        - retry-policy@file
+        - cache-results@file  # Cache específico para resultados
+      tls:
+        certresolver: letsencrypt
+      priority: 85
+
+    # ==========================================================================
+    # 💬 CHAT - WEBSOCKET + REST
+    # ==========================================================================
+    api-chat-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/chat`)"
+      entrypoints:
+        - websecure
+      service: chat-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-api@file
+        - api-strip-prefix-chat@file
+        - websocket-headers@file  # Headers específicos para WebSocket
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 80
+
+    # ==========================================================================
+    # 🤖 CHATBOT - IA E AUTOMAÇÃO
+    # ==========================================================================
+    api-chatbot-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/chatbot`)"
+      entrypoints:
+        - websecure
+      service: chatbot-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-api@file
+        - api-strip-prefix-chatbot@file
+        - circuit-breaker-api@file
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 75
+
+    # ==========================================================================
+    # 💰 FINANCEIRO - TRANSAÇÕES E PAGAMENTOS
+    # ==========================================================================
+    api-financial-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/financial`)"
+      entrypoints:
+        - websecure
+      service: financial-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-auth@file  # Rate limiting restritivo para operações financeiras
+        - api-strip-prefix-financial@file
+        - circuit-breaker-api@file
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 70
+
+    # ==========================================================================
+    # 🔔 NOTIFICAÇÕES - PUSH, EMAIL, SMS
+    # ==========================================================================
+    api-notifications-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/notifications`)"
+      entrypoints:
+        - websecure
+      service: notifications-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-notifications@file  # Rate limiting específico
+        - api-strip-prefix-notifications@file
+        - circuit-breaker-api@file
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 65
+
+    # ==========================================================================
+    # ⏰ SCHEDULER - TAREFAS PROGRAMADAS
+    # ==========================================================================
+    api-scheduler-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/scheduler`)"
+      entrypoints:
+        - websecure
+      service: scheduler-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-api@file
+        - api-strip-prefix-scheduler@file
+        - circuit-breaker-api@file
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 60
+
+    # ==========================================================================
+    # 📊 OBSERVABILIDADE - LOGS E MÉTRICAS
+    # ==========================================================================
+    api-observability-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/observability`)"
+      entrypoints:
+        - websecure
+      service: observability-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-api@file
+        - api-strip-prefix-observability@file
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 55
+
+    # ==========================================================================
+    # 🔐 CRIPTOGRAFIA - KMS E SEGURANÇA
+    # ==========================================================================
+    api-crypto-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/crypto`)"
+      entrypoints:
+        - websecure
+      service: crypto-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-auth@file  # Rate limiting restritivo para criptografia
+        - api-strip-prefix-crypto@file
+        - circuit-breaker-api@file
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 50
+
+    # ==========================================================================
+    # 📝 AUDITORIA - COMPLIANCE E LOGS
+    # ==========================================================================
+    api-audit-v1:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/audit`)"
+      entrypoints:
+        - websecure
+      service: audit-service-v1
+      middlewares:
+        - api-security-headers@file
+        - cors-modern@file
+        - rate-limit-api@file
+        - api-strip-prefix-audit@file
+        - retry-policy@file
+      tls:
+        certresolver: letsencrypt
+      priority: 45
+
+  # ==========================================================================
+  # 🎯 SERVICES - LOAD BALANCERS COM HEALTH CHECKS AVANÇADOS
+  # ==========================================================================
+  services:
+    # Gateway Service - Ponto central de entrada
+    gateway-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-gateway_gateway:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+          scheme: "http"
+          method: "GET"
+          headers:
+            Host: "conexao-gateway"
+        passHostHeader: true
+        responseForwarding:
+          flushInterval: "100ms"
+
+    # Authentication Service
+    auth-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-autenticacao_autenticacao:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Users Service
+    users-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-usuario_usuario:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Results Service - Com sticky sessions
+    results-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-resultados_resultados:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+        # Sticky sessions para cache local
+        sticky:
+          cookie:
+            name: "results-session"
+            secure: true
+            httpOnly: true
+
+    # Chat Service - WebSocket ready
+    chat-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-batepapo_batepapo:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+        # Configuração especial para WebSocket
+        sticky:
+          cookie:
+            name: "chat-session"
+            secure: true
+            httpOnly: true
+
+    # Chatbot Service
+    chatbot-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-chatbot_chatbot:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Financial Service - Alta disponibilidade
+    financial-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-financeiro_financeiro:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "15s"  # Health check mais frequente
+          timeout: "5s"
+        passHostHeader: true
+
+    # Notifications Service
+    notifications-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-notificacoes_notificacoes:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Scheduler Service
+    scheduler-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-scheduler_scheduler:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Observability Service
+    observability-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-observabilidade_observabilidade:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Crypto Service - Máxima segurança
+    crypto-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-criptografia_criptografia:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "15s"
+          timeout: "5s"
+        passHostHeader: true
+
+    # Audit Service
+    audit-service-v1:
+      loadBalancer:
+        servers:
+          - url: "http://conexao-auditoria_auditoria:8080"
+        healthCheck:
+          path: "/actuator/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+# =============================================================================
+# 📋 MIDDLEWARES ESPECÍFICOS PARA STRIP PREFIX
+# =============================================================================
+# Estes middlewares são definidos em security-headers.yml
+# Referência para futuras APIs:
+#
+# Para adicionar nova API:
+# 1. Copie um router existente
+# 2. Modifique o PathPrefix: /api/v1/NOME-DA-API
+# 3. Crie o serviço correspondente
+# 4. Adicione o middleware strip prefix em security-headers.yml
+# 5. Configure o Docker Swarm service
+#
+# Exemplo para nova API "reports":
+# api-reports-v1:
+#   rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/api/v1/reports`)"
+#   service: reports-service-v1
+#   middlewares:
+#     - api-security-headers@file
+#     - cors-modern@file
+#     - rate-limit-api@file
+#     - api-strip-prefix-reports@file  # Criar em security-headers.yml
+#     - circuit-breaker-api@file
+#     - retry-policy@file
+# =============================================================================

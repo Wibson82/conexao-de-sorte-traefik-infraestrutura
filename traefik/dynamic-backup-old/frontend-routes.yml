@@ -1,0 +1,33 @@
+---
+# =============================================================================
+# 🌐 FRONTEND MINIMAL ROUTING CONFIGURATION - TESTE
+# =============================================================================
+# Configuração mínima para evitar erros de inicialização
+# Remove dependências de serviços frontend até que estejam operacionais
+# =============================================================================
+
+http:
+  routers:
+    # ======================================================================
+    # 📊 CONFIGURAÇÃO MÍNIMA - SEM DEPENDÊNCIAS EXTERNAS
+    # ==========================================================================
+    # Removido temporariamente para diagnóstico
+    # frontend-main será reativado quando o serviço estiver disponível
+    api-ping:
+      rule: "PathPrefix(`/ping`)"
+      service: "api@internal"
+
+  services:
+    # ==========================================================================
+    # 📊 SERVIÇOS MÍNIMOS
+    # ==========================================================================
+    # Removido temporariamente para diagnóstico
+    ping-service:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8080"
+
+# =============================================================================
+# Esta configuração permite que o Traefik inicie sem tentar conectar a
+# serviços inexistentes
+# =============================================================================

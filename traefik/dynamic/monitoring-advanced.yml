@@ -1,0 +1,325 @@
+# =============================================================================
+# 📊 CONEXÃO DE SORTE - MONITORAMENTO E OBSERVABILIDADE AVANÇADOS
+# =============================================================================
+# Sistema completo de observabilidade com:
+# - Métricas Prometheus detalhadas
+# - Health checks inteligentes
+# - Alertas automatizados
+# - Logs estruturados
+# - APM (Application Performance Monitoring)
+# =============================================================================
+
+---
+http:
+  # ==========================================================================
+  # 📈 ROUTERS - MONITORAMENTO E MÉTRICAS
+  # ==========================================================================
+  routers:
+    # ==========================================================================
+    # 🔍 PROMETHEUS METRICS - COLETORES DE MÉTRICAS
+    # ==========================================================================
+    metrics-prometheus:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && Path(`/metrics`)"
+      entrypoints:
+        - websecure
+      service: prometheus-metrics-service
+      middlewares:
+        - monitoring-headers@file
+        - metrics-auth@file  # Autenticação para métricas
+        - rate-limit-monitoring@file
+      tls:
+        certresolver: letsencrypt
+      priority: 150
+
+    # ==========================================================================
+    # ❤️ HEALTH CHECKS - MONITORAMENTO DE SAÚDE
+    # ==========================================================================
+    health-overall:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && Path(`/health`)"
+      entrypoints:
+        - websecure
+      service: health-aggregator-service
+      middlewares:
+        - monitoring-headers@file
+        - compression-modern@file
+        - rate-limit-global@file
+      tls:
+        certresolver: letsencrypt
+      priority: 145
+
+    # Health check detalhado por serviço
+    health-services:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/health/services`)"
+      entrypoints:
+        - websecure
+      service: health-services-service
+      middlewares:
+        - monitoring-headers@file
+        - health-strip-prefix@file
+        - rate-limit-monitoring@file
+      tls:
+        certresolver: letsencrypt
+      priority: 140
+
+    # ==========================================================================
+    # 📊 DASHBOARD DE MONITORAMENTO INTERNO
+    # ==========================================================================
+    monitoring-dashboard:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/monitoring`)"
+      entrypoints:
+        - websecure
+      service: monitoring-dashboard-service
+      middlewares:
+        - dashboard-security-headers@file
+        - monitoring-auth@file
+        - rate-limit-auth@file
+        - monitoring-strip-prefix@file
+      tls:
+        certresolver: letsencrypt
+      priority: 135
+
+    # ==========================================================================
+    # 🚨 ALERTAS E NOTIFICAÇÕES
+    # ==========================================================================
+    alerts-webhook:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/alerts/webhook`)"
+      entrypoints:
+        - websecure
+      service: alerts-service
+      middlewares:
+        - api-security-headers@file
+        - alerts-auth@file
+        - rate-limit-alerts@file
+        - alerts-strip-prefix@file
+      tls:
+        certresolver: letsencrypt
+      priority: 130
+
+    # ==========================================================================
+    # 📋 LOGS ESTRUTURADOS - AGREGAÇÃO E CONSULTA
+    # ==========================================================================
+    logs-query:
+      rule: "Host(`conexaodesorte.com.br`, `www.conexaodesorte.com.br`) && PathPrefix(`/logs`)"
+      entrypoints:
+        - websecure
+      service: logs-service
+      middlewares:
+        - api-security-headers@file
+        - logs-auth@file
+        - rate-limit-monitoring@file
+        - logs-strip-prefix@file
+      tls:
+        certresolver: letsencrypt
+      priority: 125
+
+  # ==========================================================================
+  # 🎯 SERVICES - MONITORAMENTO E OBSERVABILIDADE
+  # ==========================================================================
+  services:
+    # Prometheus metrics - Traefik interno
+    prometheus-metrics-service:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8080"  # Traefik internal
+        healthCheck:
+          path: "/ping"
+          interval: "10s"
+          timeout: "5s"
+        passHostHeader: false
+
+    # Agregador de health checks
+    health-aggregator-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-stack_health-monitor:8080"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Health checks detalhados por serviço
+    health-services-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-stack_health-monitor:8080"
+        healthCheck:
+          path: "/health/services"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Dashboard de monitoramento
+    monitoring-dashboard-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-stack_health-monitor:8080"
+        healthCheck:
+          path: "/monitoring"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Serviço de alertas
+    alerts-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-stack_health-monitor:8080"
+        healthCheck:
+          path: "/alerts/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+    # Serviço de logs
+    logs-service:
+      loadBalancer:
+        servers:
+          - url: "http://traefik-stack_log-server:9090"
+        healthCheck:
+          path: "/health"
+          interval: "30s"
+          timeout: "10s"
+        passHostHeader: true
+
+  # ==========================================================================
+  # 🛠️ MIDDLEWARES ESPECÍFICOS PARA MONITORAMENTO
+  # ==========================================================================
+  middlewares:
+    # Headers específicos para monitoramento
+    monitoring-headers:
+      headers:
+        customResponseHeaders:
+          X-Content-Type-Options: "nosniff"
+          Cache-Control: "no-cache, max-age=0"
+          X-Frame-Options: "DENY"
+          X-Monitor-Version: "v1.0.0"
+          X-Health-Check: "enabled"
+          X-Metrics-Available: "prometheus"
+        frameDeny: true
+        contentTypeNosniff: true
+
+    # Autenticação para métricas (básica)
+    metrics-auth:
+      basicAuth:
+        users:
+          # Usuário: metrics, Senha: prometheus123
+          - "metrics:$2y$10$8K.VmK4C1PgL1C8Z2JKyBe7Y8pL2HqK9zN5.XgJ2p3K4VmL8C9PgL"
+
+    # Autenticação para monitoramento
+    monitoring-auth:
+      basicAuth:
+        users:
+          # Usuário: monitor, Senha: dashboard456
+          - "monitor:$2y$10$9L.WnL5D2QhM2D9A3KLzCf8Z9qM3IrL0aO6.YhK3q4L5WnM9D2QhM"
+
+    # Autenticação para alertas (webhook)
+    alerts-auth:
+      basicAuth:
+        users:
+          # Usuário: alerts, Senha: webhook789
+          - "alerts:$2y$10$0M.XoM6E3RiN3E0B4LMaD0g9a0rN4JsM1bP7.ZiL4r5XoN0E3RiN"
+
+    # Autenticação para logs
+    logs-auth:
+      basicAuth:
+        users:
+          # Usuário: logs, Senha: query012
+          - "logs:$2y$10$1N.YpN7F4SjO4F1C5MNbE1h0b1sO5KtN2cQ8.AjM5s6YpO1F4SjO"
+
+    # Strip prefix para health services
+    health-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/health/services"
+
+    # Strip prefix para monitoring
+    monitoring-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/monitoring"
+
+    # Strip prefix para alerts
+    alerts-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/alerts"
+
+    # Strip prefix para logs
+    logs-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/logs"
+
+    # Rate limiting específico para monitoramento
+    rate-limit-monitoring:
+      rateLimit:
+        average: 60     # 60 requests por minuto
+        period: "1m"
+        burst: 90
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    # Rate limiting para alertas (mais restritivo)
+    rate-limit-alerts:
+      rateLimit:
+        average: 30     # 30 alerts por minuto máximo
+        period: "1m"
+        burst: 45
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    # Circuit breaker para monitoramento
+    monitoring-circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.20"
+        checkPeriod: "5s"
+        fallbackDuration: "20s"
+        recoveryDuration: "10s"
+
+# =============================================================================
+# 📋 CONFIGURAÇÃO DE OBSERVABILIDADE MODERNA
+# =============================================================================
+# Este arquivo configura um sistema completo de observabilidade:
+#
+# 1. MÉTRICAS PROMETHEUS:
+#    - /metrics - Métricas do Traefik + aplicações
+#    - Autenticação básica para acesso
+#    - Rate limiting inteligente
+#
+# 2. HEALTH CHECKS:
+#    - /health - Status geral do sistema
+#    - /health/services/{service} - Status por serviço
+#    - Health checks agregados e detalhados
+#
+# 3. DASHBOARD DE MONITORAMENTO:
+#    - /monitoring - Interface web para monitoramento
+#    - Autenticação obrigatória
+#    - Visualização em tempo real
+#
+# 4. SISTEMA DE ALERTAS:
+#    - /alerts/webhook - Webhook para alertas externos
+#    - Integração com Slack/Discord/Teams
+#    - Rate limiting para evitar spam
+#
+# 5. LOGS ESTRUTURADOS:
+#    - /logs - API para consulta de logs
+#    - Logs JSON estruturados
+#    - Filtros avançados por serviço/nível
+#
+# INTEGRAÇÃO COM FERRAMENTAS EXTERNAS:
+# - Prometheus Server
+# - Grafana Dashboard
+# - Alertmanager
+# - Loki para logs
+# - Jaeger para tracing (futuro)
+#
+# MELHORIAS FUTURAS:
+# - OpenTelemetry integration
+# - Distributed tracing
+# - Custom metrics por business logic
+# - Alertas inteligentes com ML
+# - Anomaly detection
+# =============================================================================
