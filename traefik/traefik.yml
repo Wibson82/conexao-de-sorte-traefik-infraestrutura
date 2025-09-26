@@ -50,9 +50,8 @@ entryPoints:
     http:
       middlewares:
         - "rate-limit-global@file"
-    # Configuração avançada de TLS
-    tls:
-      options: modern-tls@file
+      tls:
+        options: modern-tls@file
 
   # Dashboard interno - Apenas interno
   traefik-internal:
