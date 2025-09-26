@@ -8,27 +8,24 @@ set -e
 
 echo "🚀 Iniciando Log Server..."
 
-# Configurar crontab para monitoramento a cada 30 segundos
-echo "📊 Configurando crontab para monitoramento a cada 30 segundos..."
-cat > /tmp/crontab <<EOF
-# Execução a cada 30 segundos (00:00 e 00:30)
-* * * * * /app/scripts/cronjob-monitor.sh
-* * * * * sleep 30; /app/scripts/cronjob-monitor.sh
-EOF
-crontab /tmp/crontab
-rm /tmp/crontab
-
-echo "✅ Crontab configurado: execução a cada 30 segundos"
-
 # Executar monitoramento inicial
 echo "📈 Executando monitoramento inicial..."
 /app/scripts/server-monitor.sh || echo "⚠️ Primeiro monitoramento pode falhar - containers ainda inicializando"
 
-# Iniciar cron em background
-echo "⏰ Iniciando cron daemon..."
-crond -L /app/logs/cron.log
+# Função para loop de monitoramento em background
+monitor_loop() {
+    while true; do
+        sleep 30
+        echo "📊 $(date): Executando monitoramento automático..."
+        /app/scripts/server-monitor.sh || echo "⚠️ Erro no monitoramento - continuando..."
+    done
+}
 
-# Aguardar um momento para o cron estabilizar
+# Iniciar loop de monitoramento em background
+echo "⏰ Iniciando monitoramento automático a cada 30 segundos..."
+monitor_loop &
+
+# Aguardar um momento para estabilizar
 sleep 2
 
 # Iniciar servidor web

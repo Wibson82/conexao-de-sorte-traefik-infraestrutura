@@ -19,7 +19,6 @@ RUN apk add --no-cache \
     bc \
     curl \
     jq \
-    dcron \
     && rm -rf /var/cache/apk/*
 
 # Criar usuário não-privilegiado
