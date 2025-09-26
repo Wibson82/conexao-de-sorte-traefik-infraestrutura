@@ -19,12 +19,6 @@ services:
   # ===========================================================================
   health-monitor:
     image: nginx:alpine
-    # build context para desenvolvimento local (ignorado no Swarm)
-    # build:
-    #   context: .
-    #   dockerfile: health-server/Dockerfile
-    user: "root:root"
-    restart: "on-failure:10"
     networks:
       - conexao-network-swarm
     volumes:
@@ -96,8 +90,6 @@ services:
   # ===========================================================================
   log-server:
     image: log-server:latest
-    user: "1000:1000"  # Usar usuário logserver definido no Dockerfile
-    restart: "on-failure:10"
     networks:
       - conexao-network-swarm
     volumes:
@@ -157,11 +149,6 @@ services:
     # 🔧 CONFIGURAÇÃO BÁSICA
     # ==========================================================================
     image: traefik:v3.5.2  # Versão estável disponível
-    # CONFLITO RESOLVIDO: container_name removido para compatibilidade Swarm
-    restart: unless-stopped
-    # Sem user específico - Docker Swarm gerencia automaticamente
-    init: true
-    stop_grace_period: 60s
 
     # ==========================================================================
     # 🌐 NETWORK & PORTS
