@@ -135,13 +135,13 @@ services:
         - traefik.swarm.network=conexao-network-swarm
 
         # Endpoint principal HTTPS - domínio e IP
-        - traefik.http.routers.log-servidor.rule=HostRegexp(`{host:(www\\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && Path(`/rest/v1/log-servidor`)
+        - traefik.http.routers.log-servidor.rule=HostRegexp(`{host:(www\\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && PathPrefix(`/rest/v1/log-servidor`)
         - traefik.http.routers.log-servidor.entrypoints=websecure
         - traefik.http.routers.log-servidor.tls.certresolver=letsencrypt
         - traefik.http.routers.log-servidor.service=log-server-service
 
         # Endpoint HTTP para IP direto (SEM SSL - mais simples)
-        - traefik.http.routers.log-servidor-http.rule=Host(`145.223.31.87`) && Path(`/rest/v1/log-servidor`)
+        - traefik.http.routers.log-servidor-http.rule=Host(`145.223.31.87`) && PathPrefix(`/rest/v1/log-servidor`)
         - traefik.http.routers.log-servidor-http.entrypoints=web
         - traefik.http.routers.log-servidor-http.service=log-server-service
 
