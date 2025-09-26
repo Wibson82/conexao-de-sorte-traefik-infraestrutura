@@ -31,7 +31,7 @@ http:
       entrypoints:
         - web
       middlewares:
-        - https-redirect@file
+        - redirect-to-https@file
       service: frontend-service
 
     # ==========================================================================

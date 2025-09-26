@@ -10,8 +10,8 @@ http:
     gzip-compress:
       compress: {}
 
-    # HTTPS redirect middleware
-    https-redirect:
+    # HTTPS redirect middleware (renamed to avoid conflicts)
+    redirect-to-https:
       redirectScheme:
         scheme: https
         permanent: true
@@ -76,11 +76,6 @@ http:
             depth: 1
 
     redirect-to-https:
-      redirectScheme:
-        scheme: https
-        permanent: true
-
-    https-redirect:
       redirectScheme:
         scheme: https
         permanent: true
