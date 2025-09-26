@@ -111,13 +111,46 @@ wait_for_health() {
     return 1
 }
 
+# Função para garantir que as imagens estão disponíveis
+pull_required_images() {
+    log "📥 Verificando e baixando imagens necessárias..."
+
+    # Lista de imagens do docker-compose.yml
+    local images=(
+        "traefik:v3.5.2"
+        "nginx:alpine"
+        "python:3.11-alpine"
+    )
+
+    for image in "${images[@]}"; do
+        log "Verificando imagem: $image"
+        if ! docker image inspect "$image" >/dev/null 2>&1; then
+            log "⬇️  Baixando $image..."
+            if docker pull "$image"; then
+                success "Imagem $image baixada com sucesso"
+            else
+                error "Falha ao baixar $image"
+                return 1
+            fi
+        else
+            success "Imagem $image já disponível"
+        fi
+    done
+}
+
 # FASE 1: Infraestrutura Base
 deploy_phase1() {
     log "🏗️  FASE 1: INFRAESTRUTURA BASE"
-    
+
+    # Garantir que as imagens estão disponíveis
+    pull_required_images || {
+        error "Falha ao verificar/baixar imagens necessárias"
+        return 1
+    }
+
     # Traefik (Load Balancer) - PRODUÇÃO
     log "Deployando Traefik (configuração de produção segura)..."
-    
+
     # PRODUÇÃO: Priorizar Docker Swarm
     if docker info --format '{{.Swarm.LocalNodeState}}' | grep -q "active"; then
         log "✅ Modo Docker Swarm (PRODUÇÃO) - usando stack deploy"

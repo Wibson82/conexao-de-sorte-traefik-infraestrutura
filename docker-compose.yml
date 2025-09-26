@@ -152,7 +152,7 @@ services:
     # ==========================================================================
     # 🔧 CONFIGURAÇÃO BÁSICA
     # ==========================================================================
-    image: traefik:v3.5.3
+    image: traefik:v3.5.2  # Versão estável disponível
     # CONFLITO RESOLVIDO: container_name removido para compatibilidade Swarm
     restart: unless-stopped
     # Sem user específico - Docker Swarm gerencia automaticamente

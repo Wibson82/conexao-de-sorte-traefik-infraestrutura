@@ -39,14 +39,40 @@ jobs:
         run: |
           echo "📋 Validating YAML syntax..."
           yaml_count=0
+          error_count=0
+
+          # Instalar yamllint para validação adequada
+          pip install yamllint
+
           for file in $(find . -name "*.yaml" -o -name "*.yml" | grep -v ".github"); do
             echo "Validating: $file"
             yaml_count=$((yaml_count + 1))
-            if ! kubectl --dry-run=client apply -f "$file" 2>/dev/null; then
-              echo "⚠️ Warning: $file may have issues (this is normal for templates)"
+
+            # Usar yamllint em vez de kubectl para arquivos Docker Compose
+            if [[ "$file" == *"docker-compose"* ]] || [[ "$file" == *"traefik"* ]]; then
+              if ! yamllint -d relaxed "$file" >/dev/null 2>&1; then
+                echo "❌ YAML syntax error in: $file"
+                error_count=$((error_count + 1))
+              fi
+            elif [[ "$file" == *"k8s/"* ]] || [[ "$file" == *"kubernetes/"* ]]; then
+              # Apenas aplicar kubectl em arquivos realmente Kubernetes
+              if ! kubectl --dry-run=client apply -f "$file" 2>/dev/null; then
+                echo "⚠️ Kubernetes validation warning: $file"
+              fi
+            else
+              # Validação geral de sintaxe YAML
+              if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+                echo "❌ YAML syntax error in: $file"
+                error_count=$((error_count + 1))
+              fi
             fi
           done
+
           echo "✅ Validated $yaml_count YAML files"
+          if [ $error_count -gt 0 ]; then
+            echo "❌ Found $error_count YAML syntax errors"
+            exit 1
+          fi
           
       - name: "🔒 Security Validation"
         run: |

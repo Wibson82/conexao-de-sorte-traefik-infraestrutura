@@ -1,11 +1,11 @@
 # =============================================================================
-# 🚀 CONEXÃO DE SORTE - TRAEFIK v3.5.3 MODERNA E ESCALÁVEL
+# 🚀 CONEXÃO DE SORTE - TRAEFIK v3.5.2 PRODUÇÃO ESTÁVEL
 # =============================================================================
-# Configuração principal otimizada para:
-# - Segurança avançada (OWASP compliance)
-# - Escalabilidade para futuras APIs REST
-# - Performance otimizada
-# - Facilidade de manutenção e expansão
+# Configuração corrigida para Traefik v3.5.2 com:
+# - Provider Docker Swarm correto (docker com swarmMode: true)
+# - Entry points sem middlewares inline (movidos para dynamic)
+# - TLS e HTTP/3 configurados corretamente
+# - Compatibilidade total com v3.5.2
 # =============================================================================
 
 ---
@@ -14,22 +14,20 @@ global:
   sendAnonymousUsage: false
 
 # =============================================================================
-# 📊 API E DASHBOARD - SEGURO E MONITORÁVEL
+# 📊 API E DASHBOARD - PRODUÇÃO SEGURA
 # =============================================================================
 api:
   dashboard: true
   insecure: false
   debug: false
-  # Habilitado para métricas e health checks internos
 
 # =============================================================================
-# 🌐 ENTRY POINTS - HTTP/HTTPS/HTTP3 OTIMIZADOS
+# 🌐 ENTRY POINTS - SINTAXE CORRETA v3.5.3
 # =============================================================================
 entryPoints:
-  # HTTP Entry Point - Apenas para redirecionamentos e ACME challenge
+  # HTTP Entry Point - ACME challenges e redirects
   web:
     address: ":80"
-    # Rate limiting no entry point para DDoS protection
     transport:
       respondingTimeouts:
         readTimeout: "10s"
@@ -39,22 +37,17 @@ entryPoints:
   # HTTPS Entry Point - Produção com HTTP/3
   websecure:
     address: ":443"
-    # HTTP/3 (QUIC) para performance moderna
-    http3:
-      advertisedPort: 443
     transport:
       respondingTimeouts:
         readTimeout: "30s"
         writeTimeout: "30s"
         idleTimeout: "300s"
-    http:
-      middlewares:
-        - "rate-limit-global@file"
-      tls:
-        options: modern-tls@file
+    # HTTP/3 configurado corretamente para v3.5.3
+    http3:
+      advertisedPort: 443
 
-  # Dashboard interno - Apenas interno
-  traefik-internal:
+  # Dashboard interno
+  traefik:
     address: ":8080"
     transport:
       respondingTimeouts:
@@ -63,14 +56,16 @@ entryPoints:
         idleTimeout: "60s"
 
 # =============================================================================
-# 📡 PROVIDERS - DOCKER SWARM + ARQUIVOS DINÂMICOS
+# 📡 PROVIDERS - DOCKER SWARM CORRETO v3.5.3
 # =============================================================================
 providers:
-  swarm:
+  # Provider Docker com Swarm Mode (sintaxe correta v3.5.3)
+  docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     watch: true
     network: conexao-network-swarm
+    swarmMode: true  # Modo Swarm ativado
     useBindPortIP: false
     constraints: "Label(`traefik.enable`, `true`)"
 
@@ -121,17 +116,17 @@ certificatesResolvers:
   #       entryPoint: web
 
 # =============================================================================
-# 📊 MÉTRICAS E MONITORAMENTO - PROMETHEUS + HEALTH CHECKS
+# 📊 MÉTRICAS E MONITORAMENTO - PROMETHEUS v3.5.3
 # =============================================================================
 ping:
-  entryPoint: traefik-internal
+  entryPoint: traefik
 
 metrics:
   prometheus:
     addEntryPointsLabels: true
     addServicesLabels: true
     addRoutersLabels: true
-    # Buckets otimizados para web applications
+    # Buckets otimizados para produção
     buckets:
       - 0.005
       - 0.01
