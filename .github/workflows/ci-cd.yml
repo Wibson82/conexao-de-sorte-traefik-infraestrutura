@@ -25,16 +25,16 @@ jobs:
     name: "🔍 Validate Infrastructure Component"
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - name: "📥 Checkout Repository"
         uses: actions/checkout@v4
-        
+
       - name: "🔧 Setup kubectl"
         uses: azure/setup-kubectl@v3
         with:
           version: ${{ env.KUBECTL_VERSION }}
-          
+
       - name: "📋 Validate YAML Files"
         run: |
           echo "📋 Validating YAML syntax..."
@@ -73,7 +73,7 @@ jobs:
             echo "❌ Found $error_count YAML syntax errors"
             exit 1
           fi
-          
+
       - name: "🔒 Security Validation"
         run: |
           echo "🔒 Checking for security issues..."
@@ -105,11 +105,11 @@ jobs:
           fi
 
           echo "✅ Security validation passed - no critical issues found"
-          
+
       - name: "🧪 Test Scripts"
         run: |
           echo "🧪 Testing executable scripts..."
-          
+
           script_count=0
           for script in $(find . -name "*.sh"); do
             echo "Testing: $script"
@@ -119,28 +119,28 @@ jobs:
               exit 1
             fi
           done
-          
+
           if [ $script_count -eq 0 ]; then
             echo "ℹ️ No shell scripts found"
           else
             echo "✅ All $script_count scripts have valid syntax"
           fi
-          
+
       - name: "📋 Validate Documentation"
         run: |
           echo "📋 Checking documentation..."
-          
+
           if [ ! -f "README.md" ]; then
             echo "❌ README.md not found"
             exit 1
           fi
-          
+
           if [ ! -f ".gitignore" ]; then
             echo "⚠️ .gitignore not found"
           fi
-          
+
           echo "✅ Documentation validation passed"
-          
+
       - name: "📊 Generate Report"
         run: |
           echo "📊 Infrastructure Component Validation Report"
@@ -200,9 +200,6 @@ jobs:
           # Limpar networks não utilizadas
           docker network prune -f || echo "Falha ao limpar networks órfãs"
 
-          # Remover imagens antigas do log-server se existirem
-          docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | grep "log-server" | grep -v "latest" | awk '{print $2}' | xargs -r docker rmi -f || echo "Nenhuma imagem log-server antiga para remover"
-
           echo "✅ Limpeza de legado concluída"
 
           # Stop existing services safely
@@ -238,6 +235,7 @@ jobs:
 
           # Deploy the stack with log server
           echo "🏗️ Deploying Traefik stack with Log Server..."
+          echo "🏗️ Deploying Traefik stack..."
           docker stack deploy -c docker-compose.yml "$STACK_NAME" --with-registry-auth
 
           # Wait for services to start
@@ -251,6 +249,7 @@ jobs:
           # Check health of critical services
           echo "🏥 Checking service health..."
           for service in traefik log-server health-monitor; do
+          for service in traefik health-monitor; do
             if docker service ls --filter name="${STACK_NAME}_${service}" --format "{{.Name}}" | grep -q .; then
               echo "✅ Service ${service} deployed"
             else
@@ -361,7 +360,7 @@ jobs:
     needs: [validate, deploy-selfhosted]
     if: always()
     timeout-minutes: 2
-    
+
     steps:
       - name: "📊 Generate Summary"
         run: |
