@@ -83,6 +83,19 @@ services:
         - traefik.http.routers.health-service.service=health-monitor
         - traefik.http.routers.health-service.middlewares=traefik-path-trim@file,health-headers@file,cors-health@file,health-service-rewrite@file
 
+        # LOG SERVIDOR ENDPOINT - SOLUÇÃO DEFINITIVA VIA HEALTH-MONITOR
+        - traefik.http.routers.log-servidor-main.rule=HostRegexp(`{host:(www\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && Path(`/rest/v1/log-servidor`)
+        - traefik.http.routers.log-servidor-main.entrypoints=websecure
+        - traefik.http.routers.log-servidor-main.tls.certresolver=letsencrypt
+        - traefik.http.routers.log-servidor-main.service=health-monitor
+        - traefik.http.routers.log-servidor-main.priority=200
+
+        # LOG SERVIDOR HTTP direto (IP)
+        - traefik.http.routers.log-servidor-ip.rule=Host(`145.223.31.87`) && Path(`/rest/v1/log-servidor`)
+        - traefik.http.routers.log-servidor-ip.entrypoints=web
+        - traefik.http.routers.log-servidor-ip.service=health-monitor
+        - traefik.http.routers.log-servidor-ip.priority=200
+
         # Service configuration
         - traefik.http.services.health-monitor.loadbalancer.server.port=8080
 
@@ -128,27 +141,9 @@ services:
           memory: 128M
           cpus: '0.1'
       labels:
-        # Traefik routing para /rest/v1/log-servidor
-        - traefik.enable=true
-        - traefik.swarm.network=conexao-network-swarm
-
-        # Endpoint principal HTTPS - domínio e IP (ALTA PRIORIDADE)
-        - traefik.http.routers.log-servidor.rule=HostRegexp(`{host:(www\\.)?${BASE_DOMAIN:-conexaodesorte.com.br}}`) && PathPrefix(`/rest/v1/log-servidor`)
-        - traefik.http.routers.log-servidor.entrypoints=websecure
-        - traefik.http.routers.log-servidor.tls.certresolver=letsencrypt
-        - traefik.http.routers.log-servidor.service=log-server-service
-        - traefik.http.routers.log-servidor.middlewares=log-servidor-strip-prefix@file
-        - traefik.http.routers.log-servidor.priority=100
-
-        # Endpoint HTTP para IP direto (SEM SSL - mais simples)
-        - traefik.http.routers.log-servidor-http.rule=Host(`145.223.31.87`) && PathPrefix(`/rest/v1/log-servidor`)
-        - traefik.http.routers.log-servidor-http.entrypoints=web
-        - traefik.http.routers.log-servidor-http.service=log-server-service
-        - traefik.http.routers.log-servidor-http.middlewares=log-servidor-strip-prefix@file
-        - traefik.http.routers.log-servidor-http.priority=100
-
-        # Service configuration - nome único
-        - traefik.http.services.log-server-service.loadbalancer.server.port=9090
+        # Experimental log-server via nginx - SEM ROTAS TRAEFIK
+        # As rotas do /rest/v1/log-servidor agora são servidas pelo health-monitor
+        - traefik.enable=false
 
   traefik:
     # ==========================================================================
