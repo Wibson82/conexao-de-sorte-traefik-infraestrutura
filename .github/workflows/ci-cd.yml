@@ -167,7 +167,7 @@ jobs:
 
       - name: "🐳 Deploy Traefik Infrastructure"
         run: |
-          echo "🚀 Deploying Traefik Infrastructure with Log Server..."
+          echo "🚀 Deploying Traefik Infrastructure..."
 
           STACK_NAME="${STACK_NAME:-conexao-traefik}"
           LEGACY_STACK="traefik-stack"
@@ -234,13 +234,11 @@ jobs:
           docker ps -a --filter name=traefik --format "{{.ID}}" | xargs -r docker rm -f || true
 
           # Deploy the stack with log server
-          echo "🏗️ Deploying Traefik stack with Log Server..."
           echo "🏗️ Deploying Traefik stack..."
           docker stack deploy -c docker-compose.yml "$STACK_NAME" --with-registry-auth
 
           # Wait for services to start
           echo "⏳ Waiting for services to initialize..."
-          sleep 30
 
           # Verify deployment
           echo "🔍 Verifying deployment..."
@@ -248,7 +246,6 @@ jobs:
 
           # Check health of critical services
           echo "🏥 Checking service health..."
-          for service in traefik log-server health-monitor; do
           for service in traefik health-monitor; do
             if docker service ls --filter name="${STACK_NAME}_${service}" --format "{{.Name}}" | grep -q .; then
               echo "✅ Service ${service} deployed"
@@ -315,13 +312,6 @@ jobs:
 
           # Test critical endpoints (if accessible locally on runner)
           echo "🌐 Testing endpoints on runner..."
-
-          # Test log server health
-          if curl -f http://localhost:9090/health 2>/dev/null; then
-            echo "✅ Log server health endpoint responding on runner"
-          else
-            echo "⚠️ Log server not accessible on runner port 9090"
-          fi
 
           # Validate public domains for the React frontend
           echo "🌐 Validating public domains..."
